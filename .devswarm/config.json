@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "setup": "dotnet restore && dotnet tool restore"
+  },
+  "worktreeInclude": [
+    ".env"
+  ]
+}
