@@ -30,8 +30,8 @@
 - [ ] T011 — Standardize API response envelope
 - [x] T012 — Add request/correlation ID middleware
 - [x] T013 — Integrate request ID with Serilog structured logging
-- [ ] T014 — Add global exception handling
-- [ ] T015 — Add ProblemDetails for unexpected errors
+- [x] T014 — Add global exception handling
+- [x] T015 — Add ProblemDetails for unexpected errors
 - [ ] T016 — Add consistent validation error response
 - [ ] T017 — Establish API versioning strategy
 - [ ] T018 — Establish UTC/DateTimeOffset conventions

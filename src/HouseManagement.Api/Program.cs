@@ -75,6 +75,9 @@ if (app.Environment.IsDevelopment())
 // Request/correlation ID middleware must run before Serilog request logging so the RequestId is included in logs
 app.UseMiddleware<HouseManagement.Api.Common.Middleware.RequestIdMiddleware>();
 
+// Global exception handling -> ProblemDetails
+app.UseMiddleware<HouseManagement.Api.Common.Middleware.ExceptionHandlingMiddleware>();
+
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 
