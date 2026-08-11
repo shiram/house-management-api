@@ -35,7 +35,8 @@ public class AuthController : ControllerBase
             UserName = req.UserName,
             Email = req.Email,
             PasswordHash = _hasher.Hash(req.Password),
-            Role = string.IsNullOrWhiteSpace(req.Role) ? "househelp" : req.Role
+            // Force default role for self-registered users. Elevated roles must be assigned by an admin.
+            Role = "househelp"
         };
 
         _db.Users.Add(user);
