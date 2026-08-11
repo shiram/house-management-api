@@ -1,0 +1,31 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+:root {
+  --primary: #155EEF;
+  --text: #111827;
+  --bg-page: #F5F7FA;
+  --card: #FFFFFF;
+  --muted: #64748B;
+  --border: #E2E8F0;
+  --success: #15803D;
+  --warning: #D97706;
+  --danger: #DC2626;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+.app-shell .navbar {
+  background: var(--card);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+
+

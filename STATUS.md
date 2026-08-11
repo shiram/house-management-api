@@ -1,0 +1,86 @@
+# House Management — AI Development Status
+
+Last updated: 2026-08-11T13:07:45+03:00 — Authentication & infra inspection
+
+## Inspection summary
+
+Performed a focused review of:
+- database setup and HouseContext
+- User model and authentication DTOs
+- Password hashing implementation
+- JWT generation and validation
+- AuthController endpoints
+- Program.cs (DI, JWT, Serilog)
+- Serilog configuration and appsettings
+
+Notes below list what is correct, what to preserve, what should change eventually, security issues, architectural risks, and dependencies for next tasks.
+
+## What is already correct
+
+- .NET 8 Web API scaffold and minimal Program.cs startup pattern.
+- EF Core DbContext (HouseContext) and Users DbSet exist.
+- User model includes expected fields (Id, UserName, Email, PasswordHash, Role, timestamps).
+- Authentication DTOs (RegisterRequest, LoginRequest, AuthResponse) present and used.
+- PasswordHasher uses PBKDF2 (Rfc2898DeriveBytes) with SHA256, 100k iterations, per-user salt and fixed-time comparison — good practice.
+- TokenService issues JWTs with standard claims and role claim; JwtBearer is configured in Program.cs.
+- Serilog is configured in appsettings.json and integrated (UseSerilog, UseSerilogRequestLogging).
+- Dependency injection registrations for IPasswordHasher and ITokenService are present.
+
+## What should be preserved
+
+- PasswordHasher implementation (do not replace with a weaker approach).
+- TokenService claim generation (subject, unique name, email, role) and signing with a symmetric key.
+- AuthController endpoints and basic flow (register, login) while tightening validation/authorization around role assignment.
+- Serilog configuration and request-logging integration.
+
+## What should eventually change (planned improvements)
+
+- Move all secrets (JWT key, DB passwords) out of committed appsettings into environment/config or secret store; treat appsettings.json as non-secret.
+- Use the options pattern (IOptions<T>) for JWT and hashing configuration rather than reading IConfiguration directly in multiple places.
+- Enforce production-safe JwtBearer options (RequireHttpsMetadata = true in prod) and validate token parameters (clock skew, token lifetime policy).
+- Add refresh-token support and token revocation strategy if long-lived sessions are needed.
+- Store hashing parameters/version in config and make iterations/salt length configurable for future upgrades.
+- Introduce EF entity configurations, explicit migrations, and DB constraints (unique indexes on Email and UserName) with migration scripts checked into source.
+- Replace DateTime with DateTimeOffset for persisted timestamps where the architecture demands it (AGENTS.md prefers DateTimeOffset).
+- Harden register endpoint so arbitrary role assignment is not allowed (only admin can set roles).
+- Add validation (request body validation), rate limiting on auth endpoints, and account lockout policies for repeated failures.
+- Add global exception handling, ProblemDetails responses, request/correlation ID middleware, and integrate correlation ID with Serilog.
+
+## Potential security issues (high priority)
+
+- appsettings.json contains a default JWT key string placeholder; if not overridden via env var this is weak and dangerous.
+- Register endpoint allows client-supplied Role — privilege escalation risk. Must validate or restrict to safe defaults.
+- RequireHttpsMetadata is set to false — acceptable for local development only; must be true in production.
+- No rate limiting, no account lockout, no brute-force protections on login/register.
+- No refresh token / revocation mechanism — tokens cannot be revoked until they expire.
+- No explicit uniqueness constraints on Users (Email/UserName) at DB level — potential for duplicates/race conditions.
+- No validation of password strength or complexity.
+
+## Potential architectural risks
+
+- Project currently uses top-level Controllers/Services layout; ARCHITECTURE.md prefers modular vertical-slices for long-term scalability and parallel work.
+- Minimal HouseContext with no entity configurations or migrations increases risk of schema drift and brittle deployments.
+- TokenService and PasswordHasher read configuration/parameters directly; moving to options pattern will improve testability and maintainability.
+- Using LocalDB in appsettings.json is not suitable for production deployments.
+- No authorization policies are defined (only AddAuthorization call) — role policies (Admin/Manager/HouseHelp) need to be codified.
+
+## Dependencies for next tasks
+
+- Add EF Core Migrations, initial migration, and DB deployment guidance (T040/T041).
+- Introduce configuration for secrets (env vars, CI secrets, or a secret store) and update README/docs (T003/T005).
+- Add validation middleware (FluentValidation optional) and ProblemDetails/global error handling (T010/T014/T015).
+- Add request/correlation ID middleware and integrate with Serilog (T012/T013).
+- Design and implement role-based authorization policies (T024/T025).
+- Add rate limiting and account lockout mechanisms for auth endpoints (T280/T289).
+
+## Recommended immediate actions (small, high-value)
+
+1. Ensure JWT secret is provided via environment (CI/host) and not relying on appsettings default. Document required env vars.
+2. Add unique constraints/indexes for Users.Email and Users.UserName via a migration.
+3. Disallow client-specified Role in RegisterRequest (or validate allowed values and require admin to create elevated users).
+4. Enable RequireHttpsMetadata in production and document development exceptions.
+5. Add basic request validation and password complexity checks on RegisterRequest.
+
+---
+
+Update performed by automated inspection task. Do not modify application code in this pass; follow-up tasks should implement the changes above incrementally and include tests/migrations.
