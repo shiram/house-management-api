@@ -94,6 +94,6 @@ Recent actions (2026-08-11T16:15+03:00):
 Next recommended actions: None immediate; T014 and T015 implemented: global exception handling (ExceptionHandlingMiddleware) returning ProblemDetails for unexpected errors. Request/correlation ID middleware (T012) and Serilog integration (T013) implemented.
 
 Follow-ups:
-- Harden Register endpoint to disallow client-supplied Role (security) — T025.
+- Harden Register endpoint to disallow client-supplied Role (security) — implemented (self-registration now forces role = 'househelp').
 - Add unique DB constraints and migrations for Users.Email and Users.UserName — T040.
 - Address System.IdentityModel.Tokens.Jwt advisory when scheduling dependency upgrades.
