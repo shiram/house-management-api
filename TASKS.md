@@ -28,8 +28,8 @@
 
 - [x] T010 — Introduce Common API infrastructure without breaking existing endpoints
 - [ ] T011 — Standardize API response envelope
-- [ ] T012 — Add request/correlation ID middleware
-- [ ] T013 — Integrate request ID with Serilog structured logging
+- [x] T012 — Add request/correlation ID middleware
+- [x] T013 — Integrate request ID with Serilog structured logging
 - [ ] T014 — Add global exception handling
 - [ ] T015 — Add ProblemDetails for unexpected errors
 - [ ] T016 — Add consistent validation error response

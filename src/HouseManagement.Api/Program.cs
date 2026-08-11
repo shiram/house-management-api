@@ -72,6 +72,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Request/correlation ID middleware must run before Serilog request logging so the RequestId is included in logs
+app.UseMiddleware<HouseManagement.Api.Common.Middleware.RequestIdMiddleware>();
+
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 

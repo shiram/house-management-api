@@ -91,4 +91,4 @@ Recent actions (2026-08-11T16:15+03:00):
 - T006 completed: Project builds after resolving package version downgrades.
 - T010 started/completed (minimal): Added Common.Api.ApiResponse<T> and CommonServiceExtensions.AddCommonServices() and wired into Program.cs to introduce a safe common infra extension point.
 
-Next recommended actions: implement request/correlation ID middleware (T012) and global exception handling (T014/T015).
+Next recommended actions: global exception handling and ProblemDetails (T014/T015). Request/correlation ID middleware (T012) and Serilog integration (T013) were implemented.
