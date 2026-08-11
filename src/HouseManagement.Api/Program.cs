@@ -29,6 +29,9 @@ builder.Services.AddDbContext<HouseContext>(options =>
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
+// HouseHelp domain service
+builder.Services.AddScoped<IHouseHelpService, HouseHelpService>();
+
 // JWT configuration
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var key = jwtSection["Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "PleaseSetASecretKeyInEnv";

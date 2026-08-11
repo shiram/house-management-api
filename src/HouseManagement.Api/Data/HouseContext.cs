@@ -10,4 +10,6 @@ public class HouseContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<HouseHelp> HouseHelps { get; set; }
+    public DbSet<HouseHelpSkill> HouseHelpSkills { get; set; }
 }
