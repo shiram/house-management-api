@@ -84,3 +84,11 @@ Notes below list what is correct, what to preserve, what should change eventuall
 ---
 
 Update performed by automated inspection task. Do not modify application code in this pass; follow-up tasks should implement the changes above incrementally and include tests/migrations.
+
+Recent actions (2026-08-11T16:15+03:00):
+- T002 completed: PROJECT-STRUCTURE.md added documenting repository layout and authentication extension points.
+- T003 completed: README.local.md added with local dev instructions.
+- T006 completed: Project builds after resolving package version downgrades.
+- T010 started/completed (minimal): Added Common.Api.ApiResponse<T> and CommonServiceExtensions.AddCommonServices() and wired into Program.cs to introduce a safe common infra extension point.
+
+Next recommended actions: implement request/correlation ID middleware (T012) and global exception handling (T014/T015).

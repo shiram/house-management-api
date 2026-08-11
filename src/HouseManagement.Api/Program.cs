@@ -3,6 +3,7 @@ using Serilog;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using HouseManagement.Api.Common;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -18,6 +19,9 @@ builder.Host.UseSerilog();
 
 // Add services
 builder.Services.AddControllers();
+// Common API infrastructure (minimal, non-breaking)
+builder.Services.AddCommonServices();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
