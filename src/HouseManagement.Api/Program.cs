@@ -3,6 +3,7 @@ using Serilog;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using HouseManagement.Api.Common;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -18,6 +19,9 @@ builder.Host.UseSerilog();
 
 // Add services
 builder.Services.AddControllers();
+// Common API infrastructure (minimal, non-breaking)
+builder.Services.AddCommonServices();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -70,6 +74,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Request/correlation ID middleware must run before Serilog request logging so the RequestId is included in logs
+app.UseMiddleware<HouseManagement.Api.Common.Middleware.RequestIdMiddleware>();
+
+// Global exception handling -> ProblemDetails
+app.UseMiddleware<HouseManagement.Api.Common.Middleware.ExceptionHandlingMiddleware>();
 
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();

@@ -14,11 +14,11 @@
 # PHASE 0 — Project Baseline
 
 - [x] T001 — Inspect and preserve existing .NET 8 project, SQL Server setup, Serilog, User model, DTOs, JWT and AuthController
-- [ ] T002 — Document the current project structure and identify existing authentication extension points
-- [ ] T003 — Create a repeatable local development README
+- [x] T002 — Document the current project structure and identify existing authentication extension points
+- [x] T003 — Create a repeatable local development README
 - [ ] T004 — Add `.gitignore` entries for .NET, Angular, VS Code, DevSwarm and local secrets
 - [ ] T005 — Add environment/configuration documentation without committing secrets
-- [ ] T006 — Verify `dotnet build` and existing tests
+- [x] T006 — Verify `dotnet build` and existing tests
 - [ ] T007 — Create initial Angular 21 workspace under `frontend/house-management-web`
 - [ ] T008 — Verify Angular strict mode, routing and standalone component configuration
 
@@ -26,12 +26,12 @@
 
 # PHASE 1 — Backend Foundation
 
-- [ ] T010 — Introduce Common API infrastructure without breaking existing endpoints
+- [x] T010 — Introduce Common API infrastructure without breaking existing endpoints
 - [ ] T011 — Standardize API response envelope
-- [ ] T012 — Add request/correlation ID middleware
-- [ ] T013 — Integrate request ID with Serilog structured logging
-- [ ] T014 — Add global exception handling
-- [ ] T015 — Add ProblemDetails for unexpected errors
+- [x] T012 — Add request/correlation ID middleware
+- [x] T013 — Integrate request ID with Serilog structured logging
+- [x] T014 — Add global exception handling
+- [x] T015 — Add ProblemDetails for unexpected errors
 - [ ] T016 — Add consistent validation error response
 - [ ] T017 — Establish API versioning strategy
 - [ ] T018 — Establish UTC/DateTimeOffset conventions
@@ -41,7 +41,7 @@
 - [ ] T022 — Add OpenAPI/Swagger conventions and authentication support
 - [ ] T023 — Add integration test infrastructure
 - [ ] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
-- [ ] T025 — Review existing JWT claims and role authorization for compatibility with the new policies
+- [~] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (started: hardened register endpoint to prevent client role assignment)
 
 ---
 
