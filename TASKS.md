@@ -41,7 +41,7 @@
 - [ ] T022 — Add OpenAPI/Swagger conventions and authentication support
 - [ ] T023 — Add integration test infrastructure
 - [ ] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
-- [~] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (started: hardened register endpoint to prevent client role assignment)
+- [x] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (started: hardened register endpoint to prevent client role assignment) — policies added and centralized role constants
 
 ---
 

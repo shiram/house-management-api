@@ -20,9 +20,9 @@ public class HouseHelpsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? city, [FromQuery] string? skill, [FromQuery] bool? isActive, [FromQuery] int? page, [FromQuery] int? pageSize)
     {
-        var items = await _svc.GetAllAsync();
+        var items = await _svc.GetFilteredAsync(city, skill, isActive, page, pageSize);
         var dtos = items.Select(h => new HouseManagement.Api.DTOs.HouseHelpDto
         {
             Id = h.Id,
@@ -58,7 +58,7 @@ public class HouseHelpsController : ControllerBase
         return Ok(dto);
     }
 
-    [Authorize(Roles = "admin,manager")]
+    [Authorize(Policy = "RequireManagerOrAdmin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateHouseHelpRequest req)
     {
@@ -89,7 +89,7 @@ public class HouseHelpsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = dto.Id }, dto);
     }
 
-    [Authorize(Roles = "admin,manager")]
+    [Authorize(Policy = "RequireManagerOrAdmin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateHouseHelpRequest req)
     {
@@ -108,7 +108,7 @@ public class HouseHelpsController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Roles = "admin,manager")]
+    [Authorize(Policy = "RequireManagerOrAdmin")]
     [HttpPut("{id}/activate")]
     public async Task<IActionResult> SetActive(int id, [FromQuery] bool active = true)
     {

@@ -64,7 +64,13 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Centralized policies reference role constants in Common/Roles.cs
+    options.AddPolicy("RequireAdmin", policy => policy.RequireRole(Roles.Admin));
+    options.AddPolicy("RequireManagerOrAdmin", policy => policy.RequireRole(Roles.Manager, Roles.Admin));
+    options.AddPolicy("RequireHouseHelp", policy => policy.RequireRole(Roles.HouseHelp));
+});
 
 var app = builder.Build();
 
