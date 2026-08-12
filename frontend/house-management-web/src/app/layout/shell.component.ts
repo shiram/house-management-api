@@ -1,25 +1,46 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
+import { NavbarComponent } from './navbar.component';
+import { SidebarComponent } from './sidebar.component';
+import { UiStateService } from '../core/ui/ui-state.service';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [CommonModule, NavbarComponent, SidebarComponent, RouterOutlet],
   template: `
-  <div class="app-shell bg-page min-vh-100">
-    <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm">
-      <div class="container-fluid">
-        <a class="navbar-brand text-primary" routerLink="/">House Management</a>
-        <div class="d-flex">
-          <a class="btn btn-outline-secondary btn-sm" routerLink="/login">Sign in</a>
-        </div>
+  <div class="app-shell bg-page min-vh-100 d-flex flex-column">
+    <app-navbar></app-navbar>
+    <div class="d-flex flex-grow-1 position-relative">
+      <!-- desktop sidebar -->
+      <div class="d-none d-md-block">
+        <app-sidebar></app-sidebar>
       </div>
-    </nav>
-    <main class="container py-4">
-      <router-outlet></router-outlet>
-    </main>
+
+      <!-- mobile sidebar overlay -->
+      <div *ngIf="sidebarOpen()" class="mobile-sidebar-overlay d-md-none">
+        <div class="mobile-sidebar bg-white">
+          <app-sidebar></app-sidebar>
+        </div>
+        <div class="mobile-backdrop" (click)="close()"></div>
+      </div>
+
+      <div class="flex-grow-1 p-3">
+        <router-outlet></router-outlet>
+      </div>
+    </div>
   </div>
   `,
-  styles: [``]
+  styles: [`
+    .mobile-sidebar-overlay { position: absolute; inset:0; z-index:1040; display:flex }
+    .mobile-sidebar { width:260px; box-shadow:0 6px 18px rgba(17,24,39,0.08); }
+    .mobile-backdrop { flex:1; background:rgba(0,0,0,0.35); }
+  `]
 })
-export class ShellComponent {}
+export class ShellComponent {
+  private ui = inject(UiStateService);
+  sidebarOpen = this.ui.sidebarOpen;
+  close() { this.ui.closeSidebar(); }
+}
+
