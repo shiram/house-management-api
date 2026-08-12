@@ -18,12 +18,43 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add services
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Global validation & result-wrapping
+    options.Filters.Add<HouseManagement.Api.Common.Api.ValidationFilter>();
+    options.Filters.Add<HouseManagement.Api.Common.Api.ApiResultFilter>();
+});
 // Common API infrastructure (minimal, non-breaking)
 builder.Services.AddCommonServices();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Swagger with JWT bearer support will be added below
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+});
 
 // Configure DbContext (SQL Server)
 builder.Services.AddDbContext<HouseContext>(options =>
@@ -67,6 +98,18 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// Validate runtime JWT configuration: in production require a real key
+if (app.Environment.IsProduction())
+{
+    var jwtSectionRuntime = app.Configuration.GetSection("Jwt");
+    var effectiveKey = jwtSectionRuntime["Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "PleaseSetASecretKeyInEnv";
+    if (string.IsNullOrWhiteSpace(effectiveKey) || effectiveKey == "PleaseSetASecretKeyInEnv")
+    {
+        Log.Fatal("JWT signing key is not configured. Set environment variable JWT_KEY in production.");
+        throw new Exception("JWT signing key not configured");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
