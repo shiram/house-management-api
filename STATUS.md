@@ -95,5 +95,6 @@ Next recommended actions: None immediate; T014 and T015 implemented: global exce
 
 Follow-ups:
 - Harden Register endpoint to disallow client-supplied Role (security) — implemented (self-registration now forces role = 'househelp').
-- Add unique DB constraints and migrations for Users.Email and Users.UserName — T040.
+- Create initial business-domain EF migration — added by setup branch and present in src/HouseManagement.Api/Migrations (marking T040 complete).
+- Add unique DB constraints and migrations for Users.Email and Users.UserName — configured in HouseContext and covered by migrations.
 - Address System.IdentityModel.Tokens.Jwt advisory when scheduling dependency upgrades.

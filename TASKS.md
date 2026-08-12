@@ -41,7 +41,7 @@
 - [ ] T022 — Add OpenAPI/Swagger conventions and authentication support
 - [ ] T023 — Add integration test infrastructure
 - [ ] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
-- [~] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (started: hardened register endpoint to prevent client role assignment)
+- [x] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (hardened: self-registration forces 'househelp')
 
 ---
 
@@ -57,7 +57,7 @@
 - [ ] T037 — Add entity configurations and relationships
 - [ ] T038 — Add unique constraints for required business identifiers
 - [ ] T039 — Add operational indexes for booking and directory queries
-- [ ] T040 — Create initial business-domain EF migration
+- [x] T040 — Create initial business-domain EF migration
 - [ ] T041 — Verify migration against a clean SQL Server database
 - [ ] T042 — Add seed data for development roles
 - [ ] T043 — Add seed data for sample services
