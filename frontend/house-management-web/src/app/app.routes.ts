@@ -9,7 +9,8 @@ export const routes: Routes = [
     component: ShellComponent,
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent), canActivate: [authGuard] }
+      { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent), canActivate: [authGuard] },
+      { path: 'users', loadComponent: () => import('./features/users/users-list.component').then(m => m.UsersListComponent), canActivate: [authGuard] }
     ]
   },
   { path: 'login', component: LoginComponent },
