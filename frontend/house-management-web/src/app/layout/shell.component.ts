@@ -1,14 +1,16 @@
-import { Component, inject } from '@angular/core';
+﻿import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { NavbarComponent } from './navbar.component';
 import { SidebarComponent } from './sidebar.component';
 import { UiStateService } from '../core/ui/ui-state.service';
+import { ToastsComponent } from '../shared/components/toasts.component';
+import { ConfirmationModalComponent } from '../shared/components/confirmation-modal.component';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, NavbarComponent, SidebarComponent, RouterOutlet],
+  imports: [CommonModule, NavbarComponent, SidebarComponent, RouterOutlet, ToastsComponent, ConfirmationModalComponent],
   template: `
   <div class="app-shell bg-page min-vh-100 d-flex flex-column">
     <app-navbar></app-navbar>
@@ -30,6 +32,8 @@ import { UiStateService } from '../core/ui/ui-state.service';
         <router-outlet></router-outlet>
       </div>
     </div>
+    <app-toasts></app-toasts>
+    <app-confirmation-modal></app-confirmation-modal>
   </div>
   `,
   styles: [`
@@ -43,4 +47,3 @@ export class ShellComponent {
   sidebarOpen = this.ui.sidebarOpen;
   close() { this.ui.closeSidebar(); }
 }
-
