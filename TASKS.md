@@ -47,7 +47,7 @@
 
 # PHASE 2 — Domain & Database
 
-- [ ] T030 — Design HouseHelp domain model
+- [x] T030 — Design HouseHelp domain model
 - [ ] T031 — Design Service domain model
 - [ ] T032 — Design Client/customer model supporting anonymous requests
 - [ ] T033 — Design Booking domain model
@@ -85,14 +85,14 @@
 
 # PHASE 4 — HouseHelp Directory
 
-- [ ] T070 — Create HouseHelp profile DTOs
-- [ ] T071 — Create HouseHelp validation
+- [x] T070 — Create HouseHelp profile DTOs
+- [x] T071 — Create HouseHelp validation
 - [ ] T072 — Implement public HouseHelp directory listing
 - [ ] T073 — Implement HouseHelp profile details
-- [ ] T074 — Implement Manager/Admin create HouseHelp
-- [ ] T075 — Implement Manager/Admin update HouseHelp
-- [ ] T076 — Implement HouseHelp activation/deactivation
-- [ ] T077 — Add HouseHelp skills/services eligibility
+- [x] T074 — Implement Manager/Admin create HouseHelp
+- [x] T075 — Implement Manager/Admin update HouseHelp
+- [x] T076 — Implement HouseHelp activation/deactivation
+- [x] T077 — Add HouseHelp skills/services eligibility
 - [ ] T078 — Add location/search/filter support
 - [ ] T079 — Add HouseHelp authorization tests
 - [ ] T080 — Add HouseHelp integration tests

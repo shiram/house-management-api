@@ -27,4 +27,6 @@ public class HouseContext : DbContext
             b.Property(u => u.UserName).HasMaxLength(128).IsRequired();
         });
     }
+    public DbSet<HouseHelp> HouseHelps { get; set; }
+    public DbSet<HouseHelpSkill> HouseHelpSkills { get; set; }
 }
