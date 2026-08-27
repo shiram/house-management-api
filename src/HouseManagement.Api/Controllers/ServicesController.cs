@@ -36,4 +36,26 @@ public sealed class ServicesController : ControllerBase
         var response = ApiResponseFactory.Create(this, dtos, "Active services retrieved", StatusCodes.Status200OK);
         return Ok(response);
     }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id)
+    {
+        var service = await _serviceCatalog.GetActiveByIdAsync(id);
+        if (service == null) return NotFound();
+
+        var dto = new ServiceDto
+        {
+            Id = service.Id,
+            Code = service.Code,
+            Name = service.Name,
+            Description = service.Description,
+            BasePrice = service.BasePrice,
+            IsActive = service.IsActive,
+            CreatedAt = service.CreatedAt,
+            UpdatedAt = service.UpdatedAt
+        };
+
+        var response = ApiResponseFactory.Create(this, dto, "Service retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
 }

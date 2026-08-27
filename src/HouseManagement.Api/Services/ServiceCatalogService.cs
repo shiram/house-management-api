@@ -22,4 +22,11 @@ public sealed class ServiceCatalogService : IServiceCatalogService
             .ThenBy(service => service.Code)
             .ToListAsync();
     }
+
+    public async Task<Service?> GetActiveByIdAsync(int id)
+    {
+        return await _db.Services
+            .AsNoTracking()
+            .SingleOrDefaultAsync(service => service.Id == id && service.IsActive);
+    }
 }

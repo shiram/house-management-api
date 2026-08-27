@@ -30,4 +30,24 @@ public class ServiceCatalogTests
         Assert.Equal("Laundry", results[1].Name);
         Assert.DoesNotContain(results, item => item.Code == "OLD");
     }
+
+    [Fact]
+    public async Task GetActiveByIdAsync_DoesNotReturnInactiveService()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.AddRange(
+            new Service { Id = 1, Code = "ACTIVE", Name = "Active", IsActive = true },
+            new Service { Id = 2, Code = "INACTIVE", Name = "Inactive", IsActive = false });
+        await context.SaveChangesAsync();
+
+        var service = new ServiceCatalogService(context);
+
+        Assert.NotNull(await service.GetActiveByIdAsync(1));
+        Assert.Null(await service.GetActiveByIdAsync(2));
+        Assert.Null(await service.GetActiveByIdAsync(999));
+    }
 }

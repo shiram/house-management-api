@@ -120,3 +120,4 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 - T051 completed: added DataAnnotations validation for service code, name, description, and non-negative decimal pricing, with focused tests.
 - T052 completed: added the public `GET /api/services` endpoint, active-service filtering, deterministic ordering, DI registration, and coverage for inactive services.
+- T053 completed: added public `GET /api/services/{id}` details with active-service filtering and not-found behavior.
