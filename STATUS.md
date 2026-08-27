@@ -90,6 +90,7 @@ Recent actions (2026-08-11T16:15+03:00):
 - T003 completed: README.local.md added with local dev instructions.
 - T006 completed: Project builds after resolving package version downgrades.
 - T010 started/completed (minimal): Added Common.Api.ApiResponse<T> and CommonServiceExtensions.AddCommonServices() and wired into Program.cs to introduce a safe common infra extension point.
+- T011 completed: Added ApiResponseFactory and standardized success responses for AuthController and HouseHelpsController to return an envelope with statusCode, message, data and requestId.
 
 Next recommended actions: None immediate; T014 and T015 implemented: global exception handling (ExceptionHandlingMiddleware) returning ProblemDetails for unexpected errors. Request/correlation ID middleware (T012) and Serilog integration (T013) implemented.
 

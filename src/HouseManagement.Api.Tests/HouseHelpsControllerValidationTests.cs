@@ -3,6 +3,7 @@ using Xunit;
 using Moq;
 using Microsoft.AspNetCore.Mvc;
 using HouseManagement.Api.Controllers;
+using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Services;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.DTOs;
@@ -47,6 +48,8 @@ public class HouseHelpsControllerValidationTests
         var controller = new HouseHelpsController(mockSvc.Object);
         var res = await controller.GetAll("Nairobi", "Cleaning", true, 1, 10);
         var ok = Assert.IsType<OkObjectResult>(res);
-        var items = Assert.IsAssignableFrom<IEnumerable<HouseHelpDto>>(ok.Value);
+        var envelope = Assert.IsType<ApiResponse<IEnumerable<HouseHelpDto>>>(ok.Value);
+        Assert.Equal(200, envelope.StatusCode);
+        Assert.NotNull(envelope.Data);
     }
 }

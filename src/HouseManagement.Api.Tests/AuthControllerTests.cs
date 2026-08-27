@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using HouseManagement.Api.Common.Api;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -30,7 +32,16 @@ public class AuthControllerTests
         var tokenMock = new Mock<ITokenService>();
         tokenMock.Setup(t => t.CreateToken(It.IsAny<User>())).Returns("test-token");
 
-        var controller = new AuthController(context, hasher, tokenMock.Object);
+        var controller = new AuthController(context, hasher, tokenMock.Object)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    TraceIdentifier = "register-request-id"
+                }
+            }
+        };
 
         var req = new RegisterRequest
         {
@@ -42,17 +53,58 @@ public class AuthControllerTests
         var result = await controller.Register(req);
 
         Assert.IsType<OkObjectResult>(result);
-        var ok = result as OkObjectResult;
-        Assert.NotNull(ok);
-
-        var authResp = ok!.Value as dynamic; // AuthResponse type from DTOs
-        Assert.NotNull(authResp);
-        Assert.Equal("househelp", (string)authResp.Role!);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var envelope = Assert.IsType<ApiResponse<AuthResponse>>(ok.Value);
+        Assert.Equal(200, envelope.StatusCode);
+        Assert.Equal("User registered successfully", envelope.Message);
+        Assert.Equal("register-request-id", envelope.RequestId);
+        Assert.NotNull(envelope.Data);
+        Assert.Equal("househelp", envelope.Data!.Role);
 
         // verify persisted
         var user = await context.Users.SingleOrDefaultAsync(u => u.Email == "test@example.com");
         Assert.NotNull(user);
         Assert.Equal("househelp", user!.Role);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsEnvelope_WithAuthResponse()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(databaseName: "test_db_login_envelope")
+            .Options;
+
+        await using var context = new HouseContext(options);
+        var hasher = new PasswordHasher();
+        var password = "Password123!";
+
+        context.Users.Add(new User
+        {
+            UserName = "loginuser",
+            Email = "login@example.com",
+            PasswordHash = hasher.Hash(password),
+            Role = "manager"
+        });
+        await context.SaveChangesAsync();
+
+        var tokenMock = new Mock<ITokenService>();
+        tokenMock.Setup(t => t.CreateToken(It.IsAny<User>())).Returns("test-token");
+
+        var controller = new AuthController(context, hasher, tokenMock.Object);
+
+        var result = await controller.Login(new LoginRequest
+        {
+            Email = "login@example.com",
+            Password = password
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var envelope = Assert.IsType<ApiResponse<AuthResponse>>(ok.Value);
+        Assert.Equal(200, envelope.StatusCode);
+        Assert.Equal("Login successful", envelope.Message);
+        Assert.NotNull(envelope.Data);
+        Assert.Equal("test-token", envelope.Data!.Token);
+        Assert.Equal("manager", envelope.Data.Role);
     }
 
     [Fact]

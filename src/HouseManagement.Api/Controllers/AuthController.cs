@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using HouseManagement.Api.Data;
+using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.Services;
@@ -44,7 +46,15 @@ public class AuthController : ControllerBase
 
         var token = _tokens.CreateToken(user);
 
-        return Ok(new AuthResponse { Token = token, UserName = user.UserName, Email = user.Email, Role = user.Role });
+        var response = ApiResponseFactory.Create(this, new AuthResponse
+        {
+            Token = token,
+            UserName = user.UserName,
+            Email = user.Email,
+            Role = user.Role
+        }, "User registered successfully", StatusCodes.Status200OK);
+
+        return Ok(response);
     }
 
     [HttpPost("login")]
@@ -60,6 +70,14 @@ public class AuthController : ControllerBase
         await _db.SaveChangesAsync();
 
         var token = _tokens.CreateToken(user);
-        return Ok(new AuthResponse { Token = token, UserName = user.UserName, Email = user.Email, Role = user.Role });
+        var response = ApiResponseFactory.Create(this, new AuthResponse
+        {
+            Token = token,
+            UserName = user.UserName,
+            Email = user.Email,
+            Role = user.Role
+        }, "Login successful", StatusCodes.Status200OK);
+
+        return Ok(response);
     }
 }

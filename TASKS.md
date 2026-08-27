@@ -27,7 +27,7 @@
 # PHASE 1 — Backend Foundation
 
 - [x] T010 — Introduce Common API infrastructure without breaking existing endpoints
-- [ ] T011 — Standardize API response envelope
+- [x] T011 — Standardize API response envelope
 - [x] T012 — Add request/correlation ID middleware
 - [x] T013 — Integrate request ID with Serilog structured logging
 - [x] T014 — Add global exception handling

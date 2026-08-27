@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.DTOs;
 
 namespace HouseManagement.Api.Tests.Integration;
@@ -54,6 +55,11 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var req = new CreateHouseHelpRequest { FirstName = "I", LastName = "J", Phone = "+1", City = "X" };
         var resp = await client.PostAsJsonAsync("/api/househelps", req);
         Assert.Equal(System.Net.HttpStatusCode.Created, resp.StatusCode);
+        var envelope = await resp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+        Assert.NotNull(envelope);
+        Assert.Equal(201, envelope!.StatusCode);
+        Assert.Equal("HouseHelp created", envelope.Message);
+        Assert.NotNull(envelope.Data);
     }
 
     [Fact]
@@ -82,9 +88,11 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var anon = _factory.CreateClient();
         var listResp = await anon.GetAsync("/api/househelps");
         Assert.Equal(System.Net.HttpStatusCode.OK, listResp.StatusCode);
-        var items = await listResp.Content.ReadFromJsonAsync<List<HouseHelpDto>>();
-        Assert.NotNull(items);
-        Assert.NotEmpty(items!);
+        var envelope = await listResp.Content.ReadFromJsonAsync<ApiResponse<List<HouseHelpDto>>>();
+        Assert.NotNull(envelope);
+        Assert.Equal(200, envelope!.StatusCode);
+        Assert.NotNull(envelope.Data);
+        Assert.NotEmpty(envelope.Data!);
     }
 
     [Fact]
@@ -96,15 +104,16 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var req = new CreateHouseHelpRequest { FirstName = "P", LastName = "Q", Phone = "+1", City = "Z" };
         var createResp = await client.PostAsJsonAsync("/api/househelps", req);
         createResp.EnsureSuccessStatusCode();
-        var created = await createResp.Content.ReadFromJsonAsync<HouseHelpDto>();
-        Assert.NotNull(created);
+        var createdEnvelope = await createResp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+        Assert.NotNull(createdEnvelope);
+        Assert.NotNull(createdEnvelope!.Data);
 
         var anon = _factory.CreateClient();
-        var detailResp = await anon.GetAsync($"/api/househelps/{created!.Id}");
+        var detailResp = await anon.GetAsync($"/api/househelps/{createdEnvelope.Data!.Id}");
         Assert.Equal(System.Net.HttpStatusCode.OK, detailResp.StatusCode);
-        var dto = await detailResp.Content.ReadFromJsonAsync<HouseHelpDto>();
-        Assert.NotNull(dto);
-        Assert.Equal(created.Id, dto!.Id);
+        var envelope = await detailResp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+        Assert.NotNull(envelope);
+        Assert.Equal(createdEnvelope.Data.Id, envelope!.Data!.Id);
     }
 
     [Fact]
@@ -116,20 +125,25 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var req = new CreateHouseHelpRequest { FirstName = "A1", LastName = "B1", Phone = "+1", City = "C1" };
         var createResp = await client.PostAsJsonAsync("/api/househelps", req);
         createResp.EnsureSuccessStatusCode();
-        var created = await createResp.Content.ReadFromJsonAsync<HouseHelpDto>();
-        Assert.NotNull(created);
+        var createdEnvelope = await createResp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+        Assert.NotNull(createdEnvelope);
+        Assert.NotNull(createdEnvelope!.Data);
 
         // manager toggles active=false
         var managerClient = _factory.CreateClient();
         var managerToken = CreateToken("manager");
         managerClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", managerToken);
-        var actResp = await managerClient.PutAsync($"/api/househelps/{created!.Id}/activate?active=false", null);
-        Assert.Equal(System.Net.HttpStatusCode.NoContent, actResp.StatusCode);
+        var actResp = await managerClient.PutAsync($"/api/househelps/{createdEnvelope.Data!.Id}/activate?active=false", null);
+        Assert.Equal(System.Net.HttpStatusCode.OK, actResp.StatusCode);
+        var envelope = await actResp.Content.ReadFromJsonAsync<ApiResponse<object?>>();
+        Assert.NotNull(envelope);
+        Assert.Equal(200, envelope!.StatusCode);
+        Assert.Equal("HouseHelp status updated", envelope.Message);
 
         // verify
         var anon = _factory.CreateClient();
-        var detail = await anon.GetFromJsonAsync<HouseHelpDto>($"/api/househelps/{created.Id}");
-        Assert.False(detail!.IsActive);
+        var detailEnvelope = await anon.GetFromJsonAsync<ApiResponse<HouseHelpDto>>($"/api/househelps/{createdEnvelope.Data!.Id}");
+        Assert.False(detailEnvelope!.Data!.IsActive);
     }
 
     [Fact]
@@ -141,13 +155,14 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var req = new CreateHouseHelpRequest { FirstName = "A2", LastName = "B2", Phone = "+1", City = "C2" };
         var createResp = await client.PostAsJsonAsync("/api/househelps", req);
         createResp.EnsureSuccessStatusCode();
-        var created = await createResp.Content.ReadFromJsonAsync<HouseHelpDto>();
-        Assert.NotNull(created);
+        var createdEnvelope = await createResp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+        Assert.NotNull(createdEnvelope);
+        Assert.NotNull(createdEnvelope!.Data);
 
         var hhClient = _factory.CreateClient();
         var hhToken = CreateToken("househelp");
         hhClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", hhToken);
-        var actResp = await hhClient.PutAsync($"/api/househelps/{created!.Id}/activate?active=false", null);
+        var actResp = await hhClient.PutAsync($"/api/househelps/{createdEnvelope.Data!.Id}/activate?active=false", null);
         Assert.True(actResp.StatusCode == System.Net.HttpStatusCode.Forbidden || actResp.StatusCode == System.Net.HttpStatusCode.Unauthorized);
     }
 }
