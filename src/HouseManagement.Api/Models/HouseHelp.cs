@@ -22,4 +22,5 @@ public class HouseHelp
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public List<HouseHelpSkill> Skills { get; set; } = new();
+    public List<HouseHelpAvailability> Availabilities { get; set; } = new();
 }

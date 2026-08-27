@@ -14,5 +14,7 @@ public sealed class HouseHelpSkillConfiguration : IEntityTypeConfiguration<House
             .HasForeignKey(skill => skill.HouseHelpId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(skill => skill.HouseHelpId);
+        builder.HasIndex(skill => new { skill.HouseHelpId, skill.ServiceName }).IsUnique();
+        builder.Property(skill => skill.ServiceName).HasMaxLength(128).IsRequired();
     }
 }

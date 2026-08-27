@@ -114,3 +114,19 @@ Recent actions (2026-08-27):
 - T018 completed: documented UTC and DateTimeOffset conventions; new persisted timestamps use DateTimeOffset.UtcNow while legacy User timestamps remain unchanged for schema compatibility.
 - T019 completed: moved entity mappings into dedicated IEntityTypeConfiguration classes and enabled assembly scanning from HouseContext.
 - T024 completed: added named AdminOnly, ManagerOrAdmin, and HouseHelpOnly authorization policies while preserving existing lowercase JWT role values.
+- Follow-up completed: aligned HouseHelp controller authorization attributes with the registered ManagerOrAdmin policy and corrected typed API envelope detection; the full backend suite now passes 35 tests.
+- T031 completed: added the Service domain model and explicit EF configuration with code/name metadata, decimal pricing, active state, timestamps, uniqueness, and operational indexing. A future domain migration is still required before deployment.
+- T032-T039 completed: added anonymous-capable Client, Booking and BookingStatus models, weekly HouseHelp availability, ServiceAddress, valid booking transitions, explicit relationship configurations, business uniqueness constraints, and operational indexes. A domain migration is required before these new tables are deployed.
+- T050 completed: added feature-specific service response, create, and update DTOs.
+- T051 completed: added DataAnnotations validation for service code, name, description, and non-negative decimal pricing, with focused tests.
+- T052 completed: added the public `GET /api/services` endpoint, active-service filtering, deterministic ordering, DI registration, and coverage for inactive services.
+- T053 completed: added public `GET /api/services/{id}` details with active-service filtering and not-found behavior.
+- T054 completed: added Manager/Admin-protected service creation with normalization and duplicate-code conflict handling.
+- T055 completed: added Manager/Admin-protected service updates with inactive-service support, normalization, duplicate-code checks, and update timestamps.
+- T056 completed: added Manager/Admin-protected service activation/deactivation with status timestamps and not-found handling.
+- T057 completed: added authorization tests confirming public reads and Manager/Admin-only service mutations.
+- T058 completed: added integration coverage for public service reads, Manager/Admin lifecycle operations, and inactive-service hiding.
+- Frontend tasks were removed from `TASKS.md` per user request; the queue now retains backend-focused work only.
+- T042 completed: added development-only, idempotent role user seeding controlled by `DEV_SEED_PASSWORD` and documented the local setup.
+- T043 completed: added explicit-enable, development-only, idempotent sample service seeding and documented the required configuration.
+- T044 completed: added development-only, idempotent HouseHelp profile and skill seeding without creating authentication accounts.

@@ -78,6 +78,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 
 // HouseHelp domain service
 builder.Services.AddScoped<IHouseHelpService, HouseHelpService>();
+builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
 
 // JWT configuration
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -133,6 +134,27 @@ if (app.Environment.IsProduction())
 
 if (app.Environment.IsDevelopment())
 {
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<HouseContext>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DevelopmentDataSeeder");
+        if (app.Configuration.GetValue<bool>("DevelopmentSeed:Enabled"))
+        {
+            await DevelopmentDataSeeder.SeedRolesAsync(
+                context,
+                passwordHasher,
+                app.Configuration,
+                logger);
+            await DevelopmentDataSeeder.SeedServicesAsync(context, logger);
+            await DevelopmentDataSeeder.SeedHouseHelpsAsync(context, logger);
+        }
+        else
+        {
+            logger.LogInformation("Development data seeding is disabled.");
+        }
+    }
+
     app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
