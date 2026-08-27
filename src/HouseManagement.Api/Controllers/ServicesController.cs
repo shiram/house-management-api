@@ -84,6 +84,28 @@ public sealed class ServicesController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = created.Id }, response);
     }
 
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateServiceRequest request)
+    {
+        var existing = await _serviceCatalog.GetByIdAsync(id);
+        if (existing == null) return NotFound();
+
+        if (await _serviceCatalog.CodeExistsAsync(request.Code, id))
+        {
+            return Conflict(ApiResponseFactory.Create<object?>(this, null, "A service with this code already exists", StatusCodes.Status409Conflict));
+        }
+
+        existing.Code = request.Code;
+        existing.Name = request.Name;
+        existing.Description = request.Description;
+        existing.BasePrice = request.BasePrice;
+
+        await _serviceCatalog.UpdateAsync(existing);
+        var response = ApiResponseFactory.Create(this, ToDto(existing), "Service updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
     private static ServiceDto ToDto(Service service)
     {
         return new ServiceDto

@@ -122,3 +122,4 @@ Recent actions (2026-08-27):
 - T052 completed: added the public `GET /api/services` endpoint, active-service filtering, deterministic ordering, DI registration, and coverage for inactive services.
 - T053 completed: added public `GET /api/services/{id}` details with active-service filtering and not-found behavior.
 - T054 completed: added Manager/Admin-protected service creation with normalization and duplicate-code conflict handling.
+- T055 completed: added Manager/Admin-protected service updates with inactive-service support, normalization, duplicate-code checks, and update timestamps.

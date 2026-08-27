@@ -81,4 +81,43 @@ public class ServiceCatalogTests
         Assert.Equal("Standard service", created.Description);
         Assert.Null(duplicate);
     }
+
+    [Fact]
+    public async Task UpdateAsync_NormalizesValuesAndUpdatesTimestamp()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        var originalTimestamp = DateTimeOffset.UtcNow.AddMinutes(-1);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "OLD",
+            Name = "Old Name",
+            BasePrice = 10,
+            IsActive = false,
+            CreatedAt = originalTimestamp
+        });
+        await context.SaveChangesAsync();
+
+        var service = new ServiceCatalogService(context);
+        var updated = await service.UpdateAsync(new Service
+        {
+            Id = 1,
+            Code = "  NEW  ",
+            Name = "  New Name  ",
+            BasePrice = 20,
+            IsActive = true
+        });
+
+        var stored = await context.Services.SingleAsync(item => item.Id == 1);
+        Assert.True(updated);
+        Assert.Equal("NEW", stored.Code);
+        Assert.Equal("New Name", stored.Name);
+        Assert.Equal(20, stored.BasePrice);
+        Assert.False(stored.IsActive);
+        Assert.True(stored.UpdatedAt > originalTimestamp);
+    }
 }

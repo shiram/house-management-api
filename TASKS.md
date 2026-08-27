@@ -72,7 +72,7 @@
 - [x] T052 — Implement public active-service listing
 - [x] T053 — Implement service details
 - [x] T054 — Implement Manager/Admin create service
-- [ ] T055 — Implement Manager/Admin update service
+- [x] T055 — Implement Manager/Admin update service
 - [ ] T056 — Implement activate/deactivate service
 - [ ] T057 — Add service authorization tests
 - [ ] T058 — Add service integration tests
