@@ -4,6 +4,7 @@ using HouseManagement.Api.Data;
 using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using HouseManagement.Api.Common;
+using Asp.Versioning;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -23,6 +24,12 @@ builder.Services.AddControllers(options =>
     // Global validation & result-wrapping
     options.Filters.Add<HouseManagement.Api.Common.Api.ValidationFilter>();
     options.Filters.Add<HouseManagement.Api.Common.Api.ApiResultFilter>();
+});
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1.0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
 });
 // Common API infrastructure (minimal, non-breaking)
 builder.Services.AddCommonServices();
