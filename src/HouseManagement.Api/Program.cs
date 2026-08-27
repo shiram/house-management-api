@@ -79,6 +79,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 // HouseHelp domain service
 builder.Services.AddScoped<IHouseHelpService, HouseHelpService>();
 builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 
 // JWT configuration
 var jwtSection = builder.Configuration.GetSection("Jwt");
