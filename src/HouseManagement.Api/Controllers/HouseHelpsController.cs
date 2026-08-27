@@ -67,7 +67,7 @@ public class HouseHelpsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateHouseHelpRequest req)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
 
         var entity = new HouseHelp
         {
@@ -100,7 +100,7 @@ public class HouseHelpsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateHouseHelpRequest req)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
 
         var existing = await _svc.GetByIdAsync(id);
         if (existing == null) return NotFound();

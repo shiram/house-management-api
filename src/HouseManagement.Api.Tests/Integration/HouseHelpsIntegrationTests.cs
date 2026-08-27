@@ -74,6 +74,24 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
     }
 
     [Fact]
+    public async Task Post_CreateHouseHelp_ReturnsValidationEnvelope_WhenPayloadInvalid()
+    {
+        var client = _factory.CreateClient();
+        var token = CreateToken("admin");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var req = new CreateHouseHelpRequest { LastName = "J", Phone = "bad", City = "X" };
+        var resp = await client.PostAsJsonAsync("/api/househelps", req);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, resp.StatusCode);
+        var envelope = await resp.Content.ReadFromJsonAsync<ApiResponse<Dictionary<string, string[]>>>();
+        Assert.NotNull(envelope);
+        Assert.Equal(400, envelope!.StatusCode);
+        Assert.Equal("Validation failed", envelope.Message);
+        Assert.Contains("FirstName", envelope.Data.Keys);
+    }
+
+    [Fact]
     public async Task Get_List_IsPubliclyAccessible()
     {
         var client = _factory.CreateClient();

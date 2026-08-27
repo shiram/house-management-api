@@ -23,7 +23,11 @@ public class HouseHelpsControllerValidationTests
         var req = new CreateHouseHelpRequest { FirstName = "X", LastName = "Y", Phone = "bad", City = "Z" };
         var res = await controller.Create(req);
 
-        Assert.IsType<BadRequestObjectResult>(res);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(res);
+        var envelope = Assert.IsType<ApiResponse<Dictionary<string, string[]>>>(badRequest.Value);
+        Assert.Equal(400, envelope.StatusCode);
+        Assert.Equal("Validation failed", envelope.Message);
+        Assert.Contains("Phone", envelope.Data.Keys);
     }
 
     [Fact]

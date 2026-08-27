@@ -27,6 +27,8 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
     {
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+
         if (await _db.Users.AnyAsync(u => u.Email == req.Email || u.UserName == req.UserName))
         {
             return BadRequest(new { error = "User with that email or username already exists" });
@@ -60,6 +62,8 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+
         var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == req.Email);
         if (user == null) return Unauthorized(new { error = "Invalid credentials" });
 

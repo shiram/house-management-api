@@ -32,7 +32,7 @@
 - [x] T013 — Integrate request ID with Serilog structured logging
 - [x] T014 — Add global exception handling
 - [x] T015 — Add ProblemDetails for unexpected errors
-- [ ] T016 — Add consistent validation error response
+- [x] T016 — Add consistent validation error response
 - [ ] T017 — Establish API versioning strategy
 - [ ] T018 — Establish UTC/DateTimeOffset conventions
 - [ ] T019 — Add EF Core entity configuration conventions

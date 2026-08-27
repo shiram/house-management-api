@@ -108,6 +108,28 @@ public class AuthControllerTests
     }
 
     [Fact]
+    public async Task Register_ReturnsValidationEnvelope_WhenModelStateInvalid()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(databaseName: "test_db_register_validation")
+            .Options;
+
+        await using var context = new HouseContext(options);
+        var hasher = new PasswordHasher();
+        var tokenMock = new Mock<ITokenService>();
+        var controller = new AuthController(context, hasher, tokenMock.Object);
+        controller.ModelState.AddModelError("Email", "The Email field is required.");
+
+        var result = await controller.Register(new RegisterRequest());
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        var envelope = Assert.IsType<ApiResponse<Dictionary<string, string[]>>>(badRequest.Value);
+        Assert.Equal(400, envelope.StatusCode);
+        Assert.Equal("Validation failed", envelope.Message);
+        Assert.Contains("Email", envelope.Data.Keys);
+    }
+
+    [Fact]
     public void CreateToken_EmitsRoleClaimAndStandardClaims()
     {
         var config = new ConfigurationBuilder()
