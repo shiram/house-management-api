@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using HouseManagement.Api.Data;
+using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.Services;
@@ -25,6 +27,8 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
     {
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+
         if (await _db.Users.AnyAsync(u => u.Email == req.Email || u.UserName == req.UserName))
         {
             return BadRequest(new { error = "User with that email or username already exists" });
@@ -44,12 +48,22 @@ public class AuthController : ControllerBase
 
         var token = _tokens.CreateToken(user);
 
-        return Ok(new AuthResponse { Token = token, UserName = user.UserName, Email = user.Email, Role = user.Role });
+        var response = ApiResponseFactory.Create(this, new AuthResponse
+        {
+            Token = token,
+            UserName = user.UserName,
+            Email = user.Email,
+            Role = user.Role
+        }, "User registered successfully", StatusCodes.Status200OK);
+
+        return Ok(response);
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+
         var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == req.Email);
         if (user == null) return Unauthorized(new { error = "Invalid credentials" });
 
@@ -60,6 +74,14 @@ public class AuthController : ControllerBase
         await _db.SaveChangesAsync();
 
         var token = _tokens.CreateToken(user);
-        return Ok(new AuthResponse { Token = token, UserName = user.UserName, Email = user.Email, Role = user.Role });
+        var response = ApiResponseFactory.Create(this, new AuthResponse
+        {
+            Token = token,
+            UserName = user.UserName,
+            Email = user.Email,
+            Role = user.Role
+        }, "Login successful", StatusCodes.Status200OK);
+
+        return Ok(response);
     }
 }

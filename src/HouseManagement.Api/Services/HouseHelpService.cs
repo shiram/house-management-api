@@ -21,6 +21,37 @@ public class HouseHelpService : IHouseHelpService
         return await _db.HouseHelps.Include(h => h.Skills).AsNoTracking().ToListAsync();
     }
 
+    public async Task<IEnumerable<HouseHelp>> GetFilteredAsync(string? city = null, string? skill = null, bool? isActive = null, int? page = null, int? pageSize = null)
+    {
+        var query = _db.HouseHelps.Include(h => h.Skills).AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(city))
+        {
+            var c = city.Trim();
+            query = query.Where(h => h.City == c);
+        }
+
+        if (!string.IsNullOrWhiteSpace(skill))
+        {
+            var s = skill.Trim();
+            query = query.Where(h => h.Skills.Any(sk => sk.ServiceName == s));
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(h => h.IsActive == isActive.Value);
+        }
+
+        // simple pagination
+        if (page.HasValue && pageSize.HasValue && page > 0 && pageSize > 0)
+        {
+            var skip = (page.Value - 1) * pageSize.Value;
+            query = query.Skip(skip).Take(pageSize.Value);
+        }
+
+        return await query.ToListAsync();
+    }
+
     public async Task<HouseHelp?> GetByIdAsync(int id)
     {
         return await _db.HouseHelps.Include(h => h.Skills).SingleOrDefaultAsync(h => h.Id == id);

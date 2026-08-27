@@ -27,12 +27,12 @@
 # PHASE 1 — Backend Foundation
 
 - [x] T010 — Introduce Common API infrastructure without breaking existing endpoints
-- [ ] T011 — Standardize API response envelope
+- [x] T011 — Standardize API response envelope
 - [x] T012 — Add request/correlation ID middleware
 - [x] T013 — Integrate request ID with Serilog structured logging
 - [x] T014 — Add global exception handling
 - [x] T015 — Add ProblemDetails for unexpected errors
-- [ ] T016 — Add consistent validation error response
+- [x] T016 — Add consistent validation error response
 - [ ] T017 — Establish API versioning strategy
 - [ ] T018 — Establish UTC/DateTimeOffset conventions
 - [ ] T019 — Add EF Core entity configuration conventions
@@ -41,7 +41,7 @@
 - [ ] T022 — Add OpenAPI/Swagger conventions and authentication support
 - [ ] T023 — Add integration test infrastructure
 - [ ] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
-- [~] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (started: hardened register endpoint to prevent client role assignment)
+- [x] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (started: hardened register endpoint to prevent client role assignment) — policies added and centralized role constants
 
 ---
 
