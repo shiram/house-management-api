@@ -130,3 +130,4 @@ Recent actions (2026-08-27):
 - T042 completed: added development-only, idempotent role user seeding controlled by `DEV_SEED_PASSWORD` and documented the local setup.
 - T043 completed: added explicit-enable, development-only, idempotent sample service seeding and documented the required configuration.
 - T044 completed: added development-only, idempotent HouseHelp profile and skill seeding without creating authentication accounts.
+- T041 completed: verified `HouseManagerDB` contains both migrations and the new Services, Clients, Bookings, ServiceAddresses, and HouseHelpAvailabilities tables with expected indexes and unique constraints.

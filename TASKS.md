@@ -56,7 +56,7 @@
 - [x] T038 — Add unique constraints for required business identifiers
 - [x] T039 — Add operational indexes for booking and directory queries
 - [x] T040 — Create initial business-domain EF migration
-- [ ] T041 — Verify migration against a clean SQL Server database
+- [x] T041 — Verify migration against a clean SQL Server database
 - [x] T042 — Add seed data for development roles
 - [x] T043 — Add seed data for sample services
 - [x] T044 — Add safe development seed data for househelps
