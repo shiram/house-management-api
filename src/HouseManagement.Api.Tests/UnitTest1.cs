@@ -1,3 +1,5 @@
+using Xunit;
+
 namespace HouseManagement.Api.Tests;
 
 public class UnitTest1

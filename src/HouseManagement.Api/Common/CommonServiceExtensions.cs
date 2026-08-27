@@ -1,3 +1,5 @@
+using HouseManagement.Api.Common.Api;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HouseManagement.Api.Common
@@ -10,7 +12,15 @@ namespace HouseManagement.Api.Common
         /// </summary>
         public static IServiceCollection AddCommonServices(this IServiceCollection services)
         {
-            // Placeholder for future common registrations: ProblemDetails, API conventions, request ID, etc.
+            services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.InvalidModelStateResponseFactory = context =>
+                {
+                    var envelope = ValidationResponseFactory.CreateEnvelope(context.HttpContext, context.ModelState);
+                    return new BadRequestObjectResult(envelope);
+                };
+            });
+
             return services;
         }
     }

@@ -1,10 +1,12 @@
-using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 using System.Linq;
-using Microsoft.AspNetCore.Authorization;
-using HouseManagement.Api.Services;
+using System.Threading.Tasks;
+using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Models;
+using HouseManagement.Api.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HouseManagement.Api.Controllers;
 
@@ -20,9 +22,9 @@ public class HouseHelpsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? city, [FromQuery] string? skill, [FromQuery] bool? isActive, [FromQuery] int? page, [FromQuery] int? pageSize)
     {
-        var items = await _svc.GetAllAsync();
+        var items = await _svc.GetFilteredAsync(city, skill, isActive, page, pageSize);
         var dtos = items.Select(h => new HouseManagement.Api.DTOs.HouseHelpDto
         {
             Id = h.Id,
@@ -35,7 +37,8 @@ public class HouseHelpsController : ControllerBase
             IsActive = h.IsActive,
             Skills = h.Skills.Select(s => s.ServiceName)
         });
-        return Ok(dtos);
+        var response = ApiResponseFactory.Create(this, dtos, "HouseHelp directory retrieved", StatusCodes.Status200OK);
+        return Ok(response);
     }
 
     [HttpGet("{id}")]
@@ -43,6 +46,7 @@ public class HouseHelpsController : ControllerBase
     {
         var h = await _svc.GetByIdAsync(id);
         if (h == null) return NotFound();
+
         var dto = new HouseManagement.Api.DTOs.HouseHelpDto
         {
             Id = h.Id,
@@ -55,14 +59,16 @@ public class HouseHelpsController : ControllerBase
             IsActive = h.IsActive,
             Skills = h.Skills.Select(s => s.ServiceName)
         };
-        return Ok(dto);
+        var response = ApiResponseFactory.Create(this, dto, "HouseHelp retrieved", StatusCodes.Status200OK);
+        return Ok(response);
     }
 
-    [Authorize(Roles = "admin,manager")]
+    [Authorize(Policy = "RequireManagerOrAdmin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateHouseHelpRequest req)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+
         var entity = new HouseHelp
         {
             UserId = req.UserId,
@@ -86,14 +92,16 @@ public class HouseHelpsController : ControllerBase
             IsActive = created.IsActive,
             Skills = created.Skills.Select(s => s.ServiceName)
         };
-        return CreatedAtAction(nameof(Get), new { id = dto.Id }, dto);
+        var response = ApiResponseFactory.Create(this, dto, "HouseHelp created", StatusCodes.Status201Created);
+        return CreatedAtAction(nameof(Get), new { id = dto.Id }, response);
     }
 
-    [Authorize(Roles = "admin,manager")]
+    [Authorize(Policy = "RequireManagerOrAdmin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateHouseHelpRequest req)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+
         var existing = await _svc.GetByIdAsync(id);
         if (existing == null) return NotFound();
 
@@ -105,16 +113,20 @@ public class HouseHelpsController : ControllerBase
 
         var ok = await _svc.UpdateAsync(existing, req.Skills);
         if (!ok) return NotFound();
-        return NoContent();
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "HouseHelp updated", StatusCodes.Status200OK);
+        return Ok(response);
     }
 
-    [Authorize(Roles = "admin,manager")]
+    [Authorize(Policy = "RequireManagerOrAdmin")]
     [HttpPut("{id}/activate")]
     public async Task<IActionResult> SetActive(int id, [FromQuery] bool active = true)
     {
         var ok = await _svc.SetActiveAsync(id, active);
         if (!ok) return NotFound();
-        return NoContent();
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "HouseHelp status updated", StatusCodes.Status200OK);
+        return Ok(response);
     }
 }
 
