@@ -88,6 +88,52 @@ public class BookingServiceTests
         Assert.Null(await service.GetByIdAsync(999));
     }
 
+    [Fact]
+    public async Task GetListAsync_FiltersByStatusAndOrdersNewestFirst()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service { Id = 1, Code = "CLEANING", Name = "Cleaning", IsActive = true });
+        context.ServiceAddresses.AddRange(
+            new ServiceAddress { Id = 1, Line1 = "1 Main Street", City = "Nairobi", Country = "Kenya" },
+            new ServiceAddress { Id = 2, Line1 = "2 Main Street", City = "Nairobi", Country = "Kenya" });
+        context.Bookings.AddRange(
+            new Booking
+            {
+                Id = 1,
+                Reference = "BK-OLDER",
+                ServiceId = 1,
+                ServiceAddressId = 1,
+                ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+                ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+                Status = BookingStatus.Requested,
+                CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-2)
+            },
+            new Booking
+            {
+                Id = 2,
+                Reference = "BK-NEWER",
+                ServiceId = 1,
+                ServiceAddressId = 2,
+                ScheduledStart = DateTimeOffset.UtcNow.AddDays(2),
+                ScheduledEnd = DateTimeOffset.UtcNow.AddDays(2).AddHours(1),
+                Status = BookingStatus.Confirmed,
+                CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-1)
+            });
+        await context.SaveChangesAsync();
+
+        var service = new BookingService(context);
+        var all = await service.GetListAsync();
+        var confirmed = await service.GetListAsync(BookingStatus.Confirmed);
+
+        Assert.Equal(new[] { 2, 1 }, all.Select(booking => booking.Id));
+        Assert.Single(confirmed);
+        Assert.Equal(2, confirmed[0].Id);
+    }
+
     private static CreateAnonymousBookingRequest CreateRequest(
         int serviceId = 1,
         DateTimeOffset? start = null,

@@ -81,6 +81,34 @@ public sealed class BookingService : IBookingService
             .SingleOrDefaultAsync(booking => booking.Id == id);
     }
 
+    public async Task<IReadOnlyList<Booking>> GetListAsync(BookingStatus? status = null, int? page = null, int? pageSize = null)
+    {
+        var query = _db.Bookings
+            .AsNoTracking()
+            .Include(booking => booking.Service)
+            .Include(booking => booking.ServiceAddress)
+            .AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(booking => booking.Status == status.Value);
+        }
+
+        query = query
+            .OrderByDescending(booking => booking.CreatedAt)
+            .ThenByDescending(booking => booking.Id);
+
+        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
+        {
+            var boundedPageSize = Math.Min(pageSize.Value, 100);
+            query = query
+                .Skip((page.Value - 1) * boundedPageSize)
+                .Take(boundedPageSize);
+        }
+
+        return await query.ToListAsync();
+    }
+
     private async Task<string> GenerateReferenceAsync()
     {
         string reference;

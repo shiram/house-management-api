@@ -44,6 +44,22 @@ public sealed class BookingsController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpGet]
+    public async Task<IActionResult> GetList(
+        [FromQuery] BookingStatus? status,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize)
+    {
+        var bookings = await _bookings.GetListAsync(status, page, pageSize);
+        var response = ApiResponseFactory.Create(
+            this,
+            bookings.Select(ToDto),
+            "Bookings retrieved",
+            StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
     private static BookingDto ToDto(Booking booking)
     {
         return new BookingDto

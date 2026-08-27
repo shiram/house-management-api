@@ -118,7 +118,7 @@
 - [x] T108 — Implement booking creation transaction
 - [x] T109 — Implement booking reference generation
 - [x] T110 — Implement booking details endpoint
-- [ ] T111 — Implement booking list for Manager/Admin
+- [x] T111 — Implement booking list for Manager/Admin
 - [ ] T112 — Implement booking list for assigned HouseHelp
 - [ ] T113 — Implement booking list for authenticated client
 - [ ] T114 — Add safe anonymous booking tracking mechanism
