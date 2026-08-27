@@ -124,3 +124,4 @@ Recent actions (2026-08-27):
 - T054 completed: added Manager/Admin-protected service creation with normalization and duplicate-code conflict handling.
 - T055 completed: added Manager/Admin-protected service updates with inactive-service support, normalization, duplicate-code checks, and update timestamps.
 - T056 completed: added Manager/Admin-protected service activation/deactivation with status timestamps and not-found handling.
+- T057 completed: added authorization tests confirming public reads and Manager/Admin-only service mutations.

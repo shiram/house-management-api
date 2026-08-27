@@ -74,7 +74,7 @@
 - [x] T054 — Implement Manager/Admin create service
 - [x] T055 — Implement Manager/Admin update service
 - [x] T056 — Implement activate/deactivate service
-- [ ] T057 — Add service authorization tests
+- [x] T057 — Add service authorization tests
 - [ ] T058 — Add service integration tests
 - [ ] T059 — Add Angular service catalog API service
 - [ ] T060 — Add Angular service list
