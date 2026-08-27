@@ -92,6 +92,7 @@ Recent actions (2026-08-11T16:15+03:00):
 - T010 started/completed (minimal): Added Common.Api.ApiResponse<T> and CommonServiceExtensions.AddCommonServices() and wired into Program.cs to introduce a safe common infra extension point.
 - T011 completed: Added ApiResponseFactory and standardized success responses for AuthController and HouseHelpsController to return an envelope with statusCode, message, data and requestId.
 - T016 completed: Added ValidationResponseFactory plus ApiBehaviorOptions.InvalidModelStateResponseFactory so invalid requests return the same ApiResponse envelope with field errors.
+- T078 completed: Added househelp location and search filtering across city, address, name, phone, and skills while preserving pagination and activation filters.
 
 Next recommended actions: None immediate; T014 and T015 implemented: global exception handling (ExceptionHandlingMiddleware) returning ProblemDetails for unexpected errors. Request/correlation ID middleware (T012) and Serilog integration (T013) implemented.
 

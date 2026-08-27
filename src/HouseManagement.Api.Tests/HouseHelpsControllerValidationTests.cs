@@ -46,7 +46,7 @@ public class HouseHelpsControllerValidationTests
     public async Task GetAll_UsesFilterParameters()
     {
         var mockSvc = new Mock<IHouseHelpService>();
-        mockSvc.Setup(s => s.GetFilteredAsync("Nairobi", "Cleaning", true, 1, 10))
+        mockSvc.Setup(s => s.GetFilteredAsync("Nairobi", "Cleaning", true, 1, 10, It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync(new List<HouseHelp> { new HouseHelp { Id = 1, FirstName = "A", LastName = "B", Phone = "+1", City = "Nairobi", IsActive = true } });
 
         var controller = new HouseHelpsController(mockSvc.Object);
@@ -55,5 +55,20 @@ public class HouseHelpsControllerValidationTests
         var envelope = Assert.IsType<ApiResponse<IEnumerable<HouseHelpDto>>>(ok.Value);
         Assert.Equal(200, envelope.StatusCode);
         Assert.NotNull(envelope.Data);
+    }
+
+    [Fact]
+    public async Task GetAll_ForwardsLocationAndSearchParameters()
+    {
+        var mockSvc = new Mock<IHouseHelpService>();
+        mockSvc.Setup(s => s.GetFilteredAsync(null, null, null, null, null, "westlands", "anna"))
+            .ReturnsAsync(new List<HouseHelp>());
+
+        var controller = new HouseHelpsController(mockSvc.Object);
+        var res = await controller.GetAll(null, null, null, null, null, "westlands", "anna");
+
+        var ok = Assert.IsType<OkObjectResult>(res);
+        var envelope = Assert.IsType<ApiResponse<IEnumerable<HouseHelpDto>>>(ok.Value);
+        Assert.Equal(200, envelope.StatusCode);
     }
 }

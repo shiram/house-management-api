@@ -55,4 +55,37 @@ public class HouseHelpServiceTests
         Assert.Contains("Ironing", skillNames);
         Assert.DoesNotContain("Laundry", skillNames);
     }
+
+    [Fact]
+    public async Task GetFilteredAsync_FiltersByLocationAndSearch()
+    {
+        using var ctx = CreateContext("filter_test");
+        var svc = new HouseHelpService(ctx);
+
+        await svc.CreateAsync(new HouseHelp
+        {
+            FirstName = "Anna",
+            LastName = "Smith",
+            Phone = "+111",
+            City = "Nairobi",
+            Address = "Westlands Road"
+        }, new[] { "Cleaning" });
+
+        await svc.CreateAsync(new HouseHelp
+        {
+            FirstName = "Brian",
+            LastName = "Jones",
+            Phone = "+222",
+            City = "Mombasa",
+            Address = "Nyali"
+        }, new[] { "Laundry" });
+
+        var locationResults = (await svc.GetFilteredAsync(location: "westlands")).ToList();
+        Assert.Single(locationResults);
+        Assert.Equal("Anna", locationResults[0].FirstName);
+
+        var searchResults = (await svc.GetFilteredAsync(search: "smith")).ToList();
+        Assert.Single(searchResults);
+        Assert.Equal("Anna", searchResults[0].FirstName);
+    }
 }

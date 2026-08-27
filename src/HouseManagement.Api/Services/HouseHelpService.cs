@@ -21,7 +21,7 @@ public class HouseHelpService : IHouseHelpService
         return await _db.HouseHelps.Include(h => h.Skills).AsNoTracking().ToListAsync();
     }
 
-    public async Task<IEnumerable<HouseHelp>> GetFilteredAsync(string? city = null, string? skill = null, bool? isActive = null, int? page = null, int? pageSize = null)
+    public async Task<IEnumerable<HouseHelp>> GetFilteredAsync(string? city = null, string? skill = null, bool? isActive = null, int? page = null, int? pageSize = null, string? location = null, string? search = null)
     {
         var query = _db.HouseHelps.Include(h => h.Skills).AsNoTracking().AsQueryable();
 
@@ -40,6 +40,26 @@ public class HouseHelpService : IHouseHelpService
         if (isActive.HasValue)
         {
             query = query.Where(h => h.IsActive == isActive.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            var term = location.Trim().ToLower();
+            query = query.Where(h =>
+                h.City.ToLower().Contains(term) ||
+                (h.Address != null && h.Address.ToLower().Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(h =>
+                h.FirstName.ToLower().Contains(term) ||
+                h.LastName.ToLower().Contains(term) ||
+                h.Phone.ToLower().Contains(term) ||
+                h.City.ToLower().Contains(term) ||
+                (h.Address != null && h.Address.ToLower().Contains(term)) ||
+                h.Skills.Any(sk => sk.ServiceName.ToLower().Contains(term)));
         }
 
         // simple pagination

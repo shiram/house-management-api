@@ -93,7 +93,7 @@
 - [x] T075 — Implement Manager/Admin update HouseHelp
 - [x] T076 — Implement HouseHelp activation/deactivation
 - [x] T077 — Add HouseHelp skills/services eligibility
-- [ ] T078 — Add location/search/filter support
+- [x] T078 — Add location/search/filter support
 - [ ] T079 — Add HouseHelp authorization tests
 - [ ] T080 — Add HouseHelp integration tests
 - [ ] T081 — Create Angular HouseHelp directory

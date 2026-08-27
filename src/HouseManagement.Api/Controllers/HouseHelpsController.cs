@@ -22,9 +22,9 @@ public class HouseHelpsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? city, [FromQuery] string? skill, [FromQuery] bool? isActive, [FromQuery] int? page, [FromQuery] int? pageSize)
+    public async Task<IActionResult> GetAll([FromQuery] string? city, [FromQuery] string? skill, [FromQuery] bool? isActive, [FromQuery] int? page, [FromQuery] int? pageSize, [FromQuery] string? location = null, [FromQuery] string? search = null)
     {
-        var items = await _svc.GetFilteredAsync(city, skill, isActive, page, pageSize);
+        var items = await _svc.GetFilteredAsync(city, skill, isActive, page, pageSize, location, search);
         var dtos = items.Select(h => new HouseManagement.Api.DTOs.HouseHelpDto
         {
             Id = h.Id,
