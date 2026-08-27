@@ -101,7 +101,7 @@
 - [x] T093 — Implement Manager/Admin availability management
 - [x] T094 — Implement HouseHelp self-service availability management
 - [x] T095 — Validate overlapping availability ranges
-- [ ] T096 — Add availability integration tests
+- [x] T096 — Add availability integration tests
 
 ---
 
