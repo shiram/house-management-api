@@ -1,13 +1,17 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Xunit;
-using Microsoft.EntityFrameworkCore;
-using HouseManagement.Api.Data;
-using HouseManagement.Api.Controllers;
-using HouseManagement.Api.DTOs;
-using HouseManagement.Api.Services;
-using HouseManagement.Api.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Moq;
+using Xunit;
+using HouseManagement.Api.Controllers;
+using HouseManagement.Api.Data;
+using HouseManagement.Api.DTOs;
+using HouseManagement.Api.Models;
+using HouseManagement.Api.Services;
 
 namespace HouseManagement.Api.Tests;
 
@@ -49,5 +53,35 @@ public class AuthControllerTests
         var user = await context.Users.SingleOrDefaultAsync(u => u.Email == "test@example.com");
         Assert.NotNull(user);
         Assert.Equal("househelp", user!.Role);
+    }
+
+    [Fact]
+    public void CreateToken_EmitsRoleClaimAndStandardClaims()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Key"] = "01234567890123456789012345678901",
+                ["Jwt:Issuer"] = "HouseManagement",
+                ["Jwt:Audience"] = "HouseManagement",
+                ["Jwt:ExpireMinutes"] = "30"
+            })
+            .Build();
+
+        var service = new TokenService(config);
+        var token = service.CreateToken(new User
+        {
+            Id = 42,
+            UserName = "adminuser",
+            Email = "admin@example.com",
+            Role = "admin"
+        });
+
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+
+        Assert.Contains(jwt.Claims, c => c.Type == JwtRegisteredClaimNames.Sub && c.Value == "42");
+        Assert.Contains(jwt.Claims, c => c.Type == JwtRegisteredClaimNames.UniqueName && c.Value == "adminuser");
+        Assert.Contains(jwt.Claims, c => c.Type == JwtRegisteredClaimNames.Email && c.Value == "admin@example.com");
+        Assert.Contains(jwt.Claims, c => c.Type == System.Security.Claims.ClaimTypes.Role && c.Value == "admin");
     }
 }
