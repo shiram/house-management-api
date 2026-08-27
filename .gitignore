@@ -1,10 +1,39 @@
 .devswarm-temp/
+.devswarm/
 .vs/
 **/.vs/
 bin/
 obj/
+**/bin/
+**/obj/
+TestResults/
+*.trx
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
 *.db
 Logs/
 *.log
+
+# Angular / Node
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.angular/
+*.tsbuildinfo
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+
+# IDE and OS files
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
