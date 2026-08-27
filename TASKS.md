@@ -67,7 +67,7 @@
 
 # PHASE 3 — Services / Service Catalog
 
-- [ ] T050 — Create service DTOs
+- [x] T050 — Create service DTOs
 - [ ] T051 — Create service validation
 - [ ] T052 — Implement public active-service listing
 - [ ] T053 — Implement service details

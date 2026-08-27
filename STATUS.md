@@ -117,3 +117,4 @@ Recent actions (2026-08-27):
 - Follow-up completed: aligned HouseHelp controller authorization attributes with the registered ManagerOrAdmin policy and corrected typed API envelope detection; the full backend suite now passes 35 tests.
 - T031 completed: added the Service domain model and explicit EF configuration with code/name metadata, decimal pricing, active state, timestamps, uniqueness, and operational indexing. A future domain migration is still required before deployment.
 - T032-T039 completed: added anonymous-capable Client, Booking and BookingStatus models, weekly HouseHelp availability, ServiceAddress, valid booking transitions, explicit relationship configurations, business uniqueness constraints, and operational indexes. A domain migration is required before these new tables are deployed.
+- T050 completed: added feature-specific service response, create, and update DTOs.
