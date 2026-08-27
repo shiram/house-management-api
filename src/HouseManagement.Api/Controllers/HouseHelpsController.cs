@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using HouseManagement.Api.Common.Api;
+using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.Services;
@@ -63,7 +64,7 @@ public class HouseHelpsController : ControllerBase
         return Ok(response);
     }
 
-    [Authorize(Policy = "RequireManagerOrAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateHouseHelpRequest req)
     {
@@ -96,7 +97,7 @@ public class HouseHelpsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = dto.Id }, response);
     }
 
-    [Authorize(Policy = "RequireManagerOrAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateHouseHelpRequest req)
     {
@@ -118,7 +119,7 @@ public class HouseHelpsController : ControllerBase
         return Ok(response);
     }
 
-    [Authorize(Policy = "RequireManagerOrAdmin")]
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpPut("{id}/activate")]
     public async Task<IActionResult> SetActive(int id, [FromQuery] bool active = true)
     {

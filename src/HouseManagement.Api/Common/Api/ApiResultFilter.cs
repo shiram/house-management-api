@@ -10,7 +10,7 @@ namespace HouseManagement.Api.Common.Api
             // Don't wrap ProblemDetails or already-wrapped responses
             if (context.Result is ObjectResult obj)
             {
-                if (obj.Value is ProblemDetails || obj.Value is ApiResponse<object>)
+                if (obj.Value is ProblemDetails || IsApiResponse(obj.Value))
                 {
                     await next();
                     return;
@@ -27,6 +27,14 @@ namespace HouseManagement.Api.Common.Api
             }
 
             await next();
+        }
+
+        private static bool IsApiResponse(object? value)
+        {
+            var type = value?.GetType();
+            return type is not null
+                && type.IsGenericType
+                && type.GetGenericTypeDefinition() == typeof(ApiResponse<>);
         }
     }
 }

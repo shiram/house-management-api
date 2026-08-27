@@ -114,3 +114,4 @@ Recent actions (2026-08-27):
 - T018 completed: documented UTC and DateTimeOffset conventions; new persisted timestamps use DateTimeOffset.UtcNow while legacy User timestamps remain unchanged for schema compatibility.
 - T019 completed: moved entity mappings into dedicated IEntityTypeConfiguration classes and enabled assembly scanning from HouseContext.
 - T024 completed: added named AdminOnly, ManagerOrAdmin, and HouseHelpOnly authorization policies while preserving existing lowercase JWT role values.
+- Follow-up completed: aligned HouseHelp controller authorization attributes with the registered ManagerOrAdmin policy and corrected typed API envelope detection; the full backend suite now passes 35 tests.

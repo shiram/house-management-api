@@ -87,15 +87,15 @@
 
 - [x] T070 — Create HouseHelp profile DTOs
 - [x] T071 — Create HouseHelp validation
-- [ ] T072 — Implement public HouseHelp directory listing
-- [ ] T073 — Implement HouseHelp profile details
+- [x] T072 — Implement public HouseHelp directory listing
+- [x] T073 — Implement HouseHelp profile details
 - [x] T074 — Implement Manager/Admin create HouseHelp
 - [x] T075 — Implement Manager/Admin update HouseHelp
 - [x] T076 — Implement HouseHelp activation/deactivation
 - [x] T077 — Add HouseHelp skills/services eligibility
-- [ ] T078 — Add location/search/filter support
-- [ ] T079 — Add HouseHelp authorization tests
-- [ ] T080 — Add HouseHelp integration tests
+- [x] T078 — Add location/search/filter support
+- [x] T079 — Add HouseHelp authorization tests
+- [x] T080 — Add HouseHelp integration tests
 - [ ] T081 — Create Angular HouseHelp directory
 - [ ] T082 — Create Angular HouseHelp profile form
 - [ ] T083 — Create Angular HouseHelp detail page
