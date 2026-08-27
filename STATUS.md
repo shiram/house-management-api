@@ -109,3 +109,4 @@ Recent actions (2026-08-27):
 - T291 completed: dotnet list package --vulnerable --include-transitive audit executed.
 - T328 completed: GitHub Actions build/test workflow added with JWT_KEY secret validation.
 - T017 completed: API versioning configured with default version 1.0, backward-compatible unversioned routes, and API version response headers.
+- T018 completed: documented UTC and DateTimeOffset conventions; new persisted timestamps use DateTimeOffset.UtcNow while legacy User timestamps remain unchanged for schema compatibility.

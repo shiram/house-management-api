@@ -3,7 +3,9 @@
 This project uses EF Core with the following conventions and expectations:
 
 - Use explicit entity configuration in DbContext.OnModelCreating for indexes, column lengths and relationships.
-- Prefer DateTimeOffset for persisted timestamps where timezone is important; DateTime.UtcNow is used in legacy code — prefer DateTimeOffset moving forward.
+- Use DateTimeOffset for all new persisted timestamps and initialize them with DateTimeOffset.UtcNow.
+- User.CreatedAt and User.LastLogin remain DateTime for compatibility with the existing schema/migration; do not change them without a dedicated migration and data review.
+- Use DateTime.UtcNow only for legacy compatibility or framework APIs that require DateTime (for example JWT expiration).
 - Add unique constraints for natural keys (e.g., Users.Email, Users.UserName) using HasIndex(...).IsUnique().
 - Keep migrations in src/HouseManagement.Api/Migrations and check them into source control.
 - Use migrations for schema changes; avoid ad-hoc database modifications in production.

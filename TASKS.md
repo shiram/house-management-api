@@ -34,7 +34,7 @@
 - [x] T015 — Add ProblemDetails for unexpected errors
 - [x] T016 — Add consistent validation error response
 - [x] T017 — Establish API versioning strategy
-- [ ] T018 — Establish UTC/DateTimeOffset conventions
+- [x] T018 — Establish UTC/DateTimeOffset conventions
 - [ ] T019 — Add EF Core entity configuration conventions
 - [x] T020 — Add database migration/development workflow documentation
 - [x] T021 — Add health checks for API and SQL Server
