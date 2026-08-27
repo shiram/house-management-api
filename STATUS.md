@@ -147,3 +147,4 @@ Recent actions (2026-08-27):
 - T116 completed: added explicit booking transition validation for undefined, same-status, and disallowed transitions.
 - T117 completed: added Manager/Admin booking cancellation through `POST /api/bookings/{id}/cancel`, enforcing cancellable statuses and returning the updated booking.
 - T118 completed: added Manager/Admin booking rejection through `POST /api/bookings/{id}/reject`, allowing rejection only from the requested state.
+- T119 completed: added Manager/Admin booking confirmation through `POST /api/bookings/{id}/confirm`, allowing confirmation only from the requested state.

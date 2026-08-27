@@ -261,6 +261,42 @@ public class BookingServiceTests
         Assert.Contains("cannot transition", invalid.Error);
     }
 
+    [Fact]
+    public async Task ConfirmAsync_AllowsRequestedAndRejectsRejected()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Bookings.AddRange(
+            new Booking
+            {
+                Id = 1,
+                Reference = "BK-CONFIRM",
+                ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+                ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+                Status = BookingStatus.Requested
+            },
+            new Booking
+            {
+                Id = 2,
+                Reference = "BK-REJECTED",
+                ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+                ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+                Status = BookingStatus.Rejected
+            });
+        await context.SaveChangesAsync();
+
+        var service = new BookingStatusService(context, new BookingTransitionValidator());
+        var confirmed = await service.ConfirmAsync(1);
+        var invalid = await service.ConfirmAsync(2);
+
+        Assert.Equal(BookingStatus.Confirmed, confirmed.Booking!.Status);
+        Assert.Null(invalid.Booking);
+        Assert.Contains("cannot transition", invalid.Error);
+    }
+
     private static CreateAnonymousBookingRequest CreateRequest(
         int serviceId = 1,
         DateTimeOffset? start = null,
