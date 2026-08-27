@@ -7,6 +7,24 @@ namespace HouseManagement.Api.Data;
 
 public static class DevelopmentDataSeeder
 {
+    private static readonly Service[] SampleServices =
+    {
+        new()
+        {
+            Code = "HOUSE_CLEANING",
+            Name = "House Cleaning",
+            Description = "Standard residential house cleaning",
+            BasePrice = 35m
+        },
+        new()
+        {
+            Code = "LAUNDRY",
+            Name = "Laundry",
+            Description = "Residential laundry and folding service",
+            BasePrice = 25m
+        }
+    };
+
     public static async Task SeedRolesAsync(
         HouseContext db,
         IPasswordHasher passwordHasher,
@@ -52,5 +70,30 @@ public static class DevelopmentDataSeeder
 
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Development role seed completed.");
+    }
+
+    public static async Task SeedServicesAsync(
+        HouseContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var sample in SampleServices)
+        {
+            if (!await db.Services.AnyAsync(service => service.Code == sample.Code, cancellationToken))
+            {
+                db.Services.Add(new Service
+                {
+                    Code = sample.Code,
+                    Name = sample.Name,
+                    Description = sample.Description,
+                    BasePrice = sample.BasePrice,
+                    IsActive = true,
+                    CreatedAt = DateTimeOffset.UtcNow
+                });
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Development service seed completed.");
     }
 }

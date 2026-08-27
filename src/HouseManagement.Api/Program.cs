@@ -139,11 +139,19 @@ if (app.Environment.IsDevelopment())
         var context = scope.ServiceProvider.GetRequiredService<HouseContext>();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DevelopmentDataSeeder");
-        await DevelopmentDataSeeder.SeedRolesAsync(
-            context,
-            passwordHasher,
-            app.Configuration,
-            logger);
+        if (app.Configuration.GetValue<bool>("DevelopmentSeed:Enabled"))
+        {
+            await DevelopmentDataSeeder.SeedRolesAsync(
+                context,
+                passwordHasher,
+                app.Configuration,
+                logger);
+            await DevelopmentDataSeeder.SeedServicesAsync(context, logger);
+        }
+        else
+        {
+            logger.LogInformation("Development data seeding is disabled.");
+        }
     }
 
     app.UseDeveloperExceptionPage();

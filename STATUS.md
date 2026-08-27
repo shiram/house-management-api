@@ -128,3 +128,4 @@ Recent actions (2026-08-27):
 - T058 completed: added integration coverage for public service reads, Manager/Admin lifecycle operations, and inactive-service hiding.
 - Frontend tasks were removed from `TASKS.md` per user request; the queue now retains backend-focused work only.
 - T042 completed: added development-only, idempotent role user seeding controlled by `DEV_SEED_PASSWORD` and documented the local setup.
+- T043 completed: added explicit-enable, development-only, idempotent sample service seeding and documented the required configuration.

@@ -58,7 +58,7 @@
 - [x] T040 — Create initial business-domain EF migration
 - [ ] T041 — Verify migration against a clean SQL Server database
 - [x] T042 — Add seed data for development roles
-- [ ] T043 — Add seed data for sample services
+- [x] T043 — Add seed data for sample services
 - [ ] T044 — Add safe development seed data for househelps
 
 ---
