@@ -60,6 +60,10 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<HouseContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<HouseManagement.Api.Common.Health.DbHealthCheck>("database");
+
 // Password hasher and token service
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -131,6 +135,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Liveness endpoint (quick check)
+app.MapGet("/health/live", () => Results.Ok(new { status = "Alive" }));
+
+// Readiness endpoint (includes DB health check)
+app.MapHealthChecks("/health/ready");
 
 try
 {

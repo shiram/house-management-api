@@ -17,7 +17,7 @@
 - [x] T002 — Document the current project structure and identify existing authentication extension points
 - [x] T003 — Create a repeatable local development README
 - [ ] T004 — Add `.gitignore` entries for .NET, Angular, VS Code, DevSwarm and local secrets
-- [ ] T005 — Add environment/configuration documentation without committing secrets
+- [x] T005 — Add environment/configuration documentation without committing secrets
 - [x] T006 — Verify `dotnet build` and existing tests
 - [ ] T007 — Create initial Angular 21 workspace under `frontend/house-management-web`
 - [ ] T008 — Verify Angular strict mode, routing and standalone component configuration
@@ -27,19 +27,19 @@
 # PHASE 1 — Backend Foundation
 
 - [x] T010 — Introduce Common API infrastructure without breaking existing endpoints
-- [ ] T011 — Standardize API response envelope
+- [x] T011 — Standardize API response envelope
 - [x] T012 — Add request/correlation ID middleware
 - [x] T013 — Integrate request ID with Serilog structured logging
 - [x] T014 — Add global exception handling
 - [x] T015 — Add ProblemDetails for unexpected errors
-- [ ] T016 — Add consistent validation error response
+- [x] T016 — Add consistent validation error response
 - [ ] T017 — Establish API versioning strategy
 - [ ] T018 — Establish UTC/DateTimeOffset conventions
 - [ ] T019 — Add EF Core entity configuration conventions
-- [ ] T020 — Add database migration/development workflow documentation
-- [ ] T021 — Add health checks for API and SQL Server
-- [ ] T022 — Add OpenAPI/Swagger conventions and authentication support
-- [ ] T023 — Add integration test infrastructure
+- [x] T020 — Add database migration/development workflow documentation
+- [x] T021 — Add health checks for API and SQL Server
+- [x] T022 — Add OpenAPI/Swagger conventions and authentication support
+- [x] T023 — Add integration test infrastructure
 - [ ] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
 - [x] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (hardened: self-registration forces 'househelp')
 
@@ -283,7 +283,7 @@
 - [ ] T288 — Review file upload/security boundaries if uploads are introduced
 - [ ] T289 — Add rate limiting strategy for public booking endpoints
 - [ ] T290 — Add security headers/CORS policy
-- [ ] T291 — Run dependency/security audit
+- [x] T291 — Run dependency/security audit
 
 ---
 
@@ -314,7 +314,7 @@
 - [ ] T325 — Configure reverse proxy/HTTPS
 - [ ] T326 — Configure Serilog production sinks
 - [ ] T327 — Configure health monitoring
-- [ ] T328 — Create CI build/test workflow
+- [x] T328 — Create CI build/test workflow
 - [ ] T329 — Create CI migration/deployment strategy
 - [ ] T330 — Create rollback procedure
 

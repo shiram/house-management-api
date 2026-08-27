@@ -97,4 +97,14 @@ Follow-ups:
 - Harden Register endpoint to disallow client-supplied Role (security) — implemented (self-registration now forces role = 'househelp').
 - Create initial business-domain EF migration — added by setup branch and present in src/HouseManagement.Api/Migrations (marking T040 complete).
 - Add unique DB constraints and migrations for Users.Email and Users.UserName — configured in HouseContext and covered by migrations.
-- Address System.IdentityModel.Tokens.Jwt advisory when scheduling dependency upgrades.
+- Dependency audit completed: the project resolves System.IdentityModel.Tokens.Jwt 7.1.2, plus transitive advisories remain for Azure.Identity, Microsoft.Data.SqlClient, Microsoft.Extensions.Caching.Memory, System.Formats.Asn1, and System.Text.Json; these require a dedicated dependency upgrade review.
+
+Recent actions (2026-08-27):
+- T005 completed: README.local.md documents environment variables and CI JWT_KEY requirements.
+- T011/T016 completed: global API response and validation filters added.
+- T020 completed: EF conventions and migration workflow docs added.
+- T021 completed: liveness and database readiness health endpoints added.
+- T022 completed: Swagger JWT bearer security configuration added.
+- T023 completed: WebApplicationFactory integration test infrastructure added for health, Swagger, and authentication.
+- T291 completed: dotnet list package --vulnerable --include-transitive audit executed.
+- T328 completed: GitHub Actions build/test workflow added with JWT_KEY secret validation.

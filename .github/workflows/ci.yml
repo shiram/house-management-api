@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, 'feature/*', setup, 'release/*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      JWT_KEY: ${{ secrets.JWT_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check JWT_KEY secret is set
+        run: |
+          if [ -z "${{ secrets.JWT_KEY }}" ]; then
+            echo "Required secret JWT_KEY is not set in repository secrets. Aborting CI.";
+            exit 1;
+          fi
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run tests
+        run: dotnet test --no-build --verbosity normal
