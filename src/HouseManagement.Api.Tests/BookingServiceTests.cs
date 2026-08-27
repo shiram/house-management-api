@@ -189,6 +189,42 @@ public class BookingServiceTests
         Assert.Equal(BookingStatus.Requested, (await context.Bookings.SingleAsync()).Status);
     }
 
+    [Fact]
+    public async Task CancelAsync_AllowsCancellableStatusesAndRejectsInProgress()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Bookings.AddRange(
+            new Booking
+            {
+                Id = 1,
+                Reference = "BK-CANCEL",
+                ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+                ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+                Status = BookingStatus.Confirmed
+            },
+            new Booking
+            {
+                Id = 2,
+                Reference = "BK-IN-PROGRESS",
+                ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+                ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+                Status = BookingStatus.InProgress
+            });
+        await context.SaveChangesAsync();
+
+        var service = new BookingStatusService(context, new BookingTransitionValidator());
+        var cancelled = await service.CancelAsync(1);
+        var rejected = await service.CancelAsync(2);
+
+        Assert.Equal(BookingStatus.Cancelled, cancelled.Booking!.Status);
+        Assert.Null(rejected.Booking);
+        Assert.Contains("cannot transition", rejected.Error);
+    }
+
     private static CreateAnonymousBookingRequest CreateRequest(
         int serviceId = 1,
         DateTimeOffset? start = null,

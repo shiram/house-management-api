@@ -35,4 +35,9 @@ public sealed class BookingStatusService : IBookingStatusService
 
         return new BookingStatusTransitionResult(booking, null);
     }
+
+    public Task<BookingStatusTransitionResult> CancelAsync(int bookingId)
+    {
+        return TransitionAsync(bookingId, BookingStatus.Cancelled);
+    }
 }

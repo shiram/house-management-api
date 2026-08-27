@@ -124,7 +124,7 @@
 - [ ] T114 — Add safe anonymous booking tracking mechanism
 - [x] T115 — Add booking status transition service
 - [x] T116 — Add booking transition validation
-- [ ] T117 — Add booking cancellation rules
+- [x] T117 — Add booking cancellation rules
 - [ ] T118 — Add booking rejection rules
 - [ ] T119 — Add booking confirmation rules
 - [ ] T120 — Add booking completion rules

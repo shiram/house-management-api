@@ -13,10 +13,12 @@ namespace HouseManagement.Api.Controllers;
 public sealed class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookings;
+    private readonly IBookingStatusService _bookingStatuses;
 
-    public BookingsController(IBookingService bookings)
+    public BookingsController(IBookingService bookings, IBookingStatusService bookingStatuses)
     {
         _bookings = bookings;
+        _bookingStatuses = bookingStatuses;
     }
 
     [HttpPost]
@@ -41,6 +43,29 @@ public sealed class BookingsController : ControllerBase
         if (booking == null) return NotFound();
 
         var response = ApiResponseFactory.Create(this, ToDto(booking), "Booking retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var result = await _bookingStatuses.CancelAsync(id);
+        if (result.Booking == null)
+        {
+            if (result.Error == "The requested booking was not found.")
+            {
+                return NotFound();
+            }
+
+            return BadRequest(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create(
+            this,
+            ToDto(result.Booking),
+            "Booking cancelled",
+            StatusCodes.Status200OK);
         return Ok(response);
     }
 
