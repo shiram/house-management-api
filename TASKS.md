@@ -35,7 +35,7 @@
 - [x] T016 — Add consistent validation error response
 - [x] T017 — Establish API versioning strategy
 - [x] T018 — Establish UTC/DateTimeOffset conventions
-- [ ] T019 — Add EF Core entity configuration conventions
+- [x] T019 — Add EF Core entity configuration conventions
 - [x] T020 — Add database migration/development workflow documentation
 - [x] T021 — Add health checks for API and SQL Server
 - [x] T022 — Add OpenAPI/Swagger conventions and authentication support
