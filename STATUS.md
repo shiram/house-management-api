@@ -140,3 +140,4 @@ Recent actions (2026-08-27):
 - T100 completed: added shared booking create and response DTOs, including scheduling, service, address, status, and notes fields.
 - T101 completed: added anonymous booking request DTO with contact name, phone, and optional email fields.
 - T102 completed: added authenticated booking request DTO without client or user identifiers, preserving claim-derived identity.
+- T103-T109 completed: added the public anonymous booking endpoint with active-service, schedule, contact, and address validation, transactional persistence, and unique booking reference generation.

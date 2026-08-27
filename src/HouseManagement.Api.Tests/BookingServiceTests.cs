@@ -1,0 +1,75 @@
+using HouseManagement.Api.Data;
+using HouseManagement.Api.DTOs;
+using HouseManagement.Api.Models;
+using HouseManagement.Api.Services;
+using Microsoft.EntityFrameworkCore;
+using Xunit;
+
+namespace HouseManagement.Api.Tests;
+
+public class BookingServiceTests
+{
+    [Fact]
+    public async Task CreateAnonymousAsync_PersistsBookingClientAndAddress()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service { Id = 1, Code = "CLEANING", Name = "Cleaning", BasePrice = 25, IsActive = true });
+        await context.SaveChangesAsync();
+
+        var service = new BookingService(context);
+        var result = await service.CreateAnonymousAsync(CreateRequest());
+
+        Assert.NotNull(result.Booking);
+        Assert.StartsWith("BK-", result.Booking!.Reference);
+        Assert.Equal(BookingStatus.Requested, result.Booking.Status);
+        Assert.Single(await context.Clients.ToListAsync());
+        Assert.Single(await context.ServiceAddresses.ToListAsync());
+        Assert.Single(await context.Bookings.ToListAsync());
+    }
+
+    [Fact]
+    public async Task CreateAnonymousAsync_RejectsInactiveServiceAndInvalidSchedule()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service { Id = 1, Code = "OLD", Name = "Old", IsActive = false });
+        await context.SaveChangesAsync();
+        var service = new BookingService(context);
+
+        var inactive = await service.CreateAnonymousAsync(CreateRequest());
+        var invalid = await service.CreateAnonymousAsync(CreateRequest(1, DateTimeOffset.UtcNow.AddHours(2), DateTimeOffset.UtcNow.AddHours(1)));
+
+        Assert.Null(inactive.Booking);
+        Assert.Null(invalid.Booking);
+        Assert.Empty(await context.Bookings.ToListAsync());
+    }
+
+    private static CreateAnonymousBookingRequest CreateRequest(
+        int serviceId = 1,
+        DateTimeOffset? start = null,
+        DateTimeOffset? end = null)
+    {
+        return new CreateAnonymousBookingRequest
+        {
+            ContactName = "Anonymous Client",
+            Phone = "+254700000001",
+            Email = "client@example.com",
+            ServiceId = serviceId,
+            ScheduledStart = start ?? DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = end ?? DateTimeOffset.UtcNow.AddDays(1).AddHours(2),
+            Address = new ServiceAddressRequest
+            {
+                Line1 = "1 Main Street",
+                City = "Nairobi",
+                Country = "Kenya"
+            }
+        };
+    }
+}

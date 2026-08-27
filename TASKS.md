@@ -110,13 +110,13 @@
 - [x] T100 — Define booking request DTOs
 - [x] T101 — Define anonymous client request DTO
 - [x] T102 — Define authenticated client request DTO
-- [ ] T103 — Implement public service request endpoint
-- [ ] T104 — Validate service exists and is active
-- [ ] T105 — Validate requested service date/time
-- [ ] T106 — Validate customer contact details
-- [ ] T107 — Validate service address
-- [ ] T108 — Implement booking creation transaction
-- [ ] T109 — Implement booking reference generation
+- [x] T103 — Implement public service request endpoint
+- [x] T104 — Validate service exists and is active
+- [x] T105 — Validate requested service date/time
+- [x] T106 — Validate customer contact details
+- [x] T107 — Validate service address
+- [x] T108 — Implement booking creation transaction
+- [x] T109 — Implement booking reference generation
 - [ ] T110 — Implement booking details endpoint
 - [ ] T111 — Implement booking list for Manager/Admin
 - [ ] T112 — Implement booking list for assigned HouseHelp
