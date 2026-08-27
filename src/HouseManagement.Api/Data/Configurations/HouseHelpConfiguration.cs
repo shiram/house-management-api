@@ -14,5 +14,7 @@ public sealed class HouseHelpConfiguration : IEntityTypeConfiguration<HouseHelp>
             .HasForeignKey(houseHelp => houseHelp.UserId)
             .OnDelete(DeleteBehavior.NoAction);
         builder.HasIndex(houseHelp => houseHelp.UserId);
+        builder.HasIndex(houseHelp => houseHelp.City);
+        builder.HasIndex(houseHelp => houseHelp.IsActive);
     }
 }

@@ -49,14 +49,14 @@
 
 - [x] T030 — Design HouseHelp domain model
 - [x] T031 — Design Service domain model
-- [ ] T032 — Design Client/customer model supporting anonymous requests
-- [ ] T033 — Design Booking domain model
-- [ ] T034 — Design BookingStatus and valid status transitions
-- [ ] T035 — Design HouseHelp availability model
-- [ ] T036 — Design service address model
-- [ ] T037 — Add entity configurations and relationships
-- [ ] T038 — Add unique constraints for required business identifiers
-- [ ] T039 — Add operational indexes for booking and directory queries
+- [x] T032 — Design Client/customer model supporting anonymous requests
+- [x] T033 — Design Booking domain model
+- [x] T034 — Design BookingStatus and valid status transitions
+- [x] T035 — Design HouseHelp availability model
+- [x] T036 — Design service address model
+- [x] T037 — Add entity configurations and relationships
+- [x] T038 — Add unique constraints for required business identifiers
+- [x] T039 — Add operational indexes for booking and directory queries
 - [x] T040 — Create initial business-domain EF migration
 - [ ] T041 — Verify migration against a clean SQL Server database
 - [ ] T042 — Add seed data for development roles
