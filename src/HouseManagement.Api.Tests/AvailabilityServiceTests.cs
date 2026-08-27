@@ -74,4 +74,29 @@ public class AvailabilityServiceTests
         Assert.Equal(DayOfWeek.Friday, slots[0].DayOfWeek);
         Assert.False(await service.ReplaceWeeklyAsync(999, Array.Empty<HouseHelpAvailability>()));
     }
+
+    [Fact]
+    public async Task GetHouseHelpIdForUserAsync_ReturnsOnlyLinkedProfile()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.HouseHelps.Add(new HouseHelp
+        {
+            Id = 7,
+            UserId = 42,
+            FirstName = "A",
+            LastName = "B",
+            Phone = "1",
+            City = "Nairobi"
+        });
+        await context.SaveChangesAsync();
+
+        var service = new AvailabilityService(context);
+
+        Assert.Equal(7, await service.GetHouseHelpIdForUserAsync(42));
+        Assert.Null(await service.GetHouseHelpIdForUserAsync(99));
+    }
 }

@@ -99,7 +99,7 @@
 - [x] T091 — Design unavailable/leave exceptions
 - [x] T092 — Implement availability query
 - [x] T093 — Implement Manager/Admin availability management
-- [ ] T094 — Implement HouseHelp self-service availability management
+- [x] T094 — Implement HouseHelp self-service availability management
 - [ ] T095 — Validate overlapping availability ranges
 - [ ] T096 — Add availability integration tests
 

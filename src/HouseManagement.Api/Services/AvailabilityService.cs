@@ -64,4 +64,12 @@ public sealed class AvailabilityService : IAvailabilityService
         await _db.SaveChangesAsync();
         return true;
     }
+
+    public async Task<int?> GetHouseHelpIdForUserAsync(int userId)
+    {
+        return await _db.HouseHelps
+            .Where(houseHelp => houseHelp.UserId == userId)
+            .Select(houseHelp => (int?)houseHelp.Id)
+            .SingleOrDefaultAsync();
+    }
 }

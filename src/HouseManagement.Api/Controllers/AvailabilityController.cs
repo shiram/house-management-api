@@ -4,6 +4,8 @@ using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Services;
 using HouseManagement.Api.Models;
 using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HouseManagement.Api.Controllers;
@@ -67,6 +69,53 @@ public sealed class AvailabilityController : ControllerBase
         if (!updated) return NotFound();
 
         var result = await _availability.GetAsync(houseHelpId);
+        var dto = new AvailabilityDto
+        {
+            HouseHelpId = result!.HouseHelpId,
+            WeeklySlots = result.WeeklySlots.Select(slot => new AvailabilitySlotDto
+            {
+                DayOfWeek = slot.DayOfWeek,
+                StartTime = slot.StartTime,
+                EndTime = slot.EndTime
+            }),
+            Exceptions = result.Exceptions.Select(exception => new AvailabilityExceptionDto
+            {
+                StartsAt = exception.StartsAt,
+                EndsAt = exception.EndsAt,
+                Reason = exception.Reason
+            })
+        };
+
+        var response = ApiResponseFactory.Create(this, dto, "Availability updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.HouseHelpOnly)]
+    [HttpPut("/api/availability/me")]
+    public async Task<IActionResult> ReplaceOwnWeekly([FromBody] UpdateAvailabilityRequest request)
+    {
+        var subject = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (!int.TryParse(subject, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var houseHelpId = await _availability.GetHouseHelpIdForUserAsync(userId);
+        if (!houseHelpId.HasValue)
+        {
+            return NotFound();
+        }
+
+        var slots = request.WeeklySlots.Select(slot => new HouseHelpAvailability
+        {
+            DayOfWeek = slot.DayOfWeek,
+            StartTime = slot.StartTime,
+            EndTime = slot.EndTime,
+            IsActive = true
+        });
+
+        await _availability.ReplaceWeeklyAsync(houseHelpId.Value, slots);
+        var result = await _availability.GetAsync(houseHelpId.Value);
         var dto = new AvailabilityDto
         {
             HouseHelpId = result!.HouseHelpId,
