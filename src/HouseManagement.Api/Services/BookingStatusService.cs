@@ -40,4 +40,9 @@ public sealed class BookingStatusService : IBookingStatusService
     {
         return TransitionAsync(bookingId, BookingStatus.Cancelled);
     }
+
+    public Task<BookingStatusTransitionResult> RejectAsync(int bookingId)
+    {
+        return TransitionAsync(bookingId, BookingStatus.Rejected);
+    }
 }

@@ -70,6 +70,29 @@ public sealed class BookingsController : ControllerBase
     }
 
     [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("{id:int}/reject")]
+    public async Task<IActionResult> Reject(int id)
+    {
+        var result = await _bookingStatuses.RejectAsync(id);
+        if (result.Booking == null)
+        {
+            if (result.Error == "The requested booking was not found.")
+            {
+                return NotFound();
+            }
+
+            return BadRequest(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create(
+            this,
+            ToDto(result.Booking),
+            "Booking rejected",
+            StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpGet]
     public async Task<IActionResult> GetList(
         [FromQuery] BookingStatus? status,

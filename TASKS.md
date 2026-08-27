@@ -125,7 +125,7 @@
 - [x] T115 — Add booking status transition service
 - [x] T116 — Add booking transition validation
 - [x] T117 — Add booking cancellation rules
-- [ ] T118 — Add booking rejection rules
+- [x] T118 — Add booking rejection rules
 - [ ] T119 — Add booking confirmation rules
 - [ ] T120 — Add booking completion rules
 - [ ] T121 — Add booking integration tests
