@@ -120,4 +120,31 @@ public class ServiceCatalogTests
         Assert.False(stored.IsActive);
         Assert.True(stored.UpdatedAt > originalTimestamp);
     }
+
+    [Fact]
+    public async Task SetActiveAsync_ChangesStatusAndTimestamp()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        var originalTimestamp = DateTimeOffset.UtcNow.AddMinutes(-1);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "CLEANING",
+            Name = "Cleaning",
+            IsActive = true,
+            CreatedAt = originalTimestamp
+        });
+        await context.SaveChangesAsync();
+
+        var service = new ServiceCatalogService(context);
+
+        Assert.True(await service.SetActiveAsync(1, false));
+        Assert.False(await context.Services.Where(item => item.Id == 1).Select(item => item.IsActive).SingleAsync());
+        Assert.True((await context.Services.SingleAsync(item => item.Id == 1)).UpdatedAt > originalTimestamp);
+        Assert.False(await service.SetActiveAsync(999, true));
+    }
 }

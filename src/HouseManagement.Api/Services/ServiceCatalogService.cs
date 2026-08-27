@@ -72,4 +72,15 @@ public sealed class ServiceCatalogService : IServiceCatalogService
         await _db.SaveChangesAsync();
         return true;
     }
+
+    public async Task<bool> SetActiveAsync(int id, bool isActive)
+    {
+        var existing = await _db.Services.SingleOrDefaultAsync(item => item.Id == id);
+        if (existing == null) return false;
+
+        existing.IsActive = isActive;
+        existing.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync();
+        return true;
+    }
 }

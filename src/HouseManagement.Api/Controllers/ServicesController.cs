@@ -106,6 +106,17 @@ public sealed class ServicesController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{id:int}/activate")]
+    public async Task<IActionResult> SetActive(int id, [FromQuery] bool active = true)
+    {
+        var updated = await _serviceCatalog.SetActiveAsync(id, active);
+        if (!updated) return NotFound();
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "Service status updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
     private static ServiceDto ToDto(Service service)
     {
         return new ServiceDto

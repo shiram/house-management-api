@@ -10,4 +10,5 @@ public interface IServiceCatalogService
     Task<bool> CodeExistsAsync(string code, int? excludingId = null);
     Task<Service?> CreateAsync(Service service);
     Task<bool> UpdateAsync(Service service);
+    Task<bool> SetActiveAsync(int id, bool isActive);
 }
