@@ -107,7 +107,7 @@
 
 # PHASE 6 — Booking / Service Request Core
 
-- [ ] T100 — Define booking request DTOs
+- [x] T100 — Define booking request DTOs
 - [ ] T101 — Define anonymous client request DTO
 - [ ] T102 — Define authenticated client request DTO
 - [ ] T103 — Implement public service request endpoint
