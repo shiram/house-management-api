@@ -97,5 +97,20 @@ Next recommended actions: None immediate; T014 and T015 implemented: global exce
 
 Follow-ups:
 - Harden Register endpoint to disallow client-supplied Role (security) — implemented (self-registration now forces role = 'househelp').
-- Add unique DB constraints and migrations for Users.Email and Users.UserName — T040.
-- Address System.IdentityModel.Tokens.Jwt advisory when scheduling dependency upgrades.
+- Create initial business-domain EF migration — added by setup branch and present in src/HouseManagement.Api/Migrations (marking T040 complete).
+- Add unique DB constraints and migrations for Users.Email and Users.UserName — configured in HouseContext and covered by migrations.
+- Dependency audit completed: the project resolves System.IdentityModel.Tokens.Jwt 7.1.2, plus transitive advisories remain for Azure.Identity, Microsoft.Data.SqlClient, Microsoft.Extensions.Caching.Memory, System.Formats.Asn1, and System.Text.Json; these require a dedicated dependency upgrade review.
+
+Recent actions (2026-08-27):
+- T005 completed: README.local.md documents environment variables and CI JWT_KEY requirements.
+- T011/T016 completed: global API response and validation filters added.
+- T020 completed: EF conventions and migration workflow docs added.
+- T021 completed: liveness and database readiness health endpoints added.
+- T022 completed: Swagger JWT bearer security configuration added.
+- T023 completed: WebApplicationFactory integration test infrastructure added for health, Swagger, and authentication.
+- T291 completed: dotnet list package --vulnerable --include-transitive audit executed.
+- T328 completed: GitHub Actions build/test workflow added with JWT_KEY secret validation.
+- T017 completed: API versioning configured with default version 1.0, backward-compatible unversioned routes, and API version response headers.
+- T018 completed: documented UTC and DateTimeOffset conventions; new persisted timestamps use DateTimeOffset.UtcNow while legacy User timestamps remain unchanged for schema compatibility.
+- T019 completed: moved entity mappings into dedicated IEntityTypeConfiguration classes and enabled assembly scanning from HouseContext.
+- T024 completed: added named AdminOnly, ManagerOrAdmin, and HouseHelpOnly authorization policies while preserving existing lowercase JWT role values.

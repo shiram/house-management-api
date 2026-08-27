@@ -4,6 +4,8 @@ using HouseManagement.Api.Data;
 using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using HouseManagement.Api.Common;
+using HouseManagement.Api.Common.Security;
+using Asp.Versioning;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -18,16 +20,57 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add services
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Global validation & result-wrapping
+    options.Filters.Add<HouseManagement.Api.Common.Api.ValidationFilter>();
+    options.Filters.Add<HouseManagement.Api.Common.Api.ApiResultFilter>();
+});
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1.0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+});
 // Common API infrastructure (minimal, non-breaking)
 builder.Services.AddCommonServices();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Swagger with JWT bearer support will be added below
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+});
 
 // Configure DbContext (SQL Server)
 builder.Services.AddDbContext<HouseContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<HouseManagement.Api.Common.Health.DbHealthCheck>("database");
 
 // Password hasher and token service
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
@@ -66,13 +109,27 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
-    // Centralized policies reference role constants in Common/Roles.cs
-    options.AddPolicy("RequireAdmin", policy => policy.RequireRole(Roles.Admin));
-    options.AddPolicy("RequireManagerOrAdmin", policy => policy.RequireRole(Roles.Manager, Roles.Admin));
-    options.AddPolicy("RequireHouseHelp", policy => policy.RequireRole(Roles.HouseHelp));
+    options.AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
+        policy.RequireRole(AuthorizationPolicies.AdminRole));
+    options.AddPolicy(AuthorizationPolicies.ManagerOrAdmin, policy =>
+        policy.RequireRole(AuthorizationPolicies.AdminRole, AuthorizationPolicies.ManagerRole));
+    options.AddPolicy(AuthorizationPolicies.HouseHelpOnly, policy =>
+        policy.RequireRole(AuthorizationPolicies.HouseHelpRole));
 });
 
 var app = builder.Build();
+
+// Validate runtime JWT configuration: in production require a real key
+if (app.Environment.IsProduction())
+{
+    var jwtSectionRuntime = app.Configuration.GetSection("Jwt");
+    var effectiveKey = jwtSectionRuntime["Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "PleaseSetASecretKeyInEnv";
+    if (string.IsNullOrWhiteSpace(effectiveKey) || effectiveKey == "PleaseSetASecretKeyInEnv")
+    {
+        Log.Fatal("JWT signing key is not configured. Set environment variable JWT_KEY in production.");
+        throw new Exception("JWT signing key not configured");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -94,6 +151,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Liveness endpoint (quick check)
+app.MapGet("/health/live", () => Results.Ok(new { status = "Alive" }));
+
+// Readiness endpoint (includes DB health check)
+app.MapHealthChecks("/health/ready");
 
 try
 {

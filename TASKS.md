@@ -16,8 +16,8 @@
 - [x] T001 — Inspect and preserve existing .NET 8 project, SQL Server setup, Serilog, User model, DTOs, JWT and AuthController
 - [x] T002 — Document the current project structure and identify existing authentication extension points
 - [x] T003 — Create a repeatable local development README
-- [ ] T004 — Add `.gitignore` entries for .NET, Angular, VS Code, DevSwarm and local secrets
-- [ ] T005 — Add environment/configuration documentation without committing secrets
+- [x] T004 — Add `.gitignore` entries for .NET, Angular, VS Code, DevSwarm and local secrets
+- [x] T005 — Add environment/configuration documentation without committing secrets
 - [x] T006 — Verify `dotnet build` and existing tests
 - [ ] T007 — Create initial Angular 21 workspace under `frontend/house-management-web`
 - [ ] T008 — Verify Angular strict mode, routing and standalone component configuration
@@ -33,15 +33,15 @@
 - [x] T014 — Add global exception handling
 - [x] T015 — Add ProblemDetails for unexpected errors
 - [x] T016 — Add consistent validation error response
-- [ ] T017 — Establish API versioning strategy
-- [ ] T018 — Establish UTC/DateTimeOffset conventions
-- [ ] T019 — Add EF Core entity configuration conventions
-- [ ] T020 — Add database migration/development workflow documentation
-- [ ] T021 — Add health checks for API and SQL Server
-- [ ] T022 — Add OpenAPI/Swagger conventions and authentication support
-- [ ] T023 — Add integration test infrastructure
-- [ ] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
-- [x] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (started: hardened register endpoint to prevent client role assignment) — policies added and centralized role constants
+- [x] T017 — Establish API versioning strategy
+- [x] T018 — Establish UTC/DateTimeOffset conventions
+- [x] T019 — Add EF Core entity configuration conventions
+- [x] T020 — Add database migration/development workflow documentation
+- [x] T021 — Add health checks for API and SQL Server
+- [x] T022 — Add OpenAPI/Swagger conventions and authentication support
+- [x] T023 — Add integration test infrastructure
+- [x] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
+- [x] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (hardened: self-registration forces 'househelp')
 
 ---
 
@@ -57,7 +57,7 @@
 - [ ] T037 — Add entity configurations and relationships
 - [ ] T038 — Add unique constraints for required business identifiers
 - [ ] T039 — Add operational indexes for booking and directory queries
-- [ ] T040 — Create initial business-domain EF migration
+- [x] T040 — Create initial business-domain EF migration
 - [ ] T041 — Verify migration against a clean SQL Server database
 - [ ] T042 — Add seed data for development roles
 - [ ] T043 — Add seed data for sample services
@@ -283,7 +283,7 @@
 - [ ] T288 — Review file upload/security boundaries if uploads are introduced
 - [ ] T289 — Add rate limiting strategy for public booking endpoints
 - [ ] T290 — Add security headers/CORS policy
-- [ ] T291 — Run dependency/security audit
+- [x] T291 — Run dependency/security audit
 
 ---
 
@@ -314,7 +314,7 @@
 - [ ] T325 — Configure reverse proxy/HTTPS
 - [ ] T326 — Configure Serilog production sinks
 - [ ] T327 — Configure health monitoring
-- [ ] T328 — Create CI build/test workflow
+- [x] T328 — Create CI build/test workflow
 - [ ] T329 — Create CI migration/deployment strategy
 - [ ] T330 — Create rollback procedure
 
