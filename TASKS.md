@@ -117,7 +117,7 @@
 - [x] T107 — Validate service address
 - [x] T108 — Implement booking creation transaction
 - [x] T109 — Implement booking reference generation
-- [ ] T110 — Implement booking details endpoint
+- [x] T110 — Implement booking details endpoint
 - [ ] T111 — Implement booking list for Manager/Admin
 - [ ] T112 — Implement booking list for assigned HouseHelp
 - [ ] T113 — Implement booking list for authenticated client

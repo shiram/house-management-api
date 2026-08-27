@@ -2,6 +2,8 @@ using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.Services;
+using HouseManagement.Api.Common.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HouseManagement.Api.Controllers;
@@ -29,6 +31,17 @@ public sealed class BookingsController : ControllerBase
         var booking = result.Booking;
         var response = ApiResponseFactory.Create(this, ToDto(booking), "Booking request created", StatusCodes.Status201Created);
         return CreatedAtAction(nameof(CreateAnonymous), new { id = booking.Id }, response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id)
+    {
+        var booking = await _bookings.GetByIdAsync(id);
+        if (booking == null) return NotFound();
+
+        var response = ApiResponseFactory.Create(this, ToDto(booking), "Booking retrieved", StatusCodes.Status200OK);
+        return Ok(response);
     }
 
     private static BookingDto ToDto(Booking booking)

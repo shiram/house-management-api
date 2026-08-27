@@ -72,6 +72,15 @@ public sealed class BookingService : IBookingService
         return new BookingCreationResult(booking, null);
     }
 
+    public async Task<Booking?> GetByIdAsync(int id)
+    {
+        return await _db.Bookings
+            .AsNoTracking()
+            .Include(booking => booking.Service)
+            .Include(booking => booking.ServiceAddress)
+            .SingleOrDefaultAsync(booking => booking.Id == id);
+    }
+
     private async Task<string> GenerateReferenceAsync()
     {
         string reference;

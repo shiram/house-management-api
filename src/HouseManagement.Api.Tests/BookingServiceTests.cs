@@ -51,6 +51,43 @@ public class BookingServiceTests
         Assert.Empty(await context.Bookings.ToListAsync());
     }
 
+    [Fact]
+    public async Task GetByIdAsync_ReturnsBookingWithServiceAndAddress()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service { Id = 1, Code = "CLEANING", Name = "Cleaning", IsActive = true });
+        context.ServiceAddresses.Add(new ServiceAddress
+        {
+            Id = 1,
+            Line1 = "1 Main Street",
+            City = "Nairobi",
+            Country = "Kenya"
+        });
+        context.Bookings.Add(new Booking
+        {
+            Id = 1,
+            Reference = "BK-DETAILS",
+            ServiceId = 1,
+            ServiceAddressId = 1,
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(2),
+            Status = BookingStatus.Requested
+        });
+        await context.SaveChangesAsync();
+
+        var service = new BookingService(context);
+        var booking = await service.GetByIdAsync(1);
+
+        Assert.NotNull(booking);
+        Assert.Equal("Cleaning", booking!.Service.Name);
+        Assert.Equal("1 Main Street", booking.ServiceAddress.Line1);
+        Assert.Null(await service.GetByIdAsync(999));
+    }
+
     private static CreateAnonymousBookingRequest CreateRequest(
         int serviceId = 1,
         DateTimeOffset? start = null,
