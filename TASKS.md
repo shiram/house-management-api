@@ -19,8 +19,6 @@
 - [x] T004 — Add `.gitignore` entries for .NET, Angular, VS Code, DevSwarm and local secrets
 - [x] T005 — Add environment/configuration documentation without committing secrets
 - [x] T006 — Verify `dotnet build` and existing tests
-- [ ] T007 — Create initial Angular 21 workspace under `frontend/house-management-web`
-- [ ] T008 — Verify Angular strict mode, routing and standalone component configuration
 
 ---
 
@@ -76,10 +74,6 @@
 - [x] T056 — Implement activate/deactivate service
 - [x] T057 — Add service authorization tests
 - [x] T058 — Add service integration tests
-- [ ] T059 — Add Angular service catalog API service
-- [ ] T060 — Add Angular service list
-- [ ] T061 — Add Angular service create/edit forms
-- [ ] T062 — Add service status management UI
 
 ---
 
@@ -96,11 +90,6 @@
 - [x] T078 — Add location/search/filter support
 - [x] T079 — Add HouseHelp authorization tests
 - [x] T080 — Add HouseHelp integration tests
-- [ ] T081 — Create Angular HouseHelp directory
-- [ ] T082 — Create Angular HouseHelp profile form
-- [ ] T083 — Create Angular HouseHelp detail page
-- [ ] T084 — Add enterprise search/filter/pagination
-- [ ] T085 — Add HouseHelp status and action controls
 
 ---
 
@@ -113,9 +102,6 @@
 - [ ] T094 — Implement HouseHelp self-service availability management
 - [ ] T095 — Validate overlapping availability ranges
 - [ ] T096 — Add availability integration tests
-- [ ] T097 — Build Angular availability editor
-- [ ] T098 — Build Angular availability calendar/list
-- [ ] T099 — Add availability conflict indicators
 
 ---
 
@@ -159,88 +145,23 @@
 - [ ] T138 — Add assignment audit information
 - [ ] T139 — Add assignment integration tests
 - [ ] T140 — Add concurrency test for double-booking protection
-- [ ] T141 — Build Angular assignment screen
-- [ ] T142 — Build eligible HouseHelp selection UI
-- [ ] T143 — Add conflict/availability indicators
-
----
-
-# PHASE 8 — Client Experience
-
-- [ ] T150 — Design public client service request flow
-- [ ] T151 — Build Angular public service catalog
-- [ ] T152 — Build service request wizard/form
-- [ ] T153 — Add date/time selection
-- [ ] T154 — Add service address form
-- [ ] T155 — Add customer contact form
-- [ ] T156 — Add optional sign-in path
-- [ ] T157 — Add request confirmation page
-- [ ] T158 — Add anonymous request tracking
-- [ ] T159 — Add authenticated client booking history
-- [ ] T160 — Add responsive/mobile-first client screens
-- [ ] T161 — Add client-side validation and server error display
-- [ ] T162 — Add loading, empty and error states
-
----
-
-# PHASE 9 — Angular Enterprise Shell
-
-- [ ] T170 — Create enterprise design tokens
-- [ ] T171 — Create application shell
-- [ ] T172 — Create navbar
-- [ ] T173 — Create sidebar
-- [ ] T174 — Create responsive sidebar behavior
-- [ ] T175 — Create notification menu
-- [ ] T176 — Create user/account menu
-- [ ] T177 — Create logout flow
-- [ ] T178 — Create authenticated route guard
-- [ ] T179 — Create HTTP auth interceptor
-- [ ] T180 — Create centralized API error handling
-- [ ] T181 — Create reusable toast/notification service
-- [ ] T182 — Create reusable confirmation modal
-- [ ] T183 — Create reusable loading/skeleton components
-- [ ] T184 — Create reusable empty state
-- [ ] T185 — Create reusable enterprise data table
-- [ ] T186 — Create reusable form styling
-- [ ] T187 — Create responsive design rules
-- [ ] T188 — Accessibility pass for keyboard/focus/labels
 
 ---
 
 # PHASE 10 — Manager Operations
 
-- [ ] T200 — Manager dashboard
-- [ ] T201 — Booking queue
-- [ ] T202 — Booking detail
-- [ ] T203 — Booking assignment workflow
-- [ ] T204 — Booking status workflow UI
-- [ ] T205 — HouseHelp management
-- [ ] T206 — Availability management
-- [ ] T207 — Service catalog management
-- [ ] T208 — Operational search/filtering
-- [ ] T209 — Dashboard KPI cards
-- [ ] T210 — Dashboard recent activity
 - [ ] T211 — Manager authorization tests
 
 ---
 
 # PHASE 11 — HouseHelp Experience
 
-- [ ] T220 — HouseHelp dashboard
-- [ ] T221 — Assigned booking list
-- [ ] T222 — Booking details
-- [ ] T223 — Accept/acknowledge assignment if required by policy
-- [ ] T224 — Start-work action
-- [ ] T225 — Complete-work action
-- [ ] T226 — Availability management
-- [ ] T227 — Profile view/edit within permitted fields
 - [ ] T228 — HouseHelp authorization tests
 
 ---
 
 # PHASE 12 — Administration
 
-- [ ] T240 — Admin dashboard
 - [ ] T241 — User list
 - [ ] T242 — User details
 - [ ] T243 — Role management
@@ -264,7 +185,6 @@
 - [ ] T265 — Notify HouseHelp when assigned
 - [ ] T266 — Notify client when booking status changes
 - [ ] T267 — Add notification read/unread state
-- [ ] T268 — Build Angular notification center
 - [ ] T269 — Add email/SMS abstraction without hard-coding a provider
 - [ ] T270 — Add notification tests
 
@@ -291,8 +211,6 @@
 
 - [ ] T300 — Backend unit test coverage review
 - [ ] T301 — Backend integration test coverage review
-- [ ] T302 — Angular service test review
-- [ ] T303 — Critical Angular workflow test review
 - [ ] T304 — Database query performance review
 - [ ] T305 — Booking conflict query performance review
 - [ ] T306 — Add pagination to large datasets
@@ -309,8 +227,6 @@
 - [ ] T320 — Create production configuration documentation
 - [ ] T321 — Create SQL Server deployment/migration process
 - [ ] T322 — Create backend Dockerfile if container deployment is selected
-- [ ] T323 — Create Angular production build configuration
-- [ ] T324 — Configure environment-specific Angular API URLs
 - [ ] T325 — Configure reverse proxy/HTTPS
 - [ ] T326 — Configure Serilog production sinks
 - [ ] T327 — Configure health monitoring
@@ -330,7 +246,6 @@
 - [ ] T345 — Promotions/discounts
 - [ ] T346 — Payment integration abstraction
 - [ ] T347 — Payment provider integration
-- [ ] T348 — Revenue/reporting dashboard
 - [ ] T349 — HouseHelp earnings/reporting
 - [ ] T350 — Advanced reporting/export
 
@@ -345,7 +260,6 @@ These can usually run in parallel after their dependencies are satisfied:
 ```text
 Service Catalog
 HouseHelp Directory
-Angular Shell
 Test Infrastructure
 Documentation
 ```
@@ -363,7 +277,7 @@ Booking
     ->
 Assignment
     ->
-Manager operations UI
+Manager operations
 ```
 
 ## High-risk tasks requiring human review
