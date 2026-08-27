@@ -147,6 +147,7 @@ if (app.Environment.IsDevelopment())
                 app.Configuration,
                 logger);
             await DevelopmentDataSeeder.SeedServicesAsync(context, logger);
+            await DevelopmentDataSeeder.SeedHouseHelpsAsync(context, logger);
         }
         else
         {

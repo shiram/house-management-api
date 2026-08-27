@@ -57,4 +57,22 @@ public class DevelopmentDataSeederTests
         Assert.Equal(new[] { "HOUSE_CLEANING", "LAUNDRY" }, services.Select(service => service.Code));
         Assert.All(services, service => Assert.True(service.IsActive));
     }
+
+    [Fact]
+    public async Task SeedHouseHelpsAsync_IsIdempotentAndCreatesSkills()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+
+        await DevelopmentDataSeeder.SeedHouseHelpsAsync(context, NullLogger.Instance);
+        await DevelopmentDataSeeder.SeedHouseHelpsAsync(context, NullLogger.Instance);
+
+        var houseHelps = await context.HouseHelps.Include(houseHelp => houseHelp.Skills).ToListAsync();
+        Assert.Equal(2, houseHelps.Count);
+        Assert.Contains(houseHelps, houseHelp => houseHelp.Skills.Count == 2);
+        Assert.Contains(houseHelps, houseHelp => houseHelp.Skills.Count == 1);
+    }
 }

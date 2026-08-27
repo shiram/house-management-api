@@ -19,6 +19,7 @@ CI / Deployment notes:
 - Recommended additional env vars: ASPNETCORE_ENVIRONMENT (Development/Production), and any DB credentials.
 - When running in Development with `DevelopmentSeed__Enabled=true` and DEV_SEED_PASSWORD configured, startup idempotently seeds `dev-admin`, `dev-manager`, and `dev-househelp`.
 - Development startup also idempotently seeds the sample `HOUSE_CLEANING` and `LAUNDRY` services.
+- Development startup also idempotently seeds two sample HouseHelp profiles without creating authentication accounts.
 
 Security:
 - Do not commit secret keys to Git. Use environment variables or a secret store in CI and production.

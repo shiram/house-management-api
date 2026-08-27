@@ -59,7 +59,7 @@
 - [ ] T041 — Verify migration against a clean SQL Server database
 - [x] T042 — Add seed data for development roles
 - [x] T043 — Add seed data for sample services
-- [ ] T044 — Add safe development seed data for househelps
+- [x] T044 — Add safe development seed data for househelps
 
 ---
 

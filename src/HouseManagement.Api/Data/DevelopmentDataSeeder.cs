@@ -96,4 +96,61 @@ public static class DevelopmentDataSeeder
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Development service seed completed.");
     }
+
+    public static async Task SeedHouseHelpsAsync(
+        HouseContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var samples = new[]
+        {
+            new
+            {
+                FirstName = "Grace",
+                LastName = "Njeri",
+                Phone = "+254700000101",
+                City = "Nairobi",
+                Address = "Westlands",
+                Skills = new[] { "HOUSE_CLEANING", "LAUNDRY" }
+            },
+            new
+            {
+                FirstName = "Daniel",
+                LastName = "Otieno",
+                Phone = "+254700000102",
+                City = "Nairobi",
+                Address = "Kilimani",
+                Skills = new[] { "HOUSE_CLEANING" }
+            }
+        };
+
+        foreach (var sample in samples)
+        {
+            if (await db.HouseHelps.AnyAsync(houseHelp => houseHelp.Phone == sample.Phone, cancellationToken))
+            {
+                continue;
+            }
+
+            var houseHelp = new HouseHelp
+            {
+                FirstName = sample.FirstName,
+                LastName = sample.LastName,
+                Phone = sample.Phone,
+                City = sample.City,
+                Address = sample.Address,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            foreach (var skill in sample.Skills)
+            {
+                houseHelp.Skills.Add(new HouseHelpSkill { ServiceName = skill });
+            }
+
+            db.HouseHelps.Add(houseHelp);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Development HouseHelp seed completed.");
+    }
 }
