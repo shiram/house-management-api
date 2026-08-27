@@ -138,3 +138,4 @@ Recent actions (2026-08-27):
 - T095 completed: added server-side validation preventing overlapping or zero-length weekly availability slots.
 - T096 completed: added integration coverage for public availability reads, Manager/Admin updates, overlap rejection, and unauthorized mutations.
 - T100 completed: added shared booking create and response DTOs, including scheduling, service, address, status, and notes fields.
+- T101 completed: added anonymous booking request DTO with contact name, phone, and optional email fields.

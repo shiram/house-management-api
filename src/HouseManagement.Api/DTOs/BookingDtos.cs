@@ -11,6 +11,13 @@ public class CreateBookingRequest
     public string? Notes { get; set; }
 }
 
+public sealed class CreateAnonymousBookingRequest : CreateBookingRequest
+{
+    public string ContactName { get; set; } = null!;
+    public string Phone { get; set; } = null!;
+    public string? Email { get; set; }
+}
+
 public sealed class ServiceAddressRequest
 {
     public string Line1 { get; set; } = null!;
