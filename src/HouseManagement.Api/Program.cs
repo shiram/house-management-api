@@ -134,6 +134,18 @@ if (app.Environment.IsProduction())
 
 if (app.Environment.IsDevelopment())
 {
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<HouseContext>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DevelopmentDataSeeder");
+        await DevelopmentDataSeeder.SeedRolesAsync(
+            context,
+            passwordHasher,
+            app.Configuration,
+            logger);
+    }
+
     app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
