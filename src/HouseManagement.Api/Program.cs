@@ -4,6 +4,7 @@ using HouseManagement.Api.Data;
 using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using HouseManagement.Api.Common;
+using HouseManagement.Api.Common.Security;
 using Asp.Versioning;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -106,7 +107,15 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
+        policy.RequireRole(AuthorizationPolicies.AdminRole));
+    options.AddPolicy(AuthorizationPolicies.ManagerOrAdmin, policy =>
+        policy.RequireRole(AuthorizationPolicies.AdminRole, AuthorizationPolicies.ManagerRole));
+    options.AddPolicy(AuthorizationPolicies.HouseHelpOnly, policy =>
+        policy.RequireRole(AuthorizationPolicies.HouseHelpRole));
+});
 
 var app = builder.Build();
 

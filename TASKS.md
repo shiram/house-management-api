@@ -40,7 +40,7 @@
 - [x] T021 — Add health checks for API and SQL Server
 - [x] T022 — Add OpenAPI/Swagger conventions and authentication support
 - [x] T023 — Add integration test infrastructure
-- [ ] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
+- [x] T024 — Add authorization policy conventions for Admin, Manager and HouseHelp
 - [x] T025 — Review existing JWT claims and role authorization for compatibility with the new policies (hardened: self-registration forces 'househelp')
 
 ---
