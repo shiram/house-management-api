@@ -119,3 +119,4 @@ Recent actions (2026-08-27):
 - T032-T039 completed: added anonymous-capable Client, Booking and BookingStatus models, weekly HouseHelp availability, ServiceAddress, valid booking transitions, explicit relationship configurations, business uniqueness constraints, and operational indexes. A domain migration is required before these new tables are deployed.
 - T050 completed: added feature-specific service response, create, and update DTOs.
 - T051 completed: added DataAnnotations validation for service code, name, description, and non-negative decimal pricing, with focused tests.
+- T052 completed: added the public `GET /api/services` endpoint, active-service filtering, deterministic ordering, DI registration, and coverage for inactive services.

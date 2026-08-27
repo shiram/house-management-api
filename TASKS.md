@@ -69,7 +69,7 @@
 
 - [x] T050 — Create service DTOs
 - [x] T051 — Create service validation
-- [ ] T052 — Implement public active-service listing
+- [x] T052 — Implement public active-service listing
 - [ ] T053 — Implement service details
 - [ ] T054 — Implement Manager/Admin create service
 - [ ] T055 — Implement Manager/Admin update service
