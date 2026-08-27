@@ -82,6 +82,7 @@ builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingStatusService, BookingStatusService>();
+builder.Services.AddSingleton<IBookingTransitionValidator, BookingTransitionValidator>();
 
 // JWT configuration
 var jwtSection = builder.Configuration.GetSection("Jwt");

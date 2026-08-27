@@ -144,3 +144,4 @@ Recent actions (2026-08-27):
 - T110 completed: added Manager/Admin-protected `GET /api/bookings/{id}` details retrieval with service and address loading.
 - T111 completed: added Manager/Admin-protected `GET /api/bookings` with optional status filtering, deterministic newest-first ordering, and bounded pagination.
 - T115 completed: added the booking status transition service with persistence, timestamps, not-found handling, and transition-map enforcement.
+- T116 completed: added explicit booking transition validation for undefined, same-status, and disallowed transitions.

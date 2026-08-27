@@ -152,7 +152,7 @@ public class BookingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new BookingStatusService(context);
+        var service = new BookingStatusService(context, new BookingTransitionValidator());
         var result = await service.TransitionAsync(1, BookingStatus.Confirmed);
 
         Assert.NotNull(result.Booking);
@@ -178,7 +178,7 @@ public class BookingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new BookingStatusService(context);
+        var service = new BookingStatusService(context, new BookingTransitionValidator());
         var invalid = await service.TransitionAsync(1, BookingStatus.Completed);
         var missing = await service.TransitionAsync(999, BookingStatus.Confirmed);
 

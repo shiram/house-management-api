@@ -7,10 +7,12 @@ namespace HouseManagement.Api.Services;
 public sealed class BookingStatusService : IBookingStatusService
 {
     private readonly HouseContext _db;
+    private readonly IBookingTransitionValidator _validator;
 
-    public BookingStatusService(HouseContext db)
+    public BookingStatusService(HouseContext db, IBookingTransitionValidator validator)
     {
         _db = db;
+        _validator = validator;
     }
 
     public async Task<BookingStatusTransitionResult> TransitionAsync(int bookingId, BookingStatus nextStatus)
@@ -21,11 +23,10 @@ public sealed class BookingStatusService : IBookingStatusService
             return new BookingStatusTransitionResult(null, "The requested booking was not found.");
         }
 
-        if (!BookingStatusTransitions.IsAllowed(booking.Status, nextStatus))
+        var validationError = _validator.Validate(booking.Status, nextStatus);
+        if (validationError != null)
         {
-            return new BookingStatusTransitionResult(
-                null,
-                $"A booking with status '{booking.Status}' cannot transition to '{nextStatus}'.");
+            return new BookingStatusTransitionResult(null, validationError);
         }
 
         booking.Status = nextStatus;

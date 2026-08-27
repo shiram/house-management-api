@@ -123,7 +123,7 @@
 - [ ] T113 — Implement booking list for authenticated client
 - [ ] T114 — Add safe anonymous booking tracking mechanism
 - [x] T115 — Add booking status transition service
-- [ ] T116 — Add booking transition validation
+- [x] T116 — Add booking transition validation
 - [ ] T117 — Add booking cancellation rules
 - [ ] T118 — Add booking rejection rules
 - [ ] T119 — Add booking confirmation rules
