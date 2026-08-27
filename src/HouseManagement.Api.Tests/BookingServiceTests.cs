@@ -134,6 +134,61 @@ public class BookingServiceTests
         Assert.Equal(2, confirmed[0].Id);
     }
 
+    [Fact]
+    public async Task TransitionAsync_UpdatesStatusAndTimestamp()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Bookings.Add(new Booking
+        {
+            Id = 1,
+            Reference = "BK-TRANSITION",
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+            Status = BookingStatus.Requested
+        });
+        await context.SaveChangesAsync();
+
+        var service = new BookingStatusService(context);
+        var result = await service.TransitionAsync(1, BookingStatus.Confirmed);
+
+        Assert.NotNull(result.Booking);
+        Assert.Equal(BookingStatus.Confirmed, result.Booking!.Status);
+        Assert.NotNull(result.Booking.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task TransitionAsync_RejectsInvalidTransitionAndMissingBooking()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Bookings.Add(new Booking
+        {
+            Id = 1,
+            Reference = "BK-INVALID",
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+            Status = BookingStatus.Requested
+        });
+        await context.SaveChangesAsync();
+
+        var service = new BookingStatusService(context);
+        var invalid = await service.TransitionAsync(1, BookingStatus.Completed);
+        var missing = await service.TransitionAsync(999, BookingStatus.Confirmed);
+
+        Assert.Null(invalid.Booking);
+        Assert.Contains("cannot transition", invalid.Error);
+        Assert.Null(missing.Booking);
+        Assert.Contains("not found", missing.Error);
+        Assert.Equal(BookingStatus.Requested, (await context.Bookings.SingleAsync()).Status);
+    }
+
     private static CreateAnonymousBookingRequest CreateRequest(
         int serviceId = 1,
         DateTimeOffset? start = null,

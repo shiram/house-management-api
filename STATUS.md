@@ -143,3 +143,4 @@ Recent actions (2026-08-27):
 - T103-T109 completed: added the public anonymous booking endpoint with active-service, schedule, contact, and address validation, transactional persistence, and unique booking reference generation.
 - T110 completed: added Manager/Admin-protected `GET /api/bookings/{id}` details retrieval with service and address loading.
 - T111 completed: added Manager/Admin-protected `GET /api/bookings` with optional status filtering, deterministic newest-first ordering, and bounded pagination.
+- T115 completed: added the booking status transition service with persistence, timestamps, not-found handling, and transition-map enforcement.
