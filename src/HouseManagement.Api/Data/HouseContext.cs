@@ -24,4 +24,5 @@ public class HouseContext : DbContext
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<ServiceAddress> ServiceAddresses { get; set; }
     public DbSet<HouseHelpAvailability> HouseHelpAvailabilities { get; set; }
+    public DbSet<HouseHelpAvailabilityException> HouseHelpAvailabilityExceptions { get; set; }
 }

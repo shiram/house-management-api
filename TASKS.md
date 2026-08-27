@@ -96,7 +96,7 @@
 # PHASE 5 — Availability
 
 - [ ] T090 — Design weekly availability model
-- [ ] T091 — Design unavailable/leave exceptions
+- [x] T091 — Design unavailable/leave exceptions
 - [ ] T092 — Implement availability query
 - [ ] T093 — Implement Manager/Admin availability management
 - [ ] T094 — Implement HouseHelp self-service availability management

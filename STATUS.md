@@ -131,3 +131,4 @@ Recent actions (2026-08-27):
 - T043 completed: added explicit-enable, development-only, idempotent sample service seeding and documented the required configuration.
 - T044 completed: added development-only, idempotent HouseHelp profile and skill seeding without creating authentication accounts.
 - T041 completed: verified `HouseManagerDB` contains both migrations and the new Services, Clients, Bookings, ServiceAddresses, and HouseHelpAvailabilities tables with expected indexes and unique constraints.
+- T091 completed: added HouseHelp unavailability/leave exception model, EF configuration, relationship, and range-query indexes. A follow-up migration is required before deployment.
