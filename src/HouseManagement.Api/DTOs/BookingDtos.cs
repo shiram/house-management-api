@@ -18,6 +18,10 @@ public sealed class CreateAnonymousBookingRequest : CreateBookingRequest
     public string? Email { get; set; }
 }
 
+public sealed class CreateAuthenticatedBookingRequest : CreateBookingRequest
+{
+}
+
 public sealed class ServiceAddressRequest
 {
     public string Line1 { get; set; } = null!;

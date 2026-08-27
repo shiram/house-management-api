@@ -109,7 +109,7 @@
 
 - [x] T100 — Define booking request DTOs
 - [x] T101 — Define anonymous client request DTO
-- [ ] T102 — Define authenticated client request DTO
+- [x] T102 — Define authenticated client request DTO
 - [ ] T103 — Implement public service request endpoint
 - [ ] T104 — Validate service exists and is active
 - [ ] T105 — Validate requested service date/time
