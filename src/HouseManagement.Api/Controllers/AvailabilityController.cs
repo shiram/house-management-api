@@ -66,7 +66,8 @@ public sealed class AvailabilityController : ControllerBase
         });
 
         var updated = await _availability.ReplaceWeeklyAsync(houseHelpId, slots);
-        if (!updated) return NotFound();
+        if (updated == AvailabilityUpdateResult.HouseHelpNotFound) return NotFound();
+        if (updated == AvailabilityUpdateResult.Invalid) return BadRequest("Availability slots cannot overlap and must have a positive duration.");
 
         var result = await _availability.GetAsync(houseHelpId);
         var dto = new AvailabilityDto
@@ -114,7 +115,8 @@ public sealed class AvailabilityController : ControllerBase
             IsActive = true
         });
 
-        await _availability.ReplaceWeeklyAsync(houseHelpId.Value, slots);
+        var updated = await _availability.ReplaceWeeklyAsync(houseHelpId.Value, slots);
+        if (updated == AvailabilityUpdateResult.Invalid) return BadRequest("Availability slots cannot overlap and must have a positive duration.");
         var result = await _availability.GetAsync(houseHelpId.Value);
         var dto = new AvailabilityDto
         {

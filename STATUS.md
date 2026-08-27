@@ -135,3 +135,4 @@ Recent actions (2026-08-27):
 - T092 completed: added public availability querying for active weekly slots and date-overlapping active exceptions, with validation and tests.
 - T093 completed: added Manager/Admin-protected weekly availability replacement at `PUT /api/househelps/{houseHelpId}/availability`, including clear/replace behavior and tests.
 - T094 completed: added HouseHelp-only `PUT /api/availability/me`, deriving the linked profile from the JWT subject claim.
+- T095 completed: added server-side validation preventing overlapping or zero-length weekly availability slots.

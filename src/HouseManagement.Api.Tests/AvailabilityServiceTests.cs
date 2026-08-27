@@ -69,10 +69,36 @@ public class AvailabilityServiceTests
         });
 
         var slots = await context.HouseHelpAvailabilities.ToListAsync();
-        Assert.True(updated);
+        Assert.Equal(AvailabilityUpdateResult.Updated, updated);
         Assert.Single(slots);
         Assert.Equal(DayOfWeek.Friday, slots[0].DayOfWeek);
-        Assert.False(await service.ReplaceWeeklyAsync(999, Array.Empty<HouseHelpAvailability>()));
+        Assert.Equal(AvailabilityUpdateResult.HouseHelpNotFound, await service.ReplaceWeeklyAsync(999, Array.Empty<HouseHelpAvailability>()));
+    }
+
+    [Fact]
+    public async Task ReplaceWeeklyAsync_RejectsOverlappingOrZeroLengthSlots()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.HouseHelps.Add(new HouseHelp { Id = 1, FirstName = "A", LastName = "B", Phone = "1", City = "Nairobi" });
+        await context.SaveChangesAsync();
+
+        var service = new AvailabilityService(context);
+        var overlapping = await service.ReplaceWeeklyAsync(1, new[]
+        {
+            new HouseHelpAvailability { DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(8), EndTime = new TimeOnly(12) },
+            new HouseHelpAvailability { DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(11), EndTime = new TimeOnly(14) }
+        });
+        var zeroLength = await service.ReplaceWeeklyAsync(1, new[]
+        {
+            new HouseHelpAvailability { DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeOnly(9), EndTime = new TimeOnly(9) }
+        });
+
+        Assert.Equal(AvailabilityUpdateResult.Invalid, overlapping);
+        Assert.Equal(AvailabilityUpdateResult.Invalid, zeroLength);
     }
 
     [Fact]

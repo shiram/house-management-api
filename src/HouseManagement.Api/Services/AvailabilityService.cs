@@ -40,11 +40,23 @@ public sealed class AvailabilityService : IAvailabilityService
         return new AvailabilityQueryResult(houseHelpId, weeklySlots, exceptions);
     }
 
-    public async Task<bool> ReplaceWeeklyAsync(int houseHelpId, IEnumerable<HouseHelpAvailability> slots)
+    public async Task<AvailabilityUpdateResult> ReplaceWeeklyAsync(int houseHelpId, IEnumerable<HouseHelpAvailability> slots)
     {
         if (!await _db.HouseHelps.AnyAsync(houseHelp => houseHelp.Id == houseHelpId))
         {
-            return false;
+            return AvailabilityUpdateResult.HouseHelpNotFound;
+        }
+
+        var replacements = slots.ToList();
+        if (replacements.Any(slot => slot.StartTime >= slot.EndTime) ||
+            replacements
+                .GroupBy(slot => slot.DayOfWeek)
+                .SelectMany(group => group.OrderBy(slot => slot.StartTime).Zip(
+                    group.OrderBy(slot => slot.StartTime).Skip(1),
+                    (current, next) => new { Current = current, Next = next }))
+                .Any(pair => pair.Next.StartTime < pair.Current.EndTime))
+        {
+            return AvailabilityUpdateResult.Invalid;
         }
 
         var existing = await _db.HouseHelpAvailabilities
@@ -52,7 +64,7 @@ public sealed class AvailabilityService : IAvailabilityService
             .ToListAsync();
         _db.HouseHelpAvailabilities.RemoveRange(existing);
 
-        var replacements = slots.Select(slot => new HouseHelpAvailability
+        var replacementEntities = replacements.Select(slot => new HouseHelpAvailability
         {
             HouseHelpId = houseHelpId,
             DayOfWeek = slot.DayOfWeek,
@@ -60,9 +72,9 @@ public sealed class AvailabilityService : IAvailabilityService
             EndTime = slot.EndTime,
             IsActive = slot.IsActive
         });
-        await _db.HouseHelpAvailabilities.AddRangeAsync(replacements);
+        await _db.HouseHelpAvailabilities.AddRangeAsync(replacementEntities);
         await _db.SaveChangesAsync();
-        return true;
+        return AvailabilityUpdateResult.Updated;
     }
 
     public async Task<int?> GetHouseHelpIdForUserAsync(int userId)
