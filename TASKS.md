@@ -16,7 +16,7 @@
 - [x] T001 — Inspect and preserve existing .NET 8 project, SQL Server setup, Serilog, User model, DTOs, JWT and AuthController
 - [x] T002 — Document the current project structure and identify existing authentication extension points
 - [x] T003 — Create a repeatable local development README
-- [ ] T004 — Add `.gitignore` entries for .NET, Angular, VS Code, DevSwarm and local secrets
+- [x] T004 — Add `.gitignore` entries for .NET, Angular, VS Code, DevSwarm and local secrets
 - [x] T005 — Add environment/configuration documentation without committing secrets
 - [x] T006 — Verify `dotnet build` and existing tests
 - [ ] T007 — Create initial Angular 21 workspace under `frontend/house-management-web`
