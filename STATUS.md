@@ -133,3 +133,4 @@ Recent actions (2026-08-27):
 - T041 completed: verified `HouseManagerDB` contains both migrations and the new Services, Clients, Bookings, ServiceAddresses, and HouseHelpAvailabilities tables with expected indexes and unique constraints.
 - T091 completed: added HouseHelp unavailability/leave exception model, EF configuration, relationship, and range-query indexes. A follow-up migration is required before deployment.
 - T092 completed: added public availability querying for active weekly slots and date-overlapping active exceptions, with validation and tests.
+- T093 completed: added Manager/Admin-protected weekly availability replacement at `PUT /api/househelps/{houseHelpId}/availability`, including clear/replace behavior and tests.

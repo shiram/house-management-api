@@ -1,6 +1,9 @@
 using HouseManagement.Api.Common.Api;
+using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Services;
+using HouseManagement.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HouseManagement.Api.Controllers;
@@ -45,6 +48,43 @@ public sealed class AvailabilityController : ControllerBase
         };
 
         var response = ApiResponseFactory.Create(this, dto, "Availability retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("/api/househelps/{houseHelpId:int}/availability")]
+    public async Task<IActionResult> ReplaceWeekly(int houseHelpId, [FromBody] UpdateAvailabilityRequest request)
+    {
+        var slots = request.WeeklySlots.Select(slot => new HouseHelpAvailability
+        {
+            DayOfWeek = slot.DayOfWeek,
+            StartTime = slot.StartTime,
+            EndTime = slot.EndTime,
+            IsActive = true
+        });
+
+        var updated = await _availability.ReplaceWeeklyAsync(houseHelpId, slots);
+        if (!updated) return NotFound();
+
+        var result = await _availability.GetAsync(houseHelpId);
+        var dto = new AvailabilityDto
+        {
+            HouseHelpId = result!.HouseHelpId,
+            WeeklySlots = result.WeeklySlots.Select(slot => new AvailabilitySlotDto
+            {
+                DayOfWeek = slot.DayOfWeek,
+                StartTime = slot.StartTime,
+                EndTime = slot.EndTime
+            }),
+            Exceptions = result.Exceptions.Select(exception => new AvailabilityExceptionDto
+            {
+                StartsAt = exception.StartsAt,
+                EndsAt = exception.EndsAt,
+                Reason = exception.Reason
+            })
+        };
+
+        var response = ApiResponseFactory.Create(this, dto, "Availability updated", StatusCodes.Status200OK);
         return Ok(response);
     }
 }

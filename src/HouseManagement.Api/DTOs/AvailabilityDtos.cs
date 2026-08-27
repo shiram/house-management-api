@@ -22,3 +22,15 @@ public sealed class AvailabilityDto
     public IEnumerable<AvailabilitySlotDto> WeeklySlots { get; set; } = Array.Empty<AvailabilitySlotDto>();
     public IEnumerable<AvailabilityExceptionDto> Exceptions { get; set; } = Array.Empty<AvailabilityExceptionDto>();
 }
+
+public sealed class UpdateAvailabilityRequest
+{
+    public IEnumerable<AvailabilitySlotRequest> WeeklySlots { get; set; } = Array.Empty<AvailabilitySlotRequest>();
+}
+
+public sealed class AvailabilitySlotRequest
+{
+    public DayOfWeek DayOfWeek { get; set; }
+    public TimeOnly StartTime { get; set; }
+    public TimeOnly EndTime { get; set; }
+}

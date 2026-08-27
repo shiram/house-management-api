@@ -37,4 +37,41 @@ public class AvailabilityServiceTests
         Assert.Equal("Leave", result.Exceptions.Single().Reason);
         Assert.Null(await service.GetAsync(999));
     }
+
+    [Fact]
+    public async Task ReplaceWeeklyAsync_ReplacesExistingSlots()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.HouseHelps.Add(new HouseHelp { Id = 1, FirstName = "A", LastName = "B", Phone = "1", City = "Nairobi" });
+        context.HouseHelpAvailabilities.Add(new HouseHelpAvailability
+        {
+            HouseHelpId = 1,
+            DayOfWeek = DayOfWeek.Monday,
+            StartTime = new TimeOnly(8),
+            EndTime = new TimeOnly(12)
+        });
+        await context.SaveChangesAsync();
+
+        var service = new AvailabilityService(context);
+        var updated = await service.ReplaceWeeklyAsync(1, new[]
+        {
+            new HouseHelpAvailability
+            {
+                DayOfWeek = DayOfWeek.Friday,
+                StartTime = new TimeOnly(9),
+                EndTime = new TimeOnly(17),
+                IsActive = true
+            }
+        });
+
+        var slots = await context.HouseHelpAvailabilities.ToListAsync();
+        Assert.True(updated);
+        Assert.Single(slots);
+        Assert.Equal(DayOfWeek.Friday, slots[0].DayOfWeek);
+        Assert.False(await service.ReplaceWeeklyAsync(999, Array.Empty<HouseHelpAvailability>()));
+    }
 }

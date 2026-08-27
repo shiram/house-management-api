@@ -1,4 +1,5 @@
 using HouseManagement.Api.Data;
+using HouseManagement.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseManagement.Api.Services;
@@ -37,5 +38,30 @@ public sealed class AvailabilityService : IAvailabilityService
             .ToListAsync();
 
         return new AvailabilityQueryResult(houseHelpId, weeklySlots, exceptions);
+    }
+
+    public async Task<bool> ReplaceWeeklyAsync(int houseHelpId, IEnumerable<HouseHelpAvailability> slots)
+    {
+        if (!await _db.HouseHelps.AnyAsync(houseHelp => houseHelp.Id == houseHelpId))
+        {
+            return false;
+        }
+
+        var existing = await _db.HouseHelpAvailabilities
+            .Where(availability => availability.HouseHelpId == houseHelpId)
+            .ToListAsync();
+        _db.HouseHelpAvailabilities.RemoveRange(existing);
+
+        var replacements = slots.Select(slot => new HouseHelpAvailability
+        {
+            HouseHelpId = houseHelpId,
+            DayOfWeek = slot.DayOfWeek,
+            StartTime = slot.StartTime,
+            EndTime = slot.EndTime,
+            IsActive = slot.IsActive
+        });
+        await _db.HouseHelpAvailabilities.AddRangeAsync(replacements);
+        await _db.SaveChangesAsync();
+        return true;
     }
 }
