@@ -19,4 +19,5 @@ public class HouseContext : DbContext
     }
     public DbSet<HouseHelp> HouseHelps { get; set; }
     public DbSet<HouseHelpSkill> HouseHelpSkills { get; set; }
+    public DbSet<Service> Services { get; set; }
 }

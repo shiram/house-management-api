@@ -48,7 +48,7 @@
 # PHASE 2 — Domain & Database
 
 - [x] T030 — Design HouseHelp domain model
-- [ ] T031 — Design Service domain model
+- [x] T031 — Design Service domain model
 - [ ] T032 — Design Client/customer model supporting anonymous requests
 - [ ] T033 — Design Booking domain model
 - [ ] T034 — Design BookingStatus and valid status transitions

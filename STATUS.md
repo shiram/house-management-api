@@ -115,3 +115,4 @@ Recent actions (2026-08-27):
 - T019 completed: moved entity mappings into dedicated IEntityTypeConfiguration classes and enabled assembly scanning from HouseContext.
 - T024 completed: added named AdminOnly, ManagerOrAdmin, and HouseHelpOnly authorization policies while preserving existing lowercase JWT role values.
 - Follow-up completed: aligned HouseHelp controller authorization attributes with the registered ManagerOrAdmin policy and corrected typed API envelope detection; the full backend suite now passes 35 tests.
+- T031 completed: added the Service domain model and explicit EF configuration with code/name metadata, decimal pricing, active state, timestamps, uniqueness, and operational indexing. A future domain migration is still required before deployment.
