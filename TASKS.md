@@ -71,7 +71,7 @@
 - [x] T051 — Create service validation
 - [x] T052 — Implement public active-service listing
 - [x] T053 — Implement service details
-- [ ] T054 — Implement Manager/Admin create service
+- [x] T054 — Implement Manager/Admin create service
 - [ ] T055 — Implement Manager/Admin update service
 - [ ] T056 — Implement activate/deactivate service
 - [ ] T057 — Add service authorization tests

@@ -29,4 +29,20 @@ public sealed class ServiceCatalogService : IServiceCatalogService
             .AsNoTracking()
             .SingleOrDefaultAsync(service => service.Id == id && service.IsActive);
     }
+
+    public async Task<Service?> CreateAsync(Service service)
+    {
+        service.Code = service.Code.Trim();
+        service.Name = service.Name.Trim();
+        service.Description = string.IsNullOrWhiteSpace(service.Description) ? null : service.Description.Trim();
+
+        if (await _db.Services.AnyAsync(existing => existing.Code == service.Code))
+        {
+            return null;
+        }
+
+        _db.Services.Add(service);
+        await _db.SaveChangesAsync();
+        return service;
+    }
 }

@@ -6,4 +6,5 @@ public interface IServiceCatalogService
 {
     Task<IEnumerable<Service>> GetActiveAsync();
     Task<Service?> GetActiveByIdAsync(int id);
+    Task<Service?> CreateAsync(Service service);
 }

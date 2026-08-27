@@ -50,4 +50,35 @@ public class ServiceCatalogTests
         Assert.Null(await service.GetActiveByIdAsync(2));
         Assert.Null(await service.GetActiveByIdAsync(999));
     }
+
+    [Fact]
+    public async Task CreateAsync_NormalizesValuesAndRejectsDuplicateCode()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        var service = new ServiceCatalogService(context);
+
+        var created = await service.CreateAsync(new Service
+        {
+            Code = "  CLEANING  ",
+            Name = "  House Cleaning  ",
+            Description = "  Standard service  ",
+            BasePrice = 30
+        });
+        var duplicate = await service.CreateAsync(new Service
+        {
+            Code = "CLEANING",
+            Name = "Another Name",
+            BasePrice = 40
+        });
+
+        Assert.NotNull(created);
+        Assert.Equal("CLEANING", created.Code);
+        Assert.Equal("House Cleaning", created.Name);
+        Assert.Equal("Standard service", created.Description);
+        Assert.Null(duplicate);
+    }
 }
