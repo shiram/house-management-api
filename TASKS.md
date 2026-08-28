@@ -127,7 +127,7 @@
 - [x] T117 — Add booking cancellation rules
 - [x] T118 — Add booking rejection rules
 - [x] T119 — Add booking confirmation rules
-- [ ] T120 — Add booking completion rules
+- [x] T120 — Add booking completion rules
 - [ ] T121 — Add booking integration tests
 
 ---

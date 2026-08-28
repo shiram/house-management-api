@@ -116,6 +116,29 @@ public sealed class BookingsController : ControllerBase
     }
 
     [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("{id:int}/complete")]
+    public async Task<IActionResult> Complete(int id)
+    {
+        var result = await _bookingStatuses.CompleteAsync(id);
+        if (result.Booking == null)
+        {
+            if (result.Error == "The requested booking was not found.")
+            {
+                return NotFound();
+            }
+
+            return BadRequest(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create(
+            this,
+            ToDto(result.Booking),
+            "Booking completed",
+            StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpGet]
     public async Task<IActionResult> GetList(
         [FromQuery] BookingStatus? status,

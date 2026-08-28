@@ -148,3 +148,4 @@ Recent actions (2026-08-27):
 - T117 completed: added Manager/Admin booking cancellation through `POST /api/bookings/{id}/cancel`, enforcing cancellable statuses and returning the updated booking.
 - T118 completed: added Manager/Admin booking rejection through `POST /api/bookings/{id}/reject`, allowing rejection only from the requested state.
 - T119 completed: added Manager/Admin booking confirmation through `POST /api/bookings/{id}/confirm`, allowing confirmation only from the requested state.
+- T120 completed: added Manager/Admin booking completion through `POST /api/bookings/{id}/complete`, allowing completion only from the in-progress state.
