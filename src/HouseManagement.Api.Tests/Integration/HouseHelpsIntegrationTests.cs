@@ -183,4 +183,62 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var actResp = await hhClient.PutAsync($"/api/househelps/{createdEnvelope.Data!.Id}/activate?active=false", null);
         Assert.True(actResp.StatusCode == System.Net.HttpStatusCode.Forbidden || actResp.StatusCode == System.Net.HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task AdminHouseHelps_List_SupportsUserIdFilter_ForManagerOrAdmin()
+    {
+        var client = _factory.CreateClient();
+        var adminToken = CreateToken("admin");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var registerEmail = $"admin-hh-{System.Guid.NewGuid():N}@example.com";
+        var registerResp = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            UserName = registerEmail,
+            Email = registerEmail,
+            Password = "Password123!"
+        });
+        registerResp.EnsureSuccessStatusCode();
+
+        var usersEnvelope = await client.GetFromJsonAsync<ApiResponse<List<UserDto>>>("/api/admin/users?page=1&pageSize=1000");
+        var linkedUserId = usersEnvelope!.Data!.Single(u => u.Email == registerEmail).Id;
+
+        var req = new CreateHouseHelpRequest { UserId = linkedUserId, FirstName = "Ad1", LastName = "Min1", Phone = "+1", City = "AdminCity" };
+        var createResp = await client.PostAsJsonAsync("/api/househelps", req);
+        createResp.EnsureSuccessStatusCode();
+        var createdEnvelope = await createResp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var byUserId = await client.GetFromJsonAsync<ApiResponse<List<HouseHelpDto>>>($"/api/admin/househelps?userId={linkedUserId}");
+        Assert.NotNull(byUserId);
+        Assert.Single(byUserId!.Data!);
+        Assert.Equal(createdEnvelope!.Data!.Id, byUserId.Data![0].Id);
+
+        var detail = await client.GetFromJsonAsync<ApiResponse<HouseHelpDto>>($"/api/admin/househelps/{createdEnvelope.Data!.Id}");
+        Assert.Equal(createdEnvelope.Data.Id, detail!.Data!.Id);
+    }
+
+    [Fact]
+    public async Task AdminHouseHelps_RejectUnauthenticatedAndNonManagerRoles()
+    {
+        var anonymous = _factory.CreateClient();
+        var houseHelpClient = _factory.CreateClient();
+        houseHelpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("househelp"));
+
+        var unauthenticatedResponse = await anonymous.GetAsync("/api/admin/househelps");
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, unauthenticatedResponse.StatusCode);
+
+        var forbiddenResponse = await houseHelpClient.GetAsync("/api/admin/househelps");
+        Assert.Equal(System.Net.HttpStatusCode.Forbidden, forbiddenResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminHouseHelpDetail_ReturnsNotFound_WhenMissing()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin"));
+
+        var response = await client.GetAsync("/api/admin/househelps/999999");
+
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
 }

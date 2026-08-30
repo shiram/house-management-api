@@ -23,6 +23,25 @@ public sealed class ServiceCatalogService : IServiceCatalogService
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Service>> GetAllAsync(int? page = null, int? pageSize = null)
+    {
+        var query = _db.Services
+            .AsNoTracking()
+            .OrderBy(service => service.Name)
+            .ThenBy(service => service.Code)
+            .AsQueryable();
+
+        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
+        {
+            var boundedPageSize = Math.Min(pageSize.Value, 100);
+            query = query
+                .Skip((page.Value - 1) * boundedPageSize)
+                .Take(boundedPageSize);
+        }
+
+        return await query.ToListAsync();
+    }
+
     public async Task<Service?> GetActiveByIdAsync(int id)
     {
         return await _db.Services

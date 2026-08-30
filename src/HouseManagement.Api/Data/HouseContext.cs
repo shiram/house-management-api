@@ -25,4 +25,7 @@ public class HouseContext : DbContext
     public DbSet<ServiceAddress> ServiceAddresses { get; set; }
     public DbSet<HouseHelpAvailability> HouseHelpAvailabilities { get; set; }
     public DbSet<HouseHelpAvailabilityException> HouseHelpAvailabilityExceptions { get; set; }
+    public DbSet<SystemSetting> SystemSettings { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 }

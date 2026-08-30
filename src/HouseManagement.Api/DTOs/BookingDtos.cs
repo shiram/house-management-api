@@ -30,6 +30,12 @@ public sealed class CreateAuthenticatedBookingRequest : CreateBookingRequest
 {
 }
 
+public sealed class AssignHouseHelpRequest
+{
+    [Range(1, int.MaxValue)]
+    public int HouseHelpId { get; set; }
+}
+
 public sealed class ServiceAddressRequest
 {
     [Required]
@@ -56,8 +62,23 @@ public sealed class BookingDto
     public DateTimeOffset ScheduledStart { get; set; }
     public DateTimeOffset ScheduledEnd { get; set; }
     public BookingStatus Status { get; set; }
+    public int? AssignedHouseHelpId { get; set; }
+    public int? AssignedByUserId { get; set; }
+    public DateTimeOffset? AssignedAt { get; set; }
     public ServiceAddressRequest Address { get; set; } = new();
     public string? Notes { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class BookingTrackingDto
+{
+    public int Id { get; set; }
+    public string Reference { get; set; } = null!;
+    public string ServiceName { get; set; } = null!;
+    public DateTimeOffset ScheduledStart { get; set; }
+    public DateTimeOffset ScheduledEnd { get; set; }
+    public BookingStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 }

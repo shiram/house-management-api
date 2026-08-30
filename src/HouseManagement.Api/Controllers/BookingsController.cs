@@ -5,6 +5,8 @@ using HouseManagement.Api.Services;
 using HouseManagement.Api.Common.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace HouseManagement.Api.Controllers;
 
@@ -43,6 +45,41 @@ public sealed class BookingsController : ControllerBase
         if (booking == null) return NotFound();
 
         var response = ApiResponseFactory.Create(this, ToDto(booking), "Booking retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("{id:int}/assign")]
+    public async Task<IActionResult> Assign(int id, [FromBody] AssignHouseHelpRequest request)
+    {
+        if (request == null || request.HouseHelpId <= 0)
+        {
+            return BadRequest(ApiResponseFactory.Create<object?>(this, null, "A valid HouseHelpId is required.", StatusCodes.Status400BadRequest));
+        }
+
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        int? assignedByUserId = null;
+        if (int.TryParse(subject, out var parsedUserId))
+        {
+            assignedByUserId = parsedUserId;
+        }
+
+        var result = await _bookings.AssignHouseHelpAsync(id, request.HouseHelpId, assignedByUserId);
+        if (result.Booking == null)
+        {
+            if (result.Error == "The requested booking was not found.")
+            {
+                return NotFound();
+            }
+
+            return BadRequest(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create(
+            this,
+            ToDto(result.Booking),
+            "HouseHelp assigned",
+            StatusCodes.Status200OK);
         return Ok(response);
     }
 
@@ -142,10 +179,12 @@ public sealed class BookingsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetList(
         [FromQuery] BookingStatus? status,
+        [FromQuery] int? houseHelpId,
+        [FromQuery] int? clientId,
         [FromQuery] int? page,
         [FromQuery] int? pageSize)
     {
-        var bookings = await _bookings.GetListAsync(status, page, pageSize);
+        var bookings = await _bookings.GetListAsync(status, page, pageSize, houseHelpId, clientId);
         var response = ApiResponseFactory.Create(
             this,
             bookings.Select(ToDto),
@@ -154,28 +193,128 @@ public sealed class BookingsController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Policy = AuthorizationPolicies.HouseHelpOnly)]
+    [HttpGet("assigned/me")]
+    public async Task<IActionResult> GetAssignedForCurrentHouseHelp(
+        [FromQuery] BookingStatus? status,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize)
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (!int.TryParse(subject, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var houseHelpId = await _bookings.GetHouseHelpIdForUserAsync(userId);
+        if (!houseHelpId.HasValue)
+        {
+            return NotFound();
+        }
+
+        var bookings = await _bookings.GetListForHouseHelpAsync(houseHelpId.Value, status, page, pageSize);
+        var response = ApiResponseFactory.Create(
+            this,
+            bookings.Select(ToDto),
+            "Assigned bookings retrieved",
+            StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetForCurrentClient(
+        [FromQuery] BookingStatus? status,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize)
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (!int.TryParse(subject, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var clientId = await _bookings.GetClientIdForUserAsync(userId);
+        if (!clientId.HasValue)
+        {
+            return NotFound();
+        }
+
+        var bookings = await _bookings.GetListForClientAsync(clientId.Value, status, page, pageSize);
+        var response = ApiResponseFactory.Create(
+            this,
+            bookings.Select(ToDto),
+            "Your bookings retrieved",
+            StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("track/{reference}")]
+    public async Task<IActionResult> Track(string reference)
+    {
+        if (string.IsNullOrWhiteSpace(reference))
+        {
+            return BadRequest();
+        }
+
+        var booking = await _bookings.GetByReferenceAsync(reference.Trim());
+        if (booking == null)
+        {
+            return NotFound();
+        }
+
+        var response = ApiResponseFactory.Create(
+            this,
+            ToTrackingDto(booking),
+            "Booking tracked",
+            StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
     private static BookingDto ToDto(Booking booking)
     {
+        var service = booking.Service;
+        var serviceAddress = booking.ServiceAddress;
+
         return new BookingDto
         {
             Id = booking.Id,
             Reference = booking.Reference,
             ServiceId = booking.ServiceId,
-            ServiceCode = booking.Service.Code,
-            ServiceName = booking.Service.Name,
+            ServiceCode = service?.Code ?? string.Empty,
+            ServiceName = service?.Name ?? string.Empty,
             ScheduledStart = booking.ScheduledStart,
             ScheduledEnd = booking.ScheduledEnd,
             Status = booking.Status,
+            AssignedHouseHelpId = booking.AssignedHouseHelpId,
+            AssignedByUserId = booking.AssignedByUserId,
+            AssignedAt = booking.AssignedAt,
             Address = new ServiceAddressRequest
             {
-                Line1 = booking.ServiceAddress.Line1,
-                Line2 = booking.ServiceAddress.Line2,
-                City = booking.ServiceAddress.City,
-                Region = booking.ServiceAddress.Region,
-                PostalCode = booking.ServiceAddress.PostalCode,
-                Country = booking.ServiceAddress.Country
+                Line1 = serviceAddress?.Line1 ?? string.Empty,
+                Line2 = serviceAddress?.Line2,
+                City = serviceAddress?.City ?? string.Empty,
+                Region = serviceAddress?.Region,
+                PostalCode = serviceAddress?.PostalCode,
+                Country = serviceAddress?.Country ?? string.Empty
             },
             Notes = booking.Notes,
+            CreatedAt = booking.CreatedAt,
+            UpdatedAt = booking.UpdatedAt
+        };
+    }
+
+    private static BookingTrackingDto ToTrackingDto(Booking booking)
+    {
+        return new BookingTrackingDto
+        {
+            Id = booking.Id,
+            Reference = booking.Reference,
+            ServiceName = booking.Service?.Name ?? string.Empty,
+            ScheduledStart = booking.ScheduledStart,
+            ScheduledEnd = booking.ScheduledEnd,
+            Status = booking.Status,
             CreatedAt = booking.CreatedAt,
             UpdatedAt = booking.UpdatedAt
         };

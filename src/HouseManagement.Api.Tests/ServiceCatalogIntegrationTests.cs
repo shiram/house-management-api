@@ -83,6 +83,58 @@ public class ServiceCatalogIntegrationTests : IClassFixture<WebApplicationFactor
         Assert.Equal(HttpStatusCode.NotFound, hiddenDetail.StatusCode);
     }
 
+    [Fact]
+    public async Task AdminServicesList_IncludesInactiveServices_ForManagerOrAdmin()
+    {
+        var manager = CreateAuthenticatedClient("manager");
+        var code = $"TEST_{Guid.NewGuid():N}"[..16].ToUpperInvariant();
+
+        var create = await manager.PostAsJsonAsync("/api/services", new CreateServiceRequest
+        {
+            Code = code,
+            Name = "Admin Visible Service",
+            BasePrice = 15
+        });
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<ApiResponse<ServiceDto>>();
+
+        var deactivate = await manager.PutAsync($"/api/services/{created!.Data!.Id}/activate?active=false", null);
+        Assert.Equal(HttpStatusCode.OK, deactivate.StatusCode);
+
+        var publicList = await manager.GetFromJsonAsync<ApiResponse<List<ServiceDto>>>("/api/services");
+        Assert.DoesNotContain(publicList!.Data!, service => service.Code == code);
+
+        var adminList = await manager.GetFromJsonAsync<ApiResponse<List<ServiceDto>>>("/api/admin/services");
+        Assert.Contains(adminList!.Data!, service => service.Code == code && !service.IsActive);
+
+        var adminDetail = await manager.GetFromJsonAsync<ApiResponse<ServiceDto>>($"/api/admin/services/{created.Data.Id}");
+        Assert.Equal(code, adminDetail!.Data!.Code);
+        Assert.False(adminDetail.Data.IsActive);
+    }
+
+    [Fact]
+    public async Task AdminServicesEndpoints_RejectUnauthenticatedAndNonManagerRoles()
+    {
+        var anonymous = _factory.CreateClient();
+        var houseHelp = CreateAuthenticatedClient("househelp");
+
+        var unauthenticatedResponse = await anonymous.GetAsync("/api/admin/services");
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthenticatedResponse.StatusCode);
+
+        var forbiddenResponse = await houseHelp.GetAsync("/api/admin/services");
+        Assert.Equal(HttpStatusCode.Forbidden, forbiddenResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminServiceDetail_ReturnsNotFound_WhenServiceDoesNotExist()
+    {
+        var manager = CreateAuthenticatedClient("manager");
+
+        var response = await manager.GetAsync("/api/admin/services/999999");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private HttpClient CreateAuthenticatedClient(string role)
     {
         var client = _factory.CreateClient();

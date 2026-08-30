@@ -95,7 +95,7 @@ public sealed class AvailabilityController : ControllerBase
     [HttpPut("/api/availability/me")]
     public async Task<IActionResult> ReplaceOwnWeekly([FromBody] UpdateAvailabilityRequest request)
     {
-        var subject = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
         if (!int.TryParse(subject, out var userId))
         {
             return Unauthorized();

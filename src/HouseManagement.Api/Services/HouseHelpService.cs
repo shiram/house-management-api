@@ -21,7 +21,7 @@ public class HouseHelpService : IHouseHelpService
         return await _db.HouseHelps.Include(h => h.Skills).AsNoTracking().ToListAsync();
     }
 
-    public async Task<IEnumerable<HouseHelp>> GetFilteredAsync(string? city = null, string? skill = null, bool? isActive = null, int? page = null, int? pageSize = null)
+    public async Task<IEnumerable<HouseHelp>> GetFilteredAsync(string? city = null, string? skill = null, bool? isActive = null, int? page = null, int? pageSize = null, int? userId = null)
     {
         var query = _db.HouseHelps.Include(h => h.Skills).AsNoTracking().AsQueryable();
 
@@ -42,6 +42,11 @@ public class HouseHelpService : IHouseHelpService
             query = query.Where(h => h.IsActive == isActive.Value);
         }
 
+        if (userId.HasValue)
+        {
+            query = query.Where(h => h.UserId == userId.Value);
+        }
+
         // simple pagination
         if (page.HasValue && pageSize.HasValue && page > 0 && pageSize > 0)
         {
@@ -50,6 +55,38 @@ public class HouseHelpService : IHouseHelpService
         }
 
         return await query.ToListAsync();
+    }
+
+    public async Task<IEnumerable<HouseHelp>> GetEligibleAsync(int serviceId, string? city = null)
+    {
+        var service = await _db.Services.AsNoTracking().SingleOrDefaultAsync(item => item.Id == serviceId);
+        if (service == null)
+        {
+            return Enumerable.Empty<HouseHelp>();
+        }
+
+        var serviceName = service.Name.Trim();
+        var serviceCode = service.Code.Trim();
+        var normalizedCity = string.IsNullOrWhiteSpace(city) ? null : city.Trim();
+
+        var query = _db.HouseHelps
+            .Include(h => h.Skills)
+            .AsNoTracking()
+            .Where(h => h.IsActive);
+
+        if (normalizedCity != null)
+        {
+            query = query.Where(h => h.City == normalizedCity);
+        }
+
+        query = query.Where(h => h.Skills.Any(skill =>
+            skill.ServiceName.ToLower() == serviceName.ToLower() ||
+            skill.ServiceName.ToLower() == serviceCode.ToLower()));
+
+        return await query
+            .OrderBy(h => h.LastName)
+            .ThenBy(h => h.FirstName)
+            .ToListAsync();
     }
 
     public async Task<HouseHelp?> GetByIdAsync(int id)

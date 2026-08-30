@@ -46,7 +46,7 @@ public class HouseHelpsControllerValidationTests
     public async Task GetAll_UsesFilterParameters()
     {
         var mockSvc = new Mock<IHouseHelpService>();
-        mockSvc.Setup(s => s.GetFilteredAsync("Nairobi", "Cleaning", true, 1, 10))
+        mockSvc.Setup(s => s.GetFilteredAsync("Nairobi", "Cleaning", true, 1, 10, null))
             .ReturnsAsync(new List<HouseHelp> { new HouseHelp { Id = 1, FirstName = "A", LastName = "B", Phone = "+1", City = "Nairobi", IsActive = true } });
 
         var controller = new HouseHelpsController(mockSvc.Object);
