@@ -210,6 +210,34 @@ public class AuthControllerTests
     }
 
     [Fact]
+    public async Task Login_DeactivatedAccount_ReturnsUnauthorized()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(databaseName: "test_db_login_deactivated")
+            .Options;
+
+        await using var context = new HouseContext(options);
+        var hasher = new PasswordHasher();
+
+        context.Users.Add(new User
+        {
+            UserName = "deactivateduser",
+            Email = "deactivated@example.com",
+            PasswordHash = hasher.Hash("Password123!"),
+            Role = "manager",
+            IsActive = false
+        });
+        await context.SaveChangesAsync();
+
+        var tokenMock = new Mock<ITokenService>();
+        var controller = new AuthController(context, hasher, tokenMock.Object);
+
+        var result = await controller.Login(new LoginRequest { Email = "deactivated@example.com", Password = "Password123!" });
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+    }
+
+    [Fact]
     public async Task Register_ReturnsValidationEnvelope_WhenModelStateInvalid()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()

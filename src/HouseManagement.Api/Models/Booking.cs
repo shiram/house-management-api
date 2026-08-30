@@ -10,6 +10,8 @@ public class Booking
     public Client? Client { get; set; }
     public int? AssignedHouseHelpId { get; set; }
     public HouseHelp? AssignedHouseHelp { get; set; }
+    public int? AssignedByUserId { get; set; }
+    public DateTimeOffset? AssignedAt { get; set; }
     public int ServiceAddressId { get; set; }
     public ServiceAddress ServiceAddress { get; set; } = null!;
     public DateTimeOffset ScheduledStart { get; set; }

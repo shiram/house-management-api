@@ -23,4 +23,5 @@ public class HouseHelp
 
     public List<HouseHelpSkill> Skills { get; set; } = new();
     public List<HouseHelpAvailability> Availabilities { get; set; } = new();
+    public List<HouseHelpAvailabilityException> AvailabilityExceptions { get; set; } = new();
 }

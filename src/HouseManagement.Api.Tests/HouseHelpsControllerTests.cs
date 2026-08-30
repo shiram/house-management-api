@@ -17,7 +17,7 @@ public class HouseHelpsControllerTests
     public async Task GetAll_ReturnsOk_WithDtos()
     {
         var mockSvc = new Mock<IHouseHelpService>();
-        mockSvc.Setup(s => s.GetFilteredAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool?>(), It.IsAny<int?>(), It.IsAny<int?>()))
+        mockSvc.Setup(s => s.GetFilteredAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync(new List<HouseHelp>
         {
             new HouseHelp { Id = 1, FirstName = "A", LastName = "B", Phone = "+1", City = "C", IsActive = true }

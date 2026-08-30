@@ -79,6 +79,13 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 // HouseHelp domain service
 builder.Services.AddScoped<IHouseHelpService, HouseHelpService>();
 builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IBookingStatusService, BookingStatusService>();
+builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddSingleton<IBookingTransitionValidator, BookingTransitionValidator>();
 
 // JWT configuration
 var jwtSection = builder.Configuration.GetSection("Jwt");

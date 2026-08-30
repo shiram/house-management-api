@@ -70,6 +70,9 @@ public class AuthController : ControllerBase
         if (!_hasher.Verify(user.PasswordHash, req.Password))
             return Unauthorized(new { error = "Invalid credentials" });
 
+        if (!user.IsActive)
+            return Unauthorized(new { error = "Account is deactivated" });
+
         user.LastLogin = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 

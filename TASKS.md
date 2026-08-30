@@ -56,7 +56,7 @@
 - [x] T038 — Add unique constraints for required business identifiers
 - [x] T039 — Add operational indexes for booking and directory queries
 - [x] T040 — Create initial business-domain EF migration
-- [ ] T041 — Verify migration against a clean SQL Server database
+- [x] T041 — Verify migration against a clean SQL Server database
 - [x] T042 — Add seed data for development roles
 - [x] T043 — Add seed data for sample services
 - [x] T044 — Add safe development seed data for househelps
@@ -95,91 +95,91 @@
 
 # PHASE 5 — Availability
 
-- [ ] T090 — Design weekly availability model
-- [ ] T091 — Design unavailable/leave exceptions
-- [ ] T092 — Implement availability query
-- [ ] T093 — Implement Manager/Admin availability management
-- [ ] T094 — Implement HouseHelp self-service availability management
-- [ ] T095 — Validate overlapping availability ranges
-- [ ] T096 — Add availability integration tests
+- [x] T090 — Design weekly availability model
+- [x] T091 — Design unavailable/leave exceptions
+- [x] T092 — Implement availability query
+- [x] T093 — Implement Manager/Admin availability management
+- [x] T094 — Implement HouseHelp self-service availability management
+- [x] T095 — Validate overlapping availability ranges
+- [x] T096 — Add availability integration tests
 
 ---
 
 # PHASE 6 — Booking / Service Request Core
 
-- [ ] T100 — Define booking request DTOs
-- [ ] T101 — Define anonymous client request DTO
-- [ ] T102 — Define authenticated client request DTO
-- [ ] T103 — Implement public service request endpoint
-- [ ] T104 — Validate service exists and is active
-- [ ] T105 — Validate requested service date/time
-- [ ] T106 — Validate customer contact details
-- [ ] T107 — Validate service address
-- [ ] T108 — Implement booking creation transaction
-- [ ] T109 — Implement booking reference generation
-- [ ] T110 — Implement booking details endpoint
-- [ ] T111 — Implement booking list for Manager/Admin
-- [ ] T112 — Implement booking list for assigned HouseHelp
-- [ ] T113 — Implement booking list for authenticated client
-- [ ] T114 — Add safe anonymous booking tracking mechanism
-- [ ] T115 — Add booking status transition service
-- [ ] T116 — Add booking transition validation
-- [ ] T117 — Add booking cancellation rules
-- [ ] T118 — Add booking rejection rules
-- [ ] T119 — Add booking confirmation rules
-- [ ] T120 — Add booking completion rules
-- [ ] T121 — Add booking integration tests
+- [x] T100 — Define booking request DTOs
+- [x] T101 — Define anonymous client request DTO
+- [x] T102 — Define authenticated client request DTO
+- [x] T103 — Implement public service request endpoint
+- [x] T104 — Validate service exists and is active
+- [x] T105 — Validate requested service date/time
+- [x] T106 — Validate customer contact details
+- [x] T107 — Validate service address
+- [x] T108 — Implement booking creation transaction
+- [x] T109 — Implement booking reference generation
+- [x] T110 — Implement booking details endpoint
+- [x] T111 — Implement booking list for Manager/Admin
+- [x] T112 — Implement booking list for assigned HouseHelp
+- [x] T113 — Implement booking list for authenticated client
+- [x] T114 — Add safe anonymous booking tracking mechanism
+- [x] T115 — Add booking status transition service
+- [x] T116 — Add booking transition validation
+- [x] T117 — Add booking cancellation rules
+- [x] T118 — Add booking rejection rules
+- [x] T119 — Add booking confirmation rules
+- [x] T120 — Add booking completion rules
+- [x] T121 — Add booking integration tests
 
 ---
 
 # PHASE 7 — HouseHelp Assignment & Concurrency
 
-- [ ] T130 — Implement eligible HouseHelp query
-- [ ] T131 — Implement assignment endpoint
-- [ ] T132 — Validate HouseHelp is active
-- [ ] T133 — Validate HouseHelp supports requested service
-- [ ] T134 — Validate HouseHelp availability
-- [ ] T135 — Implement overlapping booking detection
-- [ ] T136 — Implement concurrency-safe assignment
-- [ ] T137 — Prevent double booking under concurrent requests
-- [ ] T138 — Add assignment audit information
-- [ ] T139 — Add assignment integration tests
-- [ ] T140 — Add concurrency test for double-booking protection
+- [x] T130 — Implement eligible HouseHelp query
+- [x] T131 — Implement assignment endpoint
+- [x] T132 — Validate HouseHelp is active
+- [x] T133 — Validate HouseHelp supports requested service
+- [x] T134 — Validate HouseHelp availability
+- [x] T135 — Implement overlapping booking detection
+- [x] T136 — Implement concurrency-safe assignment
+- [x] T137 — Prevent double booking under concurrent requests
+- [x] T138 — Add assignment audit information
+- [x] T139 — Add assignment integration tests
+- [x] T140 — Add concurrency test for double-booking protection
 
 ---
 
 # PHASE 10 — Manager Operations
 
-- [ ] T211 — Manager authorization tests
+- [x] T211 — Manager authorization tests
 
 ---
 
 # PHASE 11 — HouseHelp Experience
 
-- [ ] T228 — HouseHelp authorization tests
+- [x] T228 — HouseHelp authorization tests
 
 ---
 
 # PHASE 12 — Administration
 
-- [ ] T241 — User list
-- [ ] T242 — User details
-- [ ] T243 — Role management
-- [ ] T244 — Activate/deactivate user
-- [ ] T245 — Service administration
-- [ ] T246 — HouseHelp administration
-- [ ] T247 — Booking administration
-- [ ] T248 — System settings foundation
-- [ ] T249 — Audit log foundation
-- [ ] T250 — Admin authorization tests
+- [x] T241 — User list
+- [x] T242 — User details
+- [x] T243 — Role management
+- [x] T244 — Activate/deactivate user
+- [x] T245 — Service administration
+- [x] T246 — HouseHelp administration
+- [x] T247 — Booking administration
+- [x] T248 — System settings foundation
+- [x] T249 — Audit log foundation
+- [x] T250 — Admin authorization tests
 
 ---
 
 # PHASE 13 — Notifications
 
-- [ ] T260 — Define notification model
-- [ ] T261 — Define notification types
-- [ ] T262 — Create in-app notification infrastructure
+- [x] T260 — Define notification model
+- [x] T261 — Define notification types
+- [x] T262 — Create in-app notification infrastructure
 - [ ] T263 — Notify Manager when a new booking is created
 - [ ] T264 — Notify client when booking is confirmed
 - [ ] T265 — Notify HouseHelp when assigned

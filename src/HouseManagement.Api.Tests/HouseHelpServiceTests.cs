@@ -55,4 +55,23 @@ public class HouseHelpServiceTests
         Assert.Contains("Ironing", skillNames);
         Assert.DoesNotContain("Laundry", skillNames);
     }
+
+    [Fact]
+    public async Task GetEligibleAsync_ReturnsActiveHouseHelpsMatchingServiceSkillAndCity()
+    {
+        using var ctx = CreateContext("eligible_test");
+        var svc = new HouseHelpService(ctx);
+
+        ctx.Services.Add(new Service { Id = 1, Code = "CLEANING", Name = "Cleaning", IsActive = true });
+        await ctx.SaveChangesAsync();
+
+        await svc.CreateAsync(new HouseHelp { FirstName = "A", LastName = "One", Phone = "+1001", City = "Nairobi", IsActive = true }, new[] { "Cleaning" });
+        await svc.CreateAsync(new HouseHelp { FirstName = "B", LastName = "Two", Phone = "+1002", City = "Mombasa", IsActive = true }, new[] { "Laundry" });
+        await svc.CreateAsync(new HouseHelp { FirstName = "C", LastName = "Three", Phone = "+1003", City = "Nairobi", IsActive = false }, new[] { "Cleaning" });
+
+        var eligible = (await svc.GetEligibleAsync(1, "Nairobi")).ToList();
+
+        Assert.Single(eligible);
+        Assert.Equal("One", eligible[0].LastName);
+    }
 }
