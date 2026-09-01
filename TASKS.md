@@ -185,7 +185,7 @@
 - [x] T265 — Notify HouseHelp when assigned
 - [x] T266 — Notify client when booking status changes
 - [x] T267 — Add notification read/unread state
-- [ ] T269 — Add email/SMS abstraction without hard-coding a provider
+- [x] T269 — Add email/SMS abstraction without hard-coding a provider
 - [ ] T270 — Add notification tests
 
 ---
