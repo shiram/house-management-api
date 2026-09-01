@@ -238,7 +238,7 @@
 
 # PHASE 17 — Product Enhancements
 
-- [ ] T340 — HouseHelp ratings/reviews
+- [x] T340 — HouseHelp ratings/reviews
 - [ ] T341 — Customer booking history
 - [ ] T342 — Repeat booking
 - [ ] T343 — Favorite/preferred HouseHelp

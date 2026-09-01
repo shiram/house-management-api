@@ -16,7 +16,8 @@ public class AuditEventTypesTests
             AuditEventTypes.BookingAssigned,
             AuditEventTypes.UserRoleChanged,
             AuditEventTypes.UserActivated,
-            AuditEventTypes.SystemSettingUpdated
+            AuditEventTypes.SystemSettingUpdated,
+            AuditEventTypes.HouseHelpRatingSubmitted
         };
 
         Assert.Equal(eventTypes.Length, eventTypes.Distinct(StringComparer.Ordinal).Count());

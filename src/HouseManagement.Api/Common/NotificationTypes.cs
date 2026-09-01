@@ -18,11 +18,16 @@ public static class NotificationTypes
     // recipient can filter for/mute general status-change noise separately.
     public const string BookingStatusChanged = "booking.status_changed";
 
+    // A client submitted a rating/review for a completed booking; the assigned
+    // HouseHelp (when they have a linked user account) should be informed (T340).
+    public const string HouseHelpRatingSubmitted = "househelp_rating.submitted";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         BookingCreated,
         BookingConfirmed,
         BookingAssigned,
-        BookingStatusChanged
+        BookingStatusChanged,
+        HouseHelpRatingSubmitted
     };
 }

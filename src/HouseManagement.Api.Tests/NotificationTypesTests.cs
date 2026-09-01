@@ -13,7 +13,8 @@ public class NotificationTypesTests
             NotificationTypes.BookingCreated,
             NotificationTypes.BookingConfirmed,
             NotificationTypes.BookingAssigned,
-            NotificationTypes.BookingStatusChanged
+            NotificationTypes.BookingStatusChanged,
+            NotificationTypes.HouseHelpRatingSubmitted
         };
 
         Assert.Equal(expected.Length, NotificationTypes.All.Count);
