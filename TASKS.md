@@ -216,7 +216,7 @@
 - [x] T306 — Add pagination to large datasets
 - [x] T307 — Add server-side filtering where required
 - [x] T308 — Add structured logging review
-- [ ] T309 — Add health/readiness checks
+- [x] T309 — Add health/readiness checks
 - [ ] T310 — Add production configuration review
 - [ ] T311 — Run full build/test pipeline
 

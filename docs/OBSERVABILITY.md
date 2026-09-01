@@ -21,3 +21,10 @@ Never interpolate arbitrary client input into a message template and never log c
 ### Follow-up
 
 Current domain services rely primarily on audit records rather than application logs. Add structured completion/rejection events only when a concrete operational-support requirement exists, starting with high-volume booking operations. Ensure every new event has an integration or unit test only when it affects observable application behavior; do not test sink implementation details.
+
+## Health and readiness checks (T309)
+
+- `GET /health/live` returns success when the API process can handle requests. It has no database or external dependency checks and is suitable for liveness probes.
+- `GET /health/ready` runs the registered `database` health check and returns success only when EF Core can connect to the configured database. It is suitable for readiness probes.
+
+Both endpoints are intentionally anonymous so platform probes do not require credentials. Keep liveness dependency-free; add only required startup dependencies to readiness, with a focused test for each new check.
