@@ -27,10 +27,12 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore src/HouseManagement.Api.Tests/HouseManagement.Api.Tests.csproj
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build src/HouseManagement.Api.Tests/HouseManagement.Api.Tests.csproj --no-restore --configuration Release
 
       - name: Run tests
-        run: dotnet test --no-build --verbosity normal
+        env:
+          JWT_KEY: ""
+        run: dotnet test src/HouseManagement.Api.Tests/HouseManagement.Api.Tests.csproj --configuration Release --no-build --no-restore --verbosity normal

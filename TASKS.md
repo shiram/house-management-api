@@ -218,7 +218,7 @@
 - [x] T308 — Add structured logging review
 - [x] T309 — Add health/readiness checks
 - [x] T310 — Add production configuration review
-- [ ] T311 — Run full build/test pipeline
+- [x] T311 — Run full build/test pipeline
 
 ---
 

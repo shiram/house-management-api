@@ -51,3 +51,9 @@ The HTTP integration suite contains 66 passing tests and covers 2,029 of 3,935 l
 4. Add a separately provisioned SQL Server integration suite before relying on relational constraints, transactions, and concurrency behavior; the current integration factories use EF Core's in-memory provider.
 
 Future profile-image work must add multipart upload, ownership, rejected-content, replacement, and public-redaction integration coverage before the feature is released.
+
+## Release pipeline (T311)
+
+The complete backend pipeline restores, builds, and tests `src\HouseManagement.Api.Tests\HouseManagement.Api.Tests.csproj` in Release configuration. The test project references the API project, so it validates both projects.
+
+The CI workflow uses this explicit project path because the repository intentionally has no solution file or root project. CI validates that `JWT_KEY` is configured, but clears it only for the test command: integration tests run in Development and use their isolated development signing-key fixture rather than a production secret.
