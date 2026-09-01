@@ -30,6 +30,12 @@ Protected endpoints use these centralized policies:
 
 Controllers must derive the authenticated user ID from JWT claims for owner-scoped behavior. Public endpoints must be explicitly intended for anonymous use and are reviewed separately for data leakage.
 
+## Public booking rate limits
+
+Anonymous booking submission is limited per direct client IP to five requests per 60-second fixed window. Anonymous booking tracking is limited independently to 30 requests per 60-second fixed window. Limits are configured in `RateLimiting:PublicBooking`; rejected requests receive `429 Too Many Requests`, an API response envelope, and a `Retry-After` header.
+
+The API intentionally uses the direct connection IP and does not trust forwarded-client headers. Deployments behind a reverse proxy must configure trusted proxy handling before relying on forwarded addresses for rate-limit partitioning.
+
 ## Profile image uploads
 
 No upload endpoint exists yet. Before profile-image uploads are implemented, use a provider-neutral storage abstraction and keep uploaded files outside the application content root and direct static-file serving paths.

@@ -8,6 +8,9 @@ using HouseManagement.Api.Common.Security;
 using Asp.Versioning;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+using HouseManagement.Api.Common.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -125,6 +128,43 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole(AuthorizationPolicies.HouseHelpRole));
 });
 
+var publicBookingRateLimitSection = builder.Configuration.GetSection("RateLimiting:PublicBooking");
+var submissionPermitLimit = publicBookingRateLimitSection.GetValue<int?>("SubmissionPermitLimit") ?? 5;
+var trackingPermitLimit = publicBookingRateLimitSection.GetValue<int?>("TrackingPermitLimit") ?? 30;
+var windowSeconds = publicBookingRateLimitSection.GetValue<int?>("WindowSeconds") ?? 60;
+
+if (submissionPermitLimit <= 0 || trackingPermitLimit <= 0 || windowSeconds <= 0)
+{
+    throw new InvalidOperationException("Public booking rate limit configuration values must be greater than zero.");
+}
+
+var publicBookingWindow = TimeSpan.FromSeconds(windowSeconds);
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy(RateLimitPolicyNames.PublicBookingSubmission, httpContext =>
+        CreateFixedWindowPartition(httpContext, submissionPermitLimit, publicBookingWindow));
+    options.AddPolicy(RateLimitPolicyNames.PublicBookingTracking, httpContext =>
+        CreateFixedWindowPartition(httpContext, trackingPermitLimit, publicBookingWindow));
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var httpContext = context.HttpContext;
+        httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        httpContext.Response.Headers.RetryAfter = windowSeconds.ToString();
+
+        var requestId = httpContext.Items.TryGetValue("RequestId", out var requestIdValue)
+            ? requestIdValue?.ToString()
+            : httpContext.TraceIdentifier;
+        await httpContext.Response.WriteAsJsonAsync(
+            new ApiResponse<object?>
+            {
+                StatusCode = StatusCodes.Status429TooManyRequests,
+                Message = "Too many requests. Please try again later.",
+                RequestId = requestId
+            },
+            cancellationToken);
+    };
+});
+
 var app = builder.Build();
 
 // Validate runtime JWT configuration: in production require a real key
@@ -178,6 +218,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 
@@ -199,4 +240,21 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+static RateLimitPartition<string> CreateFixedWindowPartition(
+    HttpContext httpContext,
+    int permitLimit,
+    TimeSpan window)
+{
+    var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-client";
+    return RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey,
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = window,
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
 }

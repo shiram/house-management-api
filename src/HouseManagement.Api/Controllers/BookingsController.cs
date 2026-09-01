@@ -1,10 +1,12 @@
 using HouseManagement.Api.Common.Api;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.Services;
 using HouseManagement.Api.Common.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -23,6 +25,7 @@ public sealed class BookingsController : ControllerBase
         _bookingStatuses = bookingStatuses;
     }
 
+    [EnableRateLimiting(RateLimitPolicyNames.PublicBookingSubmission)]
     [HttpPost]
     public async Task<IActionResult> CreateAnonymous([FromBody] CreateAnonymousBookingRequest request)
     {
@@ -250,6 +253,7 @@ public sealed class BookingsController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicyNames.PublicBookingTracking)]
     [HttpGet("track/{reference}")]
     public async Task<IActionResult> Track(string reference)
     {

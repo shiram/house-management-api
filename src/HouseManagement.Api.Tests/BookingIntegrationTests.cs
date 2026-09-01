@@ -76,6 +76,51 @@ public class BookingIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
+    public async Task PublicBookingEndpoints_ReturnTooManyRequests_WhenRateLimitIsExceeded()
+    {
+        var factory = CreateFactory();
+        await SeedServiceAsync(factory);
+        var anonymous = factory.CreateClient();
+        var request = new CreateAnonymousBookingRequest
+        {
+            ServiceId = 1,
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(2),
+            ContactName = "Rate Limited Client",
+            Phone = "+254712345678",
+            Address = new ServiceAddressRequest
+            {
+                Line1 = "1 Main Street",
+                City = "Nairobi",
+                Country = "Kenya"
+            }
+        };
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            var submission = await anonymous.PostAsJsonAsync("/api/bookings", request);
+            Assert.Equal(HttpStatusCode.Created, submission.StatusCode);
+        }
+
+        var limitedSubmission = await anonymous.PostAsJsonAsync("/api/bookings", request);
+        Assert.Equal(HttpStatusCode.TooManyRequests, limitedSubmission.StatusCode);
+        Assert.True(limitedSubmission.Headers.Contains("Retry-After"));
+
+        var limitedResponse = await limitedSubmission.Content.ReadFromJsonAsync<ApiResponse<object?>>();
+        Assert.NotNull(limitedResponse);
+        Assert.Equal(429, limitedResponse!.StatusCode);
+
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            var trackingRequest = await anonymous.GetAsync("/api/bookings/track/UNKNOWN-REFERENCE");
+            Assert.Equal(HttpStatusCode.NotFound, trackingRequest.StatusCode);
+        }
+
+        var limitedTrackingRequest = await anonymous.GetAsync("/api/bookings/track/UNKNOWN-REFERENCE");
+        Assert.Equal(HttpStatusCode.TooManyRequests, limitedTrackingRequest.StatusCode);
+    }
+
+    [Fact]
     public async Task AnonymousBookingRequest_NotifiesActiveManager()
     {
         var factory = CreateFactory();

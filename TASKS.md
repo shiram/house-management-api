@@ -201,7 +201,7 @@
 - [x] T286 — Review authorization on every protected endpoint
 - [x] T287 — Review anonymous endpoints for data leakage
 - [x] T288 — Review file upload/security boundaries if uploads are introduced
-- [ ] T289 — Add rate limiting strategy for public booking endpoints
+- [x] T289 — Add rate limiting strategy for public booking endpoints
 - [ ] T290 — Add security headers/CORS policy
 - [x] T291 — Run dependency/security audit
 
