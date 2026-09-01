@@ -18,3 +18,14 @@ Do not log HTTP request or response bodies by default. Before adding a new struc
 - Confirm log and audit details exclude credentials, tokens, contact information, addresses, and system-setting values.
 - Confirm exceptions returned to clients do not expose internal details in production.
 - Confirm new integrations redact provider credentials and recipient contact data from logs.
+
+## Authorization policy matrix
+
+Protected endpoints use these centralized policies:
+
+- `AdminOnly`: user administration, system settings, and audit-log access.
+- `ManagerOrAdmin`: service and HouseHelp management, booking management and lifecycle actions, and manager availability management.
+- `HouseHelpOnly`: a HouseHelp's assigned bookings and self-service availability management.
+- Authenticated owner scope: notification reads and updates, plus a client's own booking list.
+
+Controllers must derive the authenticated user ID from JWT claims for owner-scoped behavior. Public endpoints must be explicitly intended for anonymous use and are reviewed separately for data leakage.

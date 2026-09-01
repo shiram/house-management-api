@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-08-30):
+- T286 completed: reviewed all protected controller actions. AdminOnly covers users/settings/audit logs; ManagerOrAdmin covers service, HouseHelp, booking, and manager-availability operations; HouseHelpOnly covers assigned bookings and self-availability; notifications and client bookings are authenticated owner-scoped. No authorization-semantic changes were required.
 - T285 completed: documented mandatory sensitive-data logging rules in `docs/SECURITY.md`. Passwords, hashes, tokens, authorization headers, keys, connection strings, contact data, addresses, and system-setting values must not be written to logs or audit details; request/response bodies remain excluded by default.
 - T284 completed: AdminOnly user role/status changes and system-setting upserts now create audit events with JWT-derived actors. User audits record prior-to-next role/status values; system-setting audits intentionally omit setting keys and values to avoid recording configuration data.
 - T283 completed: successful HouseHelp assignment now writes a `booking.assigned` audit event before the existing assignment transaction commits. The audit record identifies the booking, JWT-derived assigning actor when present, and assigned HouseHelp ID without recording contact data.
