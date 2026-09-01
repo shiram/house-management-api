@@ -186,7 +186,7 @@
 - [x] T266 — Notify client when booking status changes
 - [x] T267 — Add notification read/unread state
 - [x] T269 — Add email/SMS abstraction without hard-coding a provider
-- [ ] T270 — Add notification tests
+- [x] T270 — Add notification tests
 
 ---
 
