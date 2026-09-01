@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-08-30):
+- T280 completed: the persisted audit event model was already established by T249 (`AuditLog`, configuration, and `IAuditLogService`). Added `AuditEventTypes` as the canonical stable action taxonomy for authentication, booking, and user-administration audit wiring in T281-T284.
 - T270 completed: added end-to-end coverage verifying an anonymous booking request reaches an active Manager's authenticated notification feed with the correct `booking.created` type and booking link. This complements focused notification service/API and booking-trigger tests from T260-T269.
 - T269 completed: added provider-neutral email and SMS notification contracts under `Infrastructure/Notifications`. `IEmailNotificationSender` and `ISmsNotificationSender` accept typed message records and cancellation tokens; no provider package, credentials, implementation, or delivery wiring is hard-coded.
 - T267 completed: added owner-scoped notification read state: `PATCH /api/notifications/me/{id}/read` marks a notification read idempotently, and `GET /api/notifications/me/unread-count` returns the current user's unread total. Both use the authenticated user claim and return not found for another user's notification.
