@@ -214,7 +214,7 @@
 - [x] T304 — Database query performance review
 - [x] T305 — Booking conflict query performance review
 - [x] T306 — Add pagination to large datasets
-- [ ] T307 — Add server-side filtering where required
+- [x] T307 — Add server-side filtering where required
 - [ ] T308 — Add structured logging review
 - [ ] T309 — Add health/readiness checks
 - [ ] T310 — Add production configuration review

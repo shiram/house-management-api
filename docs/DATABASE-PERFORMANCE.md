@@ -43,3 +43,7 @@ Before adding a filtered or wider index, capture an actual SQL Server execution 
 ## T306 pagination
 
 All collection queries use a shared default of 50 items per page and enforce a maximum of 100. Callers may request `page` and `pageSize`; absent, zero, or negative values use the safe first-page default. HouseHelp directories now use last name, first name, and ID ordering before pagination so pages are stable. API consumers must request subsequent pages explicitly.
+
+## T307 server-side filtering
+
+High-volume operational lists filter in the database before pagination. Bookings support status, HouseHelp, and client filters; audit logs support action, entity type, and actor; notifications support unread state; HouseHelps support city, skill, active state, and linked user; Admin users support role and active state; and Admin services support active state. Public services remain restricted to active records by design. System settings are a bounded administrative configuration set and do not require free-text filtering.

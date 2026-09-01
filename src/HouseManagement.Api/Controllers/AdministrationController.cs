@@ -34,14 +34,26 @@ public sealed class AdministrationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetUsers([FromQuery] int? page, [FromQuery] int? pageSize)
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? role,
+        [FromQuery] bool? isActive)
     {
-        var query = _db.Users
-            .AsNoTracking()
-            .OrderBy(user => user.Id)
-            .AsQueryable();
+        var query = _db.Users.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            query = query.Where(user => user.Role == role.Trim().ToLowerInvariant());
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(user => user.IsActive == isActive.Value);
+        }
 
         var users = await query
+            .OrderBy(user => user.Id)
             .ApplyPagination(page, pageSize)
             .Select(user => new UserDto
             {
