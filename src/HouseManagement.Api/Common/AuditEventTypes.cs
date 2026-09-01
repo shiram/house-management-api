@@ -10,6 +10,7 @@ public static class AuditEventTypes
     public const string BookingAssigned = "booking.assigned";
     public const string UserRoleChanged = "user.role_changed";
     public const string UserActivated = "user.activated";
+    public const string SystemSettingUpdated = "system_setting.updated";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -18,6 +19,7 @@ public static class AuditEventTypes
         BookingStatusChanged,
         BookingAssigned,
         UserRoleChanged,
-        UserActivated
+        UserActivated,
+        SystemSettingUpdated
     };
 }

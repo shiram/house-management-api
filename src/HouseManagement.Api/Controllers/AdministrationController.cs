@@ -3,6 +3,7 @@ using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.DTOs;
+using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,10 +25,12 @@ public sealed class AdministrationController : ControllerBase
     };
 
     private readonly HouseContext _db;
+    private readonly IAuditLogService _auditLogs;
 
-    public AdministrationController(HouseContext db)
+    public AdministrationController(HouseContext db, IAuditLogService auditLogs)
     {
         _db = db;
+        _auditLogs = auditLogs;
     }
 
     [HttpGet]
@@ -121,8 +124,15 @@ public sealed class AdministrationController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        var previousRole = user.Role;
         user.Role = normalizedRole;
         await _db.SaveChangesAsync();
+        await _auditLogs.LogAsync(
+            AuditEventTypes.UserRoleChanged,
+            nameof(User),
+            entityId: user.Id,
+            userId: GetAuthenticatedUserId(),
+            details: $"{previousRole} -> {normalizedRole}");
 
         var dto = new UserDto
         {
@@ -158,8 +168,15 @@ public sealed class AdministrationController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        var previousActive = user.IsActive;
         user.IsActive = active;
         await _db.SaveChangesAsync();
+        await _auditLogs.LogAsync(
+            AuditEventTypes.UserActivated,
+            nameof(User),
+            entityId: user.Id,
+            userId: GetAuthenticatedUserId(),
+            details: $"{previousActive} -> {active}");
 
         var dto = new UserDto
         {
@@ -174,5 +191,11 @@ public sealed class AdministrationController : ControllerBase
 
         var response = ApiResponseFactory.Create(this, dto, "User status updated", StatusCodes.Status200OK);
         return Ok(response);
+    }
+
+    private int? GetAuthenticatedUserId()
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return int.TryParse(subject, out var userId) ? userId : null;
     }
 }
