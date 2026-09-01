@@ -3,6 +3,7 @@ using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.DTOs;
+using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,29 +25,36 @@ public sealed class AdministrationController : ControllerBase
     };
 
     private readonly HouseContext _db;
+    private readonly IAuditLogService _auditLogs;
 
-    public AdministrationController(HouseContext db)
+    public AdministrationController(HouseContext db, IAuditLogService auditLogs)
     {
         _db = db;
+        _auditLogs = auditLogs;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetUsers([FromQuery] int? page, [FromQuery] int? pageSize)
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? role,
+        [FromQuery] bool? isActive)
     {
-        var query = _db.Users
-            .AsNoTracking()
-            .OrderBy(user => user.Id)
-            .AsQueryable();
+        var query = _db.Users.AsNoTracking().AsQueryable();
 
-        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
+        if (!string.IsNullOrWhiteSpace(role))
         {
-            var boundedPageSize = Math.Min(pageSize.Value, 100);
-            query = query
-                .Skip((page.Value - 1) * boundedPageSize)
-                .Take(boundedPageSize);
+            query = query.Where(user => user.Role == role.Trim().ToLowerInvariant());
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(user => user.IsActive == isActive.Value);
         }
 
         var users = await query
+            .OrderBy(user => user.Id)
+            .ApplyPagination(page, pageSize)
             .Select(user => new UserDto
             {
                 Id = user.Id,
@@ -121,8 +129,15 @@ public sealed class AdministrationController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        var previousRole = user.Role;
         user.Role = normalizedRole;
         await _db.SaveChangesAsync();
+        await _auditLogs.LogAsync(
+            AuditEventTypes.UserRoleChanged,
+            nameof(User),
+            entityId: user.Id,
+            userId: GetAuthenticatedUserId(),
+            details: $"{previousRole} -> {normalizedRole}");
 
         var dto = new UserDto
         {
@@ -158,8 +173,15 @@ public sealed class AdministrationController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        var previousActive = user.IsActive;
         user.IsActive = active;
         await _db.SaveChangesAsync();
+        await _auditLogs.LogAsync(
+            AuditEventTypes.UserActivated,
+            nameof(User),
+            entityId: user.Id,
+            userId: GetAuthenticatedUserId(),
+            details: $"{previousActive} -> {active}");
 
         var dto = new UserDto
         {
@@ -174,5 +196,11 @@ public sealed class AdministrationController : ControllerBase
 
         var response = ApiResponseFactory.Create(this, dto, "User status updated", StatusCodes.Status200OK);
         return Ok(response);
+    }
+
+    private int? GetAuthenticatedUserId()
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return int.TryParse(subject, out var userId) ? userId : null;
     }
 }

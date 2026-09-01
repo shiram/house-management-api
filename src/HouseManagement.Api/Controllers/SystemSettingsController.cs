@@ -1,4 +1,5 @@
 using HouseManagement.Api.Common.Api;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Services;
@@ -15,16 +16,18 @@ namespace HouseManagement.Api.Controllers;
 public sealed class SystemSettingsController : ControllerBase
 {
     private readonly ISystemSettingsService _settings;
+    private readonly IAuditLogService _auditLogs;
 
-    public SystemSettingsController(ISystemSettingsService settings)
+    public SystemSettingsController(ISystemSettingsService settings, IAuditLogService auditLogs)
     {
         _settings = settings;
+        _auditLogs = auditLogs;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize)
     {
-        var settings = await _settings.GetAllAsync();
+        var settings = await _settings.GetAllAsync(page, pageSize);
         var dtos = settings.Select(ToDto);
 
         var response = ApiResponseFactory.Create(this, dtos, "System settings retrieved", StatusCodes.Status200OK);
@@ -55,6 +58,11 @@ public sealed class SystemSettingsController : ControllerBase
         int? updatedByUserId = int.TryParse(subject, out var parsedUserId) ? parsedUserId : null;
 
         var setting = await _settings.UpsertAsync(key, request.Value, request.Description, updatedByUserId);
+        await _auditLogs.LogAsync(
+            AuditEventTypes.SystemSettingUpdated,
+            nameof(Models.SystemSetting),
+            entityId: setting.Id,
+            userId: updatedByUserId);
 
         var response = ApiResponseFactory.Create(this, ToDto(setting), "System setting saved", StatusCodes.Status200OK);
         return Ok(response);

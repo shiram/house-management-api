@@ -24,4 +24,8 @@ public interface INotificationService
         CancellationToken cancellationToken = default);
 
     Task<Notification?> GetByIdForUserAsync(int id, int userId, CancellationToken cancellationToken = default);
+
+    Task<Notification?> MarkAsReadAsync(int id, int userId, CancellationToken cancellationToken = default);
+
+    Task<int> GetUnreadCountAsync(int userId, CancellationToken cancellationToken = default);
 }

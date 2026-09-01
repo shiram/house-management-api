@@ -20,9 +20,9 @@ public sealed class AdminServicesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize)
+    public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize, [FromQuery] bool? isActive)
     {
-        var services = await _serviceCatalog.GetAllAsync(page, pageSize);
+        var services = await _serviceCatalog.GetAllAsync(page, pageSize, isActive);
         var dtos = services.Select(ToDto);
 
         var response = ApiResponseFactory.Create(this, dtos, "Services retrieved", StatusCodes.Status200OK);

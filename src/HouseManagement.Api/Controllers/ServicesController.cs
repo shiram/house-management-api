@@ -21,9 +21,9 @@ public sealed class ServicesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetActive()
+    public async Task<IActionResult> GetActive([FromQuery] int? page, [FromQuery] int? pageSize)
     {
-        var services = await _serviceCatalog.GetActiveAsync();
+        var services = await _serviceCatalog.GetActiveAsync(page, pageSize);
         var dtos = services.Select(service => new ServiceDto
         {
             Id = service.Id,

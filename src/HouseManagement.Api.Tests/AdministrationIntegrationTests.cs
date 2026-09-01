@@ -78,6 +78,51 @@ public class AdministrationIntegrationTests : IClassFixture<WebApplicationFactor
     }
 
     [Fact]
+    public async Task GetUsers_FiltersByRoleAndActiveState()
+    {
+        var factory = CreateFactory();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+            db.Users.AddRange(
+                new User
+                {
+                    UserName = "active-manager",
+                    Email = "active-manager@example.com",
+                    PasswordHash = "hash",
+                    Role = "manager",
+                    IsActive = true
+                },
+                new User
+                {
+                    UserName = "inactive-manager",
+                    Email = "inactive-manager@example.com",
+                    PasswordHash = "hash",
+                    Role = "manager",
+                    IsActive = false
+                },
+                new User
+                {
+                    UserName = "active-househelp",
+                    Email = "active-househelp@example.com",
+                    PasswordHash = "hash",
+                    Role = "househelp",
+                    IsActive = true
+                });
+            await db.SaveChangesAsync();
+        }
+
+        var admin = CreateAuthenticatedClient(factory, "admin");
+        var response = await admin.GetAsync("/api/admin/users?role=manager&isActive=true");
+        var payload = await response.Content.ReadFromJsonAsync<ApiResponse<List<UserDto>>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Single(payload!.Data!);
+        Assert.Equal("active-manager", payload.Data![0].UserName);
+    }
+
+    [Fact]
     public async Task GetUser_AllowsAdmin_AndReturnsUserDetails()
     {
         var factory = CreateFactory();

@@ -25,11 +25,11 @@ public class HouseHelpsControllerTests
 
         var controller = new HouseHelpsController(mockSvc.Object);
 
-        var res = await controller.GetAll(null, null, null, null, null);
+        var res = await controller.GetAll(null, null, null, null);
         var ok = Assert.IsType<OkObjectResult>(res);
-        var envelope = Assert.IsType<ApiResponse<IEnumerable<HouseHelpDto>>>(ok.Value);
+        var envelope = Assert.IsType<ApiResponse<IEnumerable<PublicHouseHelpDto>>>(ok.Value);
         Assert.Equal(200, envelope.StatusCode);
-        var items = Assert.IsAssignableFrom<IEnumerable<HouseHelpDto>>(envelope.Data);
+        var items = Assert.IsAssignableFrom<IEnumerable<PublicHouseHelpDto>>(envelope.Data);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class HouseHelpsControllerTests
 
         var res = await controller.Get(5);
         var ok = Assert.IsType<OkObjectResult>(res);
-        var envelope = Assert.IsType<ApiResponse<HouseHelpDto>>(ok.Value);
+        var envelope = Assert.IsType<ApiResponse<PublicHouseHelpDto>>(ok.Value);
         Assert.Equal(200, envelope.StatusCode);
         Assert.Equal(5, envelope.Data!.Id);
     }

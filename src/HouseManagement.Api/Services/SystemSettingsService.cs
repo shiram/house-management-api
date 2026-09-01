@@ -1,5 +1,6 @@
 using HouseManagement.Api.Data;
 using HouseManagement.Api.Models;
+using HouseManagement.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseManagement.Api.Services;
@@ -13,11 +14,12 @@ public sealed class SystemSettingsService : ISystemSettingsService
         _db = db;
     }
 
-    public async Task<IEnumerable<SystemSetting>> GetAllAsync()
+    public async Task<IEnumerable<SystemSetting>> GetAllAsync(int? page = null, int? pageSize = null)
     {
         return await _db.SystemSettings
             .AsNoTracking()
             .OrderBy(setting => setting.Key)
+            .ApplyPagination(page, pageSize)
             .ToListAsync();
     }
 

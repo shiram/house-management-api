@@ -88,4 +88,36 @@ public class NotificationServiceTests
         Assert.NotNull(asOwner);
         Assert.Null(asOther);
     }
+
+    [Fact]
+    public async Task MarkAsReadAsync_UpdatesOnlyOwnedUnreadNotification()
+    {
+        await using var context = CreateContext(nameof(MarkAsReadAsync_UpdatesOnlyOwnedUnreadNotification));
+        var service = new NotificationService(context);
+        var own = await service.CreateAsync(1, NotificationTypes.BookingCreated, "Own", "Message");
+        var other = await service.CreateAsync(2, NotificationTypes.BookingCreated, "Other", "Message");
+
+        var marked = await service.MarkAsReadAsync(own.Id, 1);
+        var inaccessible = await service.MarkAsReadAsync(other.Id, 1);
+
+        Assert.NotNull(marked);
+        Assert.True(marked!.IsRead);
+        Assert.NotNull(marked.ReadAt);
+        Assert.Null(inaccessible);
+        Assert.False((await context.Notifications.SingleAsync(notification => notification.Id == other.Id)).IsRead);
+    }
+
+    [Fact]
+    public async Task GetUnreadCountAsync_ReturnsOnlyUnreadNotificationsForUser()
+    {
+        await using var context = CreateContext(nameof(GetUnreadCountAsync_ReturnsOnlyUnreadNotificationsForUser));
+        var service = new NotificationService(context);
+        var read = await service.CreateAsync(1, NotificationTypes.BookingCreated, "Read", "Message");
+        await service.CreateAsync(1, NotificationTypes.BookingConfirmed, "Unread", "Message");
+        await service.CreateAsync(2, NotificationTypes.BookingAssigned, "Other", "Message");
+
+        await service.MarkAsReadAsync(read.Id, 1);
+
+        Assert.Equal(1, await service.GetUnreadCountAsync(1));
+    }
 }

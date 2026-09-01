@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.DTOs;
@@ -72,6 +73,102 @@ public class BookingIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
         var confirmed = await confirmResponse.Content.ReadFromJsonAsync<ApiResponse<BookingDto>>();
         Assert.Equal(BookingStatus.Confirmed, confirmed!.Data!.Status);
+    }
+
+    [Fact]
+    public async Task PublicBookingEndpoints_ReturnTooManyRequests_WhenRateLimitIsExceeded()
+    {
+        var factory = CreateFactory();
+        await SeedServiceAsync(factory);
+        var anonymous = factory.CreateClient();
+        var request = new CreateAnonymousBookingRequest
+        {
+            ServiceId = 1,
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(2),
+            ContactName = "Rate Limited Client",
+            Phone = "+254712345678",
+            Address = new ServiceAddressRequest
+            {
+                Line1 = "1 Main Street",
+                City = "Nairobi",
+                Country = "Kenya"
+            }
+        };
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            var submission = await anonymous.PostAsJsonAsync("/api/bookings", request);
+            Assert.Equal(HttpStatusCode.Created, submission.StatusCode);
+        }
+
+        var limitedSubmission = await anonymous.PostAsJsonAsync("/api/bookings", request);
+        Assert.Equal(HttpStatusCode.TooManyRequests, limitedSubmission.StatusCode);
+        Assert.True(limitedSubmission.Headers.Contains("Retry-After"));
+
+        var limitedResponse = await limitedSubmission.Content.ReadFromJsonAsync<ApiResponse<object?>>();
+        Assert.NotNull(limitedResponse);
+        Assert.Equal(429, limitedResponse!.StatusCode);
+
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            var trackingRequest = await anonymous.GetAsync("/api/bookings/track/UNKNOWN-REFERENCE");
+            Assert.Equal(HttpStatusCode.NotFound, trackingRequest.StatusCode);
+        }
+
+        var limitedTrackingRequest = await anonymous.GetAsync("/api/bookings/track/UNKNOWN-REFERENCE");
+        Assert.Equal(HttpStatusCode.TooManyRequests, limitedTrackingRequest.StatusCode);
+    }
+
+    [Fact]
+    public async Task AnonymousBookingRequest_NotifiesActiveManager()
+    {
+        var factory = CreateFactory();
+        await SeedServiceAsync(factory);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+            db.Users.Add(new User
+            {
+                Id = 42,
+                UserName = "manager",
+                Email = "manager@example.com",
+                PasswordHash = "hash",
+                Role = Roles.Manager,
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var anonymous = factory.CreateClient();
+        var createResponse = await anonymous.PostAsJsonAsync("/api/bookings", new CreateAnonymousBookingRequest
+        {
+            ServiceId = 1,
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(2),
+            ContactName = "Jane Client",
+            Phone = "+254712345678",
+            Address = new ServiceAddressRequest
+            {
+                Line1 = "1 Main Street",
+                City = "Nairobi",
+                Country = "Kenya"
+            }
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<BookingDto>>();
+
+        var manager = CreateAuthenticatedClient(factory, Roles.Manager, 42);
+        var notifications = await manager.GetFromJsonAsync<ApiResponse<List<NotificationDto>>>("/api/notifications/me");
+
+        Assert.NotNull(created!.Data);
+        var notification = Assert.Single(notifications!.Data!);
+        Assert.Equal(NotificationTypes.BookingCreated, notification.Type);
+        Assert.Equal(created.Data.Id, notification.RelatedEntityId);
+        Assert.Equal("Booking", notification.RelatedEntityType);
+        Assert.Contains(created.Data.Reference, notification.Message);
     }
 
     [Fact]

@@ -180,45 +180,45 @@
 - [x] T260 — Define notification model
 - [x] T261 — Define notification types
 - [x] T262 — Create in-app notification infrastructure
-- [ ] T263 — Notify Manager when a new booking is created
-- [ ] T264 — Notify client when booking is confirmed
-- [ ] T265 — Notify HouseHelp when assigned
-- [ ] T266 — Notify client when booking status changes
-- [ ] T267 — Add notification read/unread state
-- [ ] T269 — Add email/SMS abstraction without hard-coding a provider
-- [ ] T270 — Add notification tests
+- [x] T263 — Notify Manager when a new booking is created
+- [x] T264 — Notify client when booking is confirmed
+- [x] T265 — Notify HouseHelp when assigned
+- [x] T266 — Notify client when booking status changes
+- [x] T267 — Add notification read/unread state
+- [x] T269 — Add email/SMS abstraction without hard-coding a provider
+- [x] T270 — Add notification tests
 
 ---
 
 # PHASE 14 — Audit & Security
 
-- [ ] T280 — Define audit event model
-- [ ] T281 — Audit authentication events
-- [ ] T282 — Audit booking status changes
-- [ ] T283 — Audit HouseHelp assignment
-- [ ] T284 — Audit administrative changes
-- [ ] T285 — Add sensitive-data logging rules
-- [ ] T286 — Review authorization on every protected endpoint
-- [ ] T287 — Review anonymous endpoints for data leakage
-- [ ] T288 — Review file upload/security boundaries if uploads are introduced
-- [ ] T289 — Add rate limiting strategy for public booking endpoints
-- [ ] T290 — Add security headers/CORS policy
+- [x] T280 — Define audit event model
+- [x] T281 — Audit authentication events
+- [x] T282 — Audit booking status changes
+- [x] T283 — Audit HouseHelp assignment
+- [x] T284 — Audit administrative changes
+- [x] T285 — Add sensitive-data logging rules
+- [x] T286 — Review authorization on every protected endpoint
+- [x] T287 — Review anonymous endpoints for data leakage
+- [x] T288 — Review file upload/security boundaries if uploads are introduced
+- [x] T289 — Add rate limiting strategy for public booking endpoints
+- [x] T290 — Add security headers/CORS policy
 - [x] T291 — Run dependency/security audit
 
 ---
 
 # PHASE 15 — Quality & Performance
 
-- [ ] T300 — Backend unit test coverage review
-- [ ] T301 — Backend integration test coverage review
-- [ ] T304 — Database query performance review
-- [ ] T305 — Booking conflict query performance review
-- [ ] T306 — Add pagination to large datasets
-- [ ] T307 — Add server-side filtering where required
-- [ ] T308 — Add structured logging review
-- [ ] T309 — Add health/readiness checks
-- [ ] T310 — Add production configuration review
-- [ ] T311 — Run full build/test pipeline
+- [x] T300 — Backend unit test coverage review
+- [x] T301 — Backend integration test coverage review
+- [x] T304 — Database query performance review
+- [x] T305 — Booking conflict query performance review
+- [x] T306 — Add pagination to large datasets
+- [x] T307 — Add server-side filtering where required
+- [x] T308 — Add structured logging review
+- [x] T309 — Add health/readiness checks
+- [x] T310 — Add production configuration review
+- [x] T311 — Run full build/test pipeline
 
 ---
 
@@ -245,9 +245,22 @@
 - [ ] T344 — Pricing rules
 - [ ] T345 — Promotions/discounts
 - [ ] T346 — Payment integration abstraction
-- [ ] T347 — Payment provider integration
+- [ ] T347 — Payment provider integration(clients will pay with cards(visa), mobile money (mtn and airtel for uganda))
 - [ ] T349 — HouseHelp earnings/reporting
 - [ ] T350 — Advanced reporting/export
+
+---
+
+# PHASE 18 — HouseHelp Profiles & Media
+
+- [ ] T360 — Define HouseHelp profile fields, visibility contract, and authorization rules
+- [ ] T361 — Add private HouseHelp profile fields and an EF Core migration
+- [ ] T362 — Create profile-image storage and safe image-processing abstraction
+- [ ] T363 — Implement authorized HouseHelp profile update endpoints
+- [ ] T364 — Implement secure profile-image upload and replacement workflow
+- [ ] T365 — Implement safe profile-image retrieval and public-profile image projection
+- [ ] T366 — Audit HouseHelp profile and media changes
+- [ ] T367 — Add HouseHelp profile and media unit/integration coverage
 
 ---
 

@@ -23,21 +23,10 @@ public class HouseHelpsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? city, [FromQuery] string? skill, [FromQuery] bool? isActive, [FromQuery] int? page, [FromQuery] int? pageSize)
+    public async Task<IActionResult> GetAll([FromQuery] string? city, [FromQuery] string? skill, [FromQuery] int? page, [FromQuery] int? pageSize)
     {
-        var items = await _svc.GetFilteredAsync(city, skill, isActive, page, pageSize);
-        var dtos = items.Select(h => new HouseManagement.Api.DTOs.HouseHelpDto
-        {
-            Id = h.Id,
-            UserId = h.UserId,
-            FirstName = h.FirstName,
-            LastName = h.LastName,
-            Phone = h.Phone,
-            City = h.City,
-            Address = h.Address,
-            IsActive = h.IsActive,
-            Skills = h.Skills.Select(s => s.ServiceName)
-        });
+        var items = await _svc.GetFilteredAsync(city, skill, true, page, pageSize);
+        var dtos = items.Select(ToPublicDto);
         var response = ApiResponseFactory.Create(this, dtos, "HouseHelp directory retrieved", StatusCodes.Status200OK);
         return Ok(response);
     }
@@ -46,22 +35,22 @@ public class HouseHelpsController : ControllerBase
     public async Task<IActionResult> Get(int id)
     {
         var h = await _svc.GetByIdAsync(id);
-        if (h == null) return NotFound();
+        if (h == null || !h.IsActive) return NotFound();
 
-        var dto = new HouseManagement.Api.DTOs.HouseHelpDto
-        {
-            Id = h.Id,
-            UserId = h.UserId,
-            FirstName = h.FirstName,
-            LastName = h.LastName,
-            Phone = h.Phone,
-            City = h.City,
-            Address = h.Address,
-            IsActive = h.IsActive,
-            Skills = h.Skills.Select(s => s.ServiceName)
-        };
-        var response = ApiResponseFactory.Create(this, dto, "HouseHelp retrieved", StatusCodes.Status200OK);
+        var response = ApiResponseFactory.Create(this, ToPublicDto(h), "HouseHelp retrieved", StatusCodes.Status200OK);
         return Ok(response);
+    }
+
+    private static PublicHouseHelpDto ToPublicDto(HouseHelp houseHelp)
+    {
+        return new PublicHouseHelpDto
+        {
+            Id = houseHelp.Id,
+            FirstName = houseHelp.FirstName,
+            LastName = houseHelp.LastName,
+            City = houseHelp.City,
+            Skills = houseHelp.Skills.Select(s => s.ServiceName)
+        };
     }
 
     [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]

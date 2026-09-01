@@ -16,6 +16,15 @@ public class HouseHelpDto
     public IEnumerable<string> Skills { get; set; } = new List<string>();
 }
 
+public class PublicHouseHelpDto
+{
+    public int Id { get; set; }
+    public string FirstName { get; set; } = null!;
+    public string LastName { get; set; } = null!;
+    public string City { get; set; } = null!;
+    public IEnumerable<string> Skills { get; set; } = new List<string>();
+}
+
 public class CreateHouseHelpRequest
 {
     public int? UserId { get; set; }

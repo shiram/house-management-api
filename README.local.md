@@ -8,14 +8,14 @@ Prerequisites
 - Optional: Visual Studio / VS Code
 
 Environment variables (recommended):
-- JWT_KEY: symmetric key for signing JWTs (override appsettings for safety)
+- JWT_KEY: required production symmetric key for signing JWTs; it takes precedence over appsettings
 - ConnectionStrings__DefaultConnection: SQL Server connection string
 - DEV_SEED_PASSWORD: optional password used to create development admin, manager, and househelp users
 - DevelopmentSeed__Enabled: set to `true` to enable development data seeding explicitly
 
 CI / Deployment notes:
 - The repository CI workflow requires a repository secret JWT_KEY to be configured (see .github/workflows/ci.yml). The workflow fails if JWT_KEY is not set.
-- In production, set JWT_KEY as a secret in your host/provider and avoid committing secrets to appsettings.json.
+- In production, set a non-placeholder JWT_KEY of at least 32 characters in your host/provider. Startup rejects missing, placeholder, and short signing keys.
 - Recommended additional env vars: ASPNETCORE_ENVIRONMENT (Development/Production), and any DB credentials.
 - When running in Development with `DevelopmentSeed__Enabled=true` and DEV_SEED_PASSWORD configured, startup idempotently seeds `dev-admin`, `dev-manager`, and `dev-househelp`.
 - Development startup also idempotently seeds the sample `HOUSE_CLEANING` and `LAUNDRY` services.

@@ -107,6 +107,10 @@ public class ServiceCatalogIntegrationTests : IClassFixture<WebApplicationFactor
         var adminList = await manager.GetFromJsonAsync<ApiResponse<List<ServiceDto>>>("/api/admin/services");
         Assert.Contains(adminList!.Data!, service => service.Code == code && !service.IsActive);
 
+        var inactiveServices = await manager.GetFromJsonAsync<ApiResponse<List<ServiceDto>>>("/api/admin/services?isActive=false");
+        Assert.Contains(inactiveServices!.Data!, service => service.Code == code);
+        Assert.All(inactiveServices.Data!, service => Assert.False(service.IsActive));
+
         var adminDetail = await manager.GetFromJsonAsync<ApiResponse<ServiceDto>>($"/api/admin/services/{created.Data.Id}");
         Assert.Equal(code, adminDetail!.Data!.Code);
         Assert.False(adminDetail.Data.IsActive);

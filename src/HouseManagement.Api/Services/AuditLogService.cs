@@ -1,5 +1,6 @@
 using HouseManagement.Api.Data;
 using HouseManagement.Api.Models;
+using HouseManagement.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseManagement.Api.Services;
@@ -58,14 +59,8 @@ public sealed class AuditLogService : IAuditLogService
             .OrderByDescending(log => log.CreatedAt)
             .ThenByDescending(log => log.Id);
 
-        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
-        {
-            var boundedPageSize = Math.Min(pageSize.Value, 100);
-            query = query
-                .Skip((page.Value - 1) * boundedPageSize)
-                .Take(boundedPageSize);
-        }
-
-        return await query.ToListAsync(cancellationToken);
+        return await query
+            .ApplyPagination(page, pageSize)
+            .ToListAsync(cancellationToken);
     }
 }

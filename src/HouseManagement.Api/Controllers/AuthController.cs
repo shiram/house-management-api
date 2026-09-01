@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using HouseManagement.Api.Data;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Models;
@@ -16,12 +17,18 @@ public class AuthController : ControllerBase
     private readonly HouseContext _db;
     private readonly IPasswordHasher _hasher;
     private readonly ITokenService _tokens;
+    private readonly IAuditLogService _auditLogs;
 
-    public AuthController(HouseContext db, IPasswordHasher hasher, ITokenService tokens)
+    public AuthController(
+        HouseContext db,
+        IPasswordHasher hasher,
+        ITokenService tokens,
+        IAuditLogService auditLogs)
     {
         _db = db;
         _hasher = hasher;
         _tokens = tokens;
+        _auditLogs = auditLogs;
     }
 
     [HttpPost("register")]
@@ -65,16 +72,31 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
 
         var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == req.Email);
-        if (user == null) return Unauthorized(new { error = "Invalid credentials" });
+        if (user == null)
+        {
+            await LogFailedLoginAsync();
+            return Unauthorized(new { error = "Invalid credentials" });
+        }
 
         if (!_hasher.Verify(user.PasswordHash, req.Password))
+        {
+            await LogFailedLoginAsync();
             return Unauthorized(new { error = "Invalid credentials" });
+        }
 
         if (!user.IsActive)
+        {
+            await LogFailedLoginAsync();
             return Unauthorized(new { error = "Account is deactivated" });
+        }
 
         user.LastLogin = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        await _auditLogs.LogAsync(
+            AuditEventTypes.AuthenticationLoginSucceeded,
+            nameof(User),
+            entityId: user.Id,
+            userId: user.Id);
 
         var token = _tokens.CreateToken(user);
         var response = ApiResponseFactory.Create(this, new AuthResponse
@@ -86,5 +108,10 @@ public class AuthController : ControllerBase
         }, "Login successful", StatusCodes.Status200OK);
 
         return Ok(response);
+    }
+
+    private Task LogFailedLoginAsync()
+    {
+        return _auditLogs.LogAsync(AuditEventTypes.AuthenticationLoginFailed, nameof(User));
     }
 }

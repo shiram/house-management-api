@@ -50,9 +50,9 @@ public class HouseHelpsControllerValidationTests
             .ReturnsAsync(new List<HouseHelp> { new HouseHelp { Id = 1, FirstName = "A", LastName = "B", Phone = "+1", City = "Nairobi", IsActive = true } });
 
         var controller = new HouseHelpsController(mockSvc.Object);
-        var res = await controller.GetAll("Nairobi", "Cleaning", true, 1, 10);
+        var res = await controller.GetAll("Nairobi", "Cleaning", 1, 10);
         var ok = Assert.IsType<OkObjectResult>(res);
-        var envelope = Assert.IsType<ApiResponse<IEnumerable<HouseHelpDto>>>(ok.Value);
+        var envelope = Assert.IsType<ApiResponse<IEnumerable<PublicHouseHelpDto>>>(ok.Value);
         Assert.Equal(200, envelope.StatusCode);
         Assert.NotNull(envelope.Data);
     }

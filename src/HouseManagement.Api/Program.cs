@@ -8,6 +8,9 @@ using HouseManagement.Api.Common.Security;
 using Asp.Versioning;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+using HouseManagement.Api.Common.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,7 +92,7 @@ builder.Services.AddSingleton<IBookingTransitionValidator, BookingTransitionVali
 
 // JWT configuration
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var key = jwtSection["Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "PleaseSetASecretKeyInEnv";
+var key = JwtConfiguration.GetSigningKey(builder.Configuration);
 var issuer = jwtSection["Issuer"] ?? "HouseManagement";
 var audience = jwtSection["Audience"] ?? "HouseManagement";
 var keyBytes = Encoding.UTF8.GetBytes(key);
@@ -125,17 +128,75 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole(AuthorizationPolicies.HouseHelpRole));
 });
 
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>()?
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin.Trim())
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray()
+    ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("frontend", policy =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
+});
+
+var publicBookingRateLimitSection = builder.Configuration.GetSection("RateLimiting:PublicBooking");
+var submissionPermitLimit = publicBookingRateLimitSection.GetValue<int?>("SubmissionPermitLimit") ?? 5;
+var trackingPermitLimit = publicBookingRateLimitSection.GetValue<int?>("TrackingPermitLimit") ?? 30;
+var windowSeconds = publicBookingRateLimitSection.GetValue<int?>("WindowSeconds") ?? 60;
+
+if (submissionPermitLimit <= 0 || trackingPermitLimit <= 0 || windowSeconds <= 0)
+{
+    throw new InvalidOperationException("Public booking rate limit configuration values must be greater than zero.");
+}
+
+var publicBookingWindow = TimeSpan.FromSeconds(windowSeconds);
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy(RateLimitPolicyNames.PublicBookingSubmission, httpContext =>
+        CreateFixedWindowPartition(httpContext, submissionPermitLimit, publicBookingWindow));
+    options.AddPolicy(RateLimitPolicyNames.PublicBookingTracking, httpContext =>
+        CreateFixedWindowPartition(httpContext, trackingPermitLimit, publicBookingWindow));
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var httpContext = context.HttpContext;
+        httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        httpContext.Response.Headers.RetryAfter = windowSeconds.ToString();
+
+        var requestId = httpContext.Items.TryGetValue("RequestId", out var requestIdValue)
+            ? requestIdValue?.ToString()
+            : httpContext.TraceIdentifier;
+        await httpContext.Response.WriteAsJsonAsync(
+            new ApiResponse<object?>
+            {
+                StatusCode = StatusCodes.Status429TooManyRequests,
+                Message = "Too many requests. Please try again later.",
+                RequestId = requestId
+            },
+            cancellationToken);
+    };
+});
+
 var app = builder.Build();
 
 // Validate runtime JWT configuration: in production require a real key
 if (app.Environment.IsProduction())
 {
-    var jwtSectionRuntime = app.Configuration.GetSection("Jwt");
-    var effectiveKey = jwtSectionRuntime["Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "PleaseSetASecretKeyInEnv";
-    if (string.IsNullOrWhiteSpace(effectiveKey) || effectiveKey == "PleaseSetASecretKeyInEnv")
+    var effectiveKey = JwtConfiguration.GetSigningKey(app.Configuration);
+    if (!JwtConfiguration.IsProductionSafeSigningKey(effectiveKey))
     {
-        Log.Fatal("JWT signing key is not configured. Set environment variable JWT_KEY in production.");
-        throw new Exception("JWT signing key not configured");
+        Log.Fatal("A secure JWT signing key is not configured. Set JWT_KEY in production.");
+        throw new InvalidOperationException("A secure JWT signing key is required in production.");
     }
 }
 
@@ -169,15 +230,24 @@ if (app.Environment.IsDevelopment())
 
 // Request/correlation ID middleware must run before Serilog request logging so the RequestId is included in logs
 app.UseMiddleware<HouseManagement.Api.Common.Middleware.RequestIdMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // Global exception handling -> ProblemDetails
 app.UseMiddleware<HouseManagement.Api.Common.Middleware.ExceptionHandlingMiddleware>();
 
 app.UseSerilogRequestLogging();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
 
+app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 
@@ -199,4 +269,21 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+static RateLimitPartition<string> CreateFixedWindowPartition(
+    HttpContext httpContext,
+    int permitLimit,
+    TimeSpan window)
+{
+    var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-client";
+    return RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey,
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = window,
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
 }
