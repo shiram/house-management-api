@@ -180,6 +180,18 @@ public sealed class BookingService : IBookingService
             booking.Status = BookingStatus.Assigned;
             booking.UpdatedAt = DateTimeOffset.UtcNow;
             await _db.SaveChangesAsync();
+
+            if (houseHelp.UserId is int houseHelpUserId)
+            {
+                await _notifications.CreateAsync(
+                    houseHelpUserId,
+                    NotificationTypes.BookingAssigned,
+                    "New booking assignment",
+                    $"You have been assigned to booking ({booking.Reference}).",
+                    "Booking",
+                    booking.Id);
+            }
+
             if (transaction != null)
             {
                 await transaction.CommitAsync();

@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-08-30):
+- T265 completed: assigning a booking now creates an in-app `booking.assigned` notification for the linked HouseHelp user, before the existing assignment transaction commits. Unlinked HouseHelp profiles retain existing assignment behavior without an in-app recipient.
 - T264 completed: confirming a booking now creates an in-app `booking.confirmed` notification for its linked registered client. Anonymous bookings have no authenticated notification recipient, so confirmation remains unchanged for them.
 - T263 completed: anonymous booking creation now creates an in-app `booking.created` notification for every active Manager account, linked to the new booking. Inactive managers and users in other roles are excluded.
 - T262 completed: added `INotificationService`/`NotificationService` (create + own-user-scoped list/get with unread filter and pagination) and an authenticated `NotificationsController` (`GET /api/notifications/me`, `GET /api/notifications/me/{id}`), claim-derived like the existing `/api/bookings/mine`. `CreateAsync` has no public HTTP endpoint by design — it's meant to be called from other feature services (bookings, assignment) once T263-T266 wire up the actual triggers. Mark-as-read/unread-count endpoints are deliberately deferred to T267.
