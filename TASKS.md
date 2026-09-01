@@ -211,7 +211,7 @@
 
 - [x] T300 — Backend unit test coverage review
 - [x] T301 — Backend integration test coverage review
-- [ ] T304 — Database query performance review
+- [x] T304 — Database query performance review
 - [ ] T305 — Booking conflict query performance review
 - [ ] T306 — Add pagination to large datasets
 - [ ] T307 — Add server-side filtering where required
