@@ -195,7 +195,7 @@
 - [x] T280 — Define audit event model
 - [x] T281 — Audit authentication events
 - [x] T282 — Audit booking status changes
-- [ ] T283 — Audit HouseHelp assignment
+- [x] T283 — Audit HouseHelp assignment
 - [ ] T284 — Audit administrative changes
 - [ ] T285 — Add sensitive-data logging rules
 - [ ] T286 — Review authorization on every protected endpoint

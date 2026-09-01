@@ -545,7 +545,7 @@ public class BookingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var result = await CreateBookingService(context).AssignHouseHelpAsync(1, 1);
+        var result = await CreateBookingService(context).AssignHouseHelpAsync(1, 1, assignedByUserId: 42);
 
         Assert.NotNull(result.Booking);
         var notifications = await context.Notifications.ToListAsync();
@@ -562,11 +562,21 @@ public class BookingServiceTests
         Assert.Equal(NotificationTypes.BookingStatusChanged, clientNotification.Type);
         Assert.Equal("Booking status updated", clientNotification.Title);
         Assert.Equal("Your booking (BK-ASSIGN-NOTIFY) status changed to Assigned.", clientNotification.Message);
+
+        var audit = await context.AuditLogs.SingleAsync();
+        Assert.Equal(AuditEventTypes.BookingAssigned, audit.Action);
+        Assert.Equal("Booking", audit.EntityType);
+        Assert.Equal(1, audit.EntityId);
+        Assert.Equal(42, audit.UserId);
+        Assert.Equal("HouseHelpId: 1", audit.Details);
     }
 
     private static BookingService CreateBookingService(HouseContext context)
     {
-        return new BookingService(context, new NotificationService(context));
+        return new BookingService(
+            context,
+            new NotificationService(context),
+            new AuditLogService(context));
     }
 
     private static BookingStatusService CreateBookingStatusService(HouseContext context)

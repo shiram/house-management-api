@@ -12,6 +12,7 @@ public sealed class BookingService : IBookingService
 {
     private readonly HouseContext _db;
     private readonly INotificationService _notifications;
+    private readonly IAuditLogService _auditLogs;
 
     // In-process guard to serialize concurrent assignment attempts for the same househelp.
     // This complements the database-level serializable transaction: the in-memory EF provider
@@ -20,10 +21,14 @@ public sealed class BookingService : IBookingService
     // two requests target the same househelp at (almost) the same time.
     private static readonly ConcurrentDictionary<int, SemaphoreSlim> AssignmentLocks = new();
 
-    public BookingService(HouseContext db, INotificationService notifications)
+    public BookingService(
+        HouseContext db,
+        INotificationService notifications,
+        IAuditLogService auditLogs)
     {
         _db = db;
         _notifications = notifications;
+        _auditLogs = auditLogs;
     }
 
     public async Task<BookingCreationResult> CreateAnonymousAsync(CreateAnonymousBookingRequest request)
@@ -203,6 +208,13 @@ public sealed class BookingService : IBookingService
                     "Booking",
                     booking.Id);
             }
+
+            await _auditLogs.LogAsync(
+                AuditEventTypes.BookingAssigned,
+                nameof(Booking),
+                entityId: booking.Id,
+                userId: assignedByUserId,
+                details: $"HouseHelpId: {houseHelpId}");
 
             if (transaction != null)
             {
