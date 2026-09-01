@@ -197,7 +197,7 @@
 - [x] T282 — Audit booking status changes
 - [x] T283 — Audit HouseHelp assignment
 - [x] T284 — Audit administrative changes
-- [ ] T285 — Add sensitive-data logging rules
+- [x] T285 — Add sensitive-data logging rules
 - [ ] T286 — Review authorization on every protected endpoint
 - [ ] T287 — Review anonymous endpoints for data leakage
 - [ ] T288 — Review file upload/security boundaries if uploads are introduced
