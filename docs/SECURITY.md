@@ -36,6 +36,12 @@ Anonymous booking submission is limited per direct client IP to five requests pe
 
 The API intentionally uses the direct connection IP and does not trust forwarded-client headers. Deployments behind a reverse proxy must configure trusted proxy handling before relying on forwarded addresses for rate-limit partitioning.
 
+## Browser security and CORS
+
+The API adds `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and a restrictive `Permissions-Policy` to all responses. Non-HTML API responses also receive a restrictive Content Security Policy. HTTP Strict Transport Security is enabled outside development.
+
+CORS is deny-by-default: production deployments must configure exact frontend origins through `Cors__AllowedOrigins__0`, `Cors__AllowedOrigins__1`, and so on. The API permits only configured origins, methods, and request headers; it does not allow wildcard origins or cross-origin credentials. Development permits `http://localhost:4200` for the Angular development server.
+
 ## Profile image uploads
 
 No upload endpoint exists yet. Before profile-image uploads are implemented, use a provider-neutral storage abstraction and keep uploaded files outside the application content root and direct static-file serving paths.

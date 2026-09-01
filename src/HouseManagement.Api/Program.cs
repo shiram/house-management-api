@@ -128,6 +128,28 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole(AuthorizationPolicies.HouseHelpRole));
 });
 
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>()?
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin.Trim())
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray()
+    ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("frontend", policy =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
+});
+
 var publicBookingRateLimitSection = builder.Configuration.GetSection("RateLimiting:PublicBooking");
 var submissionPermitLimit = publicBookingRateLimitSection.GetValue<int?>("SubmissionPermitLimit") ?? 5;
 var trackingPermitLimit = publicBookingRateLimitSection.GetValue<int?>("TrackingPermitLimit") ?? 30;
@@ -209,13 +231,21 @@ if (app.Environment.IsDevelopment())
 
 // Request/correlation ID middleware must run before Serilog request logging so the RequestId is included in logs
 app.UseMiddleware<HouseManagement.Api.Common.Middleware.RequestIdMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // Global exception handling -> ProblemDetails
 app.UseMiddleware<HouseManagement.Api.Common.Middleware.ExceptionHandlingMiddleware>();
 
 app.UseSerilogRequestLogging();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
 
+app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
