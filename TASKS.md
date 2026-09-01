@@ -210,7 +210,7 @@
 # PHASE 15 — Quality & Performance
 
 - [x] T300 — Backend unit test coverage review
-- [ ] T301 — Backend integration test coverage review
+- [x] T301 — Backend integration test coverage review
 - [ ] T304 — Database query performance review
 - [ ] T305 — Booking conflict query performance review
 - [ ] T306 — Add pagination to large datasets
