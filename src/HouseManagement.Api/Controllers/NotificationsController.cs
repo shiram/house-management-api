@@ -52,6 +52,38 @@ public sealed class NotificationsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPatch("me/{id:int}/read")]
+    public async Task<IActionResult> MarkMineAsRead(int id, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var notification = await _notifications.MarkAsReadAsync(id, userId, cancellationToken);
+        if (notification == null) return NotFound();
+
+        var response = ApiResponseFactory.Create(this, ToDto(notification), "Notification marked as read", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [HttpGet("me/unread-count")]
+    public async Task<IActionResult> GetUnreadCount(CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var count = await _notifications.GetUnreadCountAsync(userId, cancellationToken);
+        var response = ApiResponseFactory.Create(
+            this,
+            new UnreadNotificationCountDto { Count = count },
+            "Unread notification count retrieved",
+            StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
     private bool TryGetUserId(out int userId)
     {
         var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);

@@ -12,3 +12,8 @@ public class NotificationDto
     public DateTimeOffset? ReadAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
+
+public class UnreadNotificationCountDto
+{
+    public int Count { get; set; }
+}

@@ -74,4 +74,29 @@ public sealed class NotificationService : INotificationService
             .AsNoTracking()
             .SingleOrDefaultAsync(notification => notification.Id == id && notification.UserId == userId, cancellationToken);
     }
+
+    public async Task<Notification?> MarkAsReadAsync(int id, int userId, CancellationToken cancellationToken = default)
+    {
+        var notification = await _db.Notifications
+            .SingleOrDefaultAsync(notification => notification.Id == id && notification.UserId == userId, cancellationToken);
+
+        if (notification == null)
+        {
+            return null;
+        }
+
+        if (!notification.IsRead)
+        {
+            notification.IsRead = true;
+            notification.ReadAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return notification;
+    }
+
+    public Task<int> GetUnreadCountAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        return _db.Notifications.CountAsync(notification => notification.UserId == userId && !notification.IsRead, cancellationToken);
+    }
 }

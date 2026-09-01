@@ -110,6 +110,36 @@ public class NotificationsIntegrationTests : IClassFixture<WebApplicationFactory
         Assert.Equal("Unread", unread.Data![0].Title);
     }
 
+    [Fact]
+    public async Task MarkMineAsRead_UpdatesOwnNotificationAndUnreadCount()
+    {
+        var factory = CreateFactory();
+
+        int ownNotificationId;
+        int otherNotificationId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var notifications = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            ownNotificationId = (await notifications.CreateAsync(70, NotificationTypes.BookingConfirmed, "Own", "Message")).Id;
+            await notifications.CreateAsync(70, NotificationTypes.BookingStatusChanged, "Unread", "Message");
+            otherNotificationId = (await notifications.CreateAsync(999, NotificationTypes.BookingCreated, "Other", "Message")).Id;
+        }
+
+        var client = CreateAuthenticatedClient(factory, "manager", 70);
+        var markedResponse = await client.PatchAsync($"/api/notifications/me/{ownNotificationId}/read", null);
+
+        Assert.Equal(HttpStatusCode.OK, markedResponse.StatusCode);
+        var marked = await markedResponse.Content.ReadFromJsonAsync<ApiResponse<NotificationDto>>();
+        Assert.True(marked!.Data!.IsRead);
+        Assert.NotNull(marked.Data.ReadAt);
+
+        var unreadCount = await client.GetFromJsonAsync<ApiResponse<UnreadNotificationCountDto>>("/api/notifications/me/unread-count");
+        Assert.Equal(1, unreadCount!.Data!.Count);
+
+        var inaccessibleResponse = await client.PatchAsync($"/api/notifications/me/{otherNotificationId}/read", null);
+        Assert.Equal(HttpStatusCode.NotFound, inaccessibleResponse.StatusCode);
+    }
+
     private static WebApplicationFactory<Program> CreateFactory()
     {
         var dbName = $"notifications_integration_{Guid.NewGuid():N}";

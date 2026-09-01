@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-08-30):
+- T267 completed: added owner-scoped notification read state: `PATCH /api/notifications/me/{id}/read` marks a notification read idempotently, and `GET /api/notifications/me/unread-count` returns the current user's unread total. Both use the authenticated user claim and return not found for another user's notification.
 - T266 completed: linked registered clients now receive `booking.status_changed` notifications for successful non-confirmation status transitions and assignment. Confirmation continues to use its dedicated `booking.confirmed` notification from T264, preventing duplicate notices.
 - T265 completed: assigning a booking now creates an in-app `booking.assigned` notification for the linked HouseHelp user, before the existing assignment transaction commits. Unlinked HouseHelp profiles retain existing assignment behavior without an in-app recipient.
 - T264 completed: confirming a booking now creates an in-app `booking.confirmed` notification for its linked registered client. Anonymous bookings have no authenticated notification recipient, so confirmation remains unchanged for them.
