@@ -180,7 +180,7 @@
 - [x] T260 — Define notification model
 - [x] T261 — Define notification types
 - [x] T262 — Create in-app notification infrastructure
-- [ ] T263 — Notify Manager when a new booking is created
+- [x] T263 — Notify Manager when a new booking is created
 - [ ] T264 — Notify client when booking is confirmed
 - [ ] T265 — Notify HouseHelp when assigned
 - [ ] T266 — Notify client when booking status changes

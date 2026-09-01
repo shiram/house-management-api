@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Data;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Models;
@@ -10,6 +11,7 @@ namespace HouseManagement.Api.Services;
 public sealed class BookingService : IBookingService
 {
     private readonly HouseContext _db;
+    private readonly INotificationService _notifications;
 
     // In-process guard to serialize concurrent assignment attempts for the same househelp.
     // This complements the database-level serializable transaction: the in-memory EF provider
@@ -18,9 +20,10 @@ public sealed class BookingService : IBookingService
     // two requests target the same househelp at (almost) the same time.
     private static readonly ConcurrentDictionary<int, SemaphoreSlim> AssignmentLocks = new();
 
-    public BookingService(HouseContext db)
+    public BookingService(HouseContext db, INotificationService notifications)
     {
         _db = db;
+        _notifications = notifications;
     }
 
     public async Task<BookingCreationResult> CreateAnonymousAsync(CreateAnonymousBookingRequest request)
@@ -73,6 +76,24 @@ public sealed class BookingService : IBookingService
 
         _db.Bookings.Add(booking);
         await _db.SaveChangesAsync();
+
+        var managerIds = await _db.Users
+            .AsNoTracking()
+            .Where(user => user.IsActive && user.Role == Roles.Manager)
+            .Select(user => user.Id)
+            .ToListAsync();
+
+        foreach (var managerId in managerIds)
+        {
+            await _notifications.CreateAsync(
+                managerId,
+                NotificationTypes.BookingCreated,
+                "New booking request",
+                $"A new booking request ({booking.Reference}) has been submitted.",
+                "Booking",
+                booking.Id);
+        }
+
         if (transaction != null)
         {
             await transaction.CommitAsync();

@@ -1,5 +1,6 @@
 using HouseManagement.Api.Data;
 using HouseManagement.Api.DTOs;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,7 @@ public class BookingServiceTests
         context.Services.Add(new Service { Id = 1, Code = "CLEANING", Name = "Cleaning", BasePrice = 25, IsActive = true });
         await context.SaveChangesAsync();
 
-        var service = new BookingService(context);
+        var service = CreateBookingService(context);
         var result = await service.CreateAnonymousAsync(CreateRequest());
 
         Assert.NotNull(result.Booking);
@@ -41,7 +42,7 @@ public class BookingServiceTests
         await using var context = new HouseContext(options);
         context.Services.Add(new Service { Id = 1, Code = "OLD", Name = "Old", IsActive = false });
         await context.SaveChangesAsync();
-        var service = new BookingService(context);
+        var service = CreateBookingService(context);
 
         var inactive = await service.CreateAnonymousAsync(CreateRequest());
         var invalid = await service.CreateAnonymousAsync(CreateRequest(1, DateTimeOffset.UtcNow.AddHours(2), DateTimeOffset.UtcNow.AddHours(1)));
@@ -79,7 +80,7 @@ public class BookingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new BookingService(context);
+        var service = CreateBookingService(context);
         var booking = await service.GetByIdAsync(1);
 
         Assert.NotNull(booking);
@@ -125,7 +126,7 @@ public class BookingServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new BookingService(context);
+        var service = CreateBookingService(context);
         var all = await service.GetListAsync();
         var confirmed = await service.GetListAsync(BookingStatus.Confirmed);
 
@@ -331,6 +332,38 @@ public class BookingServiceTests
         Assert.Equal(BookingStatus.Completed, completed.Booking!.Status);
         Assert.Null(invalid.Booking);
         Assert.Contains("cannot transition", invalid.Error);
+    }
+
+    [Fact]
+    public async Task CreateAnonymousAsync_NotifiesActiveManagersOnly()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service { Id = 1, Code = "CLEANING", Name = "Cleaning", BasePrice = 25, IsActive = true });
+        context.Users.AddRange(
+            new User { Id = 1, UserName = "active-manager", Email = "active-manager@example.com", PasswordHash = "hash", Role = Roles.Manager, IsActive = true },
+            new User { Id = 2, UserName = "inactive-manager", Email = "inactive-manager@example.com", PasswordHash = "hash", Role = Roles.Manager, IsActive = false },
+            new User { Id = 3, UserName = "admin", Email = "admin@example.com", PasswordHash = "hash", Role = Roles.Admin, IsActive = true });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingService(context).CreateAnonymousAsync(CreateRequest());
+
+        Assert.NotNull(result.Booking);
+        var notification = await context.Notifications.SingleAsync();
+        Assert.Equal(1, notification.UserId);
+        Assert.Equal(NotificationTypes.BookingCreated, notification.Type);
+        Assert.Equal("New booking request", notification.Title);
+        Assert.Equal($"A new booking request ({result.Booking!.Reference}) has been submitted.", notification.Message);
+        Assert.Equal("Booking", notification.RelatedEntityType);
+        Assert.Equal(result.Booking.Id, notification.RelatedEntityId);
+    }
+
+    private static BookingService CreateBookingService(HouseContext context)
+    {
+        return new BookingService(context, new NotificationService(context));
     }
 
     private static CreateAnonymousBookingRequest CreateRequest(
