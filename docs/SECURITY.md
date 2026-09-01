@@ -29,3 +29,15 @@ Protected endpoints use these centralized policies:
 - Authenticated owner scope: notification reads and updates, plus a client's own booking list.
 
 Controllers must derive the authenticated user ID from JWT claims for owner-scoped behavior. Public endpoints must be explicitly intended for anonymous use and are reviewed separately for data leakage.
+
+## Profile image uploads
+
+No upload endpoint exists yet. Before profile-image uploads are implemented, use a provider-neutral storage abstraction and keep uploaded files outside the application content root and direct static-file serving paths.
+
+- Accept only JPEG, PNG, and WebP profile images. Reject SVG, GIF, PDFs, archives, and all other file types.
+- Enforce a configurable maximum upload size with a server-side hard cap, validate file signatures and decodability rather than trusting the extension or declared MIME type, and constrain decoded image dimensions.
+- Generate opaque server-side storage names; never use a client-provided filename or path. Store only an image reference in the database.
+- Re-encode accepted images and strip EXIF metadata before storage so embedded location and device data cannot be exposed.
+- Authorize every upload, replacement, deletion, and private-image retrieval using the authenticated subject and the linked HouseHelp profile. Managers/Admins may be granted operational access only through an explicit authorization rule.
+- Do not expose exact locations, profile notes, source filenames, storage paths, or image metadata in public HouseHelp DTOs. Public image delivery, if approved, must use a safe projected image reference only.
+- Do not log file contents, image metadata, client filenames, storage paths, or full profile locations. Clean up superseded media only after a successful replacement is persisted.

@@ -200,7 +200,7 @@
 - [x] T285 — Add sensitive-data logging rules
 - [x] T286 — Review authorization on every protected endpoint
 - [x] T287 — Review anonymous endpoints for data leakage
-- [ ] T288 — Review file upload/security boundaries if uploads are introduced
+- [x] T288 — Review file upload/security boundaries if uploads are introduced
 - [ ] T289 — Add rate limiting strategy for public booking endpoints
 - [ ] T290 — Add security headers/CORS policy
 - [x] T291 — Run dependency/security audit
@@ -248,6 +248,19 @@
 - [ ] T347 — Payment provider integration(clients will pay with cards(visa), mobile money (mtn and airtel for uganda))
 - [ ] T349 — HouseHelp earnings/reporting
 - [ ] T350 — Advanced reporting/export
+
+---
+
+# PHASE 18 — HouseHelp Profiles & Media
+
+- [ ] T360 — Define HouseHelp profile fields, visibility contract, and authorization rules
+- [ ] T361 — Add private HouseHelp profile fields and an EF Core migration
+- [ ] T362 — Create profile-image storage and safe image-processing abstraction
+- [ ] T363 — Implement authorized HouseHelp profile update endpoints
+- [ ] T364 — Implement secure profile-image upload and replacement workflow
+- [ ] T365 — Implement safe profile-image retrieval and public-profile image projection
+- [ ] T366 — Audit HouseHelp profile and media changes
+- [ ] T367 — Add HouseHelp profile and media unit/integration coverage
 
 ---
 
