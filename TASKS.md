@@ -199,7 +199,7 @@
 - [x] T284 — Audit administrative changes
 - [x] T285 — Add sensitive-data logging rules
 - [x] T286 — Review authorization on every protected endpoint
-- [ ] T287 — Review anonymous endpoints for data leakage
+- [x] T287 — Review anonymous endpoints for data leakage
 - [ ] T288 — Review file upload/security boundaries if uploads are introduced
 - [ ] T289 — Add rate limiting strategy for public booking endpoints
 - [ ] T290 — Add security headers/CORS policy
@@ -245,7 +245,7 @@
 - [ ] T344 — Pricing rules
 - [ ] T345 — Promotions/discounts
 - [ ] T346 — Payment integration abstraction
-- [ ] T347 — Payment provider integration
+- [ ] T347 — Payment provider integration(clients will pay with cards(visa), mobile money (mtn and airtel for uganda))
 - [ ] T349 — HouseHelp earnings/reporting
 - [ ] T350 — Advanced reporting/export
 

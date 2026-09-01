@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.IdentityModel.Tokens;
@@ -106,7 +107,12 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var anon = _factory.CreateClient();
         var listResp = await anon.GetAsync("/api/househelps");
         Assert.Equal(System.Net.HttpStatusCode.OK, listResp.StatusCode);
-        var envelope = await listResp.Content.ReadFromJsonAsync<ApiResponse<List<HouseHelpDto>>>();
+        var content = await listResp.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("\"userId\"", content);
+        Assert.DoesNotContain("\"phone\"", content);
+        Assert.DoesNotContain("\"address\"", content);
+        Assert.DoesNotContain("\"isActive\"", content);
+        var envelope = JsonSerializer.Deserialize<ApiResponse<List<PublicHouseHelpDto>>>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.NotNull(envelope);
         Assert.Equal(200, envelope!.StatusCode);
         Assert.NotNull(envelope.Data);
@@ -129,7 +135,12 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var anon = _factory.CreateClient();
         var detailResp = await anon.GetAsync($"/api/househelps/{createdEnvelope.Data!.Id}");
         Assert.Equal(System.Net.HttpStatusCode.OK, detailResp.StatusCode);
-        var envelope = await detailResp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+        var content = await detailResp.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("\"userId\"", content);
+        Assert.DoesNotContain("\"phone\"", content);
+        Assert.DoesNotContain("\"address\"", content);
+        Assert.DoesNotContain("\"isActive\"", content);
+        var envelope = JsonSerializer.Deserialize<ApiResponse<PublicHouseHelpDto>>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.NotNull(envelope);
         Assert.Equal(createdEnvelope.Data.Id, envelope!.Data!.Id);
     }
@@ -158,10 +169,10 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal(200, envelope!.StatusCode);
         Assert.Equal("HouseHelp status updated", envelope.Message);
 
-        // verify
+        // Inactive profiles remain available to managers through the administrative API only.
         var anon = _factory.CreateClient();
-        var detailEnvelope = await anon.GetFromJsonAsync<ApiResponse<HouseHelpDto>>($"/api/househelps/{createdEnvelope.Data!.Id}");
-        Assert.False(detailEnvelope!.Data!.IsActive);
+        var detailResponse = await anon.GetAsync($"/api/househelps/{createdEnvelope.Data!.Id}");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, detailResponse.StatusCode);
     }
 
     [Fact]
