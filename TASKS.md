@@ -209,7 +209,7 @@
 
 # PHASE 15 — Quality & Performance
 
-- [ ] T300 — Backend unit test coverage review
+- [x] T300 — Backend unit test coverage review
 - [ ] T301 — Backend integration test coverage review
 - [ ] T304 — Database query performance review
 - [ ] T305 — Booking conflict query performance review
