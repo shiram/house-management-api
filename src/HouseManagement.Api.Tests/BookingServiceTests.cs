@@ -153,7 +153,7 @@ public class BookingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new BookingStatusService(context, new BookingTransitionValidator());
+        var service = CreateBookingStatusService(context);
         var result = await service.TransitionAsync(1, BookingStatus.Confirmed);
 
         Assert.NotNull(result.Booking);
@@ -179,7 +179,7 @@ public class BookingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new BookingStatusService(context, new BookingTransitionValidator());
+        var service = CreateBookingStatusService(context);
         var invalid = await service.TransitionAsync(1, BookingStatus.Completed);
         var missing = await service.TransitionAsync(999, BookingStatus.Confirmed);
 
@@ -217,7 +217,7 @@ public class BookingServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new BookingStatusService(context, new BookingTransitionValidator());
+        var service = CreateBookingStatusService(context);
         var cancelled = await service.CancelAsync(1);
         var rejected = await service.CancelAsync(2);
 
@@ -253,7 +253,7 @@ public class BookingServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new BookingStatusService(context, new BookingTransitionValidator());
+        var service = CreateBookingStatusService(context);
         var rejected = await service.RejectAsync(1);
         var invalid = await service.RejectAsync(2);
 
@@ -289,7 +289,7 @@ public class BookingServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new BookingStatusService(context, new BookingTransitionValidator());
+        var service = CreateBookingStatusService(context);
         var confirmed = await service.ConfirmAsync(1);
         var invalid = await service.ConfirmAsync(2);
 
@@ -325,7 +325,7 @@ public class BookingServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new BookingStatusService(context, new BookingTransitionValidator());
+        var service = CreateBookingStatusService(context);
         var completed = await service.CompleteAsync(1);
         var invalid = await service.CompleteAsync(2);
 
@@ -361,9 +361,62 @@ public class BookingServiceTests
         Assert.Equal(result.Booking.Id, notification.RelatedEntityId);
     }
 
+    [Fact]
+    public async Task ConfirmAsync_NotifiesRegisteredClient()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Users.Add(new User
+        {
+            Id = 1,
+            UserName = "client",
+            Email = "client@example.com",
+            PasswordHash = "hash"
+        });
+        context.Clients.Add(new Client
+        {
+            Id = 1,
+            UserId = 1,
+            Name = "Registered Client",
+            Phone = "+254700000001"
+        });
+        context.Bookings.Add(new Booking
+        {
+            Id = 1,
+            Reference = "BK-CONFIRM-NOTIFY",
+            ClientId = 1,
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+            Status = BookingStatus.Requested
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingStatusService(context).ConfirmAsync(1);
+
+        Assert.NotNull(result.Booking);
+        var notification = await context.Notifications.SingleAsync();
+        Assert.Equal(1, notification.UserId);
+        Assert.Equal(NotificationTypes.BookingConfirmed, notification.Type);
+        Assert.Equal("Booking confirmed", notification.Title);
+        Assert.Equal("Your booking (BK-CONFIRM-NOTIFY) has been confirmed.", notification.Message);
+        Assert.Equal("Booking", notification.RelatedEntityType);
+        Assert.Equal(1, notification.RelatedEntityId);
+    }
+
     private static BookingService CreateBookingService(HouseContext context)
     {
         return new BookingService(context, new NotificationService(context));
+    }
+
+    private static BookingStatusService CreateBookingStatusService(HouseContext context)
+    {
+        return new BookingStatusService(
+            context,
+            new BookingTransitionValidator(),
+            new NotificationService(context));
     }
 
     private static CreateAnonymousBookingRequest CreateRequest(

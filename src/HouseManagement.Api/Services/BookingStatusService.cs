@@ -1,4 +1,5 @@
 using HouseManagement.Api.Data;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,16 +9,23 @@ public sealed class BookingStatusService : IBookingStatusService
 {
     private readonly HouseContext _db;
     private readonly IBookingTransitionValidator _validator;
+    private readonly INotificationService _notifications;
 
-    public BookingStatusService(HouseContext db, IBookingTransitionValidator validator)
+    public BookingStatusService(
+        HouseContext db,
+        IBookingTransitionValidator validator,
+        INotificationService notifications)
     {
         _db = db;
         _validator = validator;
+        _notifications = notifications;
     }
 
     public async Task<BookingStatusTransitionResult> TransitionAsync(int bookingId, BookingStatus nextStatus)
     {
-        var booking = await _db.Bookings.SingleOrDefaultAsync(item => item.Id == bookingId);
+        var booking = await _db.Bookings
+            .Include(item => item.Client)
+            .SingleOrDefaultAsync(item => item.Id == bookingId);
         if (booking == null)
         {
             return new BookingStatusTransitionResult(null, "The requested booking was not found.");
@@ -31,7 +39,21 @@ public sealed class BookingStatusService : IBookingStatusService
 
         booking.Status = nextStatus;
         booking.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync();
+
+        if (nextStatus == BookingStatus.Confirmed && booking.Client?.UserId is int clientUserId)
+        {
+            await _notifications.CreateAsync(
+                clientUserId,
+                NotificationTypes.BookingConfirmed,
+                "Booking confirmed",
+                $"Your booking ({booking.Reference}) has been confirmed.",
+                "Booking",
+                booking.Id);
+        }
+        else
+        {
+            await _db.SaveChangesAsync();
+        }
 
         return new BookingStatusTransitionResult(booking, null);
     }
