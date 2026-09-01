@@ -42,6 +42,12 @@ The API adds `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referr
 
 CORS is deny-by-default: production deployments must configure exact frontend origins through `Cors__AllowedOrigins__0`, `Cors__AllowedOrigins__1`, and so on. The API permits only configured origins, methods, and request headers; it does not allow wildcard origins or cross-origin credentials. Development permits `http://localhost:4200` for the Angular development server.
 
+## Production configuration review
+
+`JWT_KEY` is the authoritative JWT signing-key source when it is set; it takes precedence over the development value in `appsettings.json` for both token issuance and validation. Production startup rejects blank values, known placeholders, and keys shorter than 32 characters.
+
+Production hosts must provide `JWT_KEY`, `ConnectionStrings__DefaultConnection`, and exact CORS origins through their secret/configuration provider. The committed connection string and JWT value are development-only placeholders. Production logging sinks, HTTPS termination, reverse-proxy trust, database migration execution, and monitoring configuration remain deployment work and are intentionally deferred to Phase 16.
+
 ## Profile image uploads
 
 No upload endpoint exists yet. Before profile-image uploads are implemented, use a provider-neutral storage abstraction and keep uploaded files outside the application content root and direct static-file serving paths.

@@ -92,7 +92,7 @@ builder.Services.AddSingleton<IBookingTransitionValidator, BookingTransitionVali
 
 // JWT configuration
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var key = jwtSection["Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "PleaseSetASecretKeyInEnv";
+var key = JwtConfiguration.GetSigningKey(builder.Configuration);
 var issuer = jwtSection["Issuer"] ?? "HouseManagement";
 var audience = jwtSection["Audience"] ?? "HouseManagement";
 var keyBytes = Encoding.UTF8.GetBytes(key);
@@ -192,12 +192,11 @@ var app = builder.Build();
 // Validate runtime JWT configuration: in production require a real key
 if (app.Environment.IsProduction())
 {
-    var jwtSectionRuntime = app.Configuration.GetSection("Jwt");
-    var effectiveKey = jwtSectionRuntime["Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "PleaseSetASecretKeyInEnv";
-    if (string.IsNullOrWhiteSpace(effectiveKey) || effectiveKey == "PleaseSetASecretKeyInEnv")
+    var effectiveKey = JwtConfiguration.GetSigningKey(app.Configuration);
+    if (!JwtConfiguration.IsProductionSafeSigningKey(effectiveKey))
     {
-        Log.Fatal("JWT signing key is not configured. Set environment variable JWT_KEY in production.");
-        throw new Exception("JWT signing key not configured");
+        Log.Fatal("A secure JWT signing key is not configured. Set JWT_KEY in production.");
+        throw new InvalidOperationException("A secure JWT signing key is required in production.");
     }
 }
 

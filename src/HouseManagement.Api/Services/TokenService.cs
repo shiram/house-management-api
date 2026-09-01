@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using HouseManagement.Api.Models;
+using HouseManagement.Api.Common.Security;
 
 namespace HouseManagement.Api.Services;
 
@@ -18,7 +19,7 @@ public class TokenService : ITokenService
     public string CreateToken(User user)
     {
         var jwt = _config.GetSection("Jwt");
-        var key = jwt["Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "PleaseSetASecretKeyInEnv";
+        var key = JwtConfiguration.GetSigningKey(_config);
         var issuer = jwt["Issuer"] ?? "HouseManagement";
         var audience = jwt["Audience"] ?? "HouseManagement";
         var expireMinutes = int.TryParse(jwt["ExpireMinutes"], out var m) ? m : 60;
