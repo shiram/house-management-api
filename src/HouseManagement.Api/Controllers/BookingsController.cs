@@ -87,7 +87,7 @@ public sealed class BookingsController : ControllerBase
     [HttpPost("{id:int}/cancel")]
     public async Task<IActionResult> Cancel(int id)
     {
-        var result = await _bookingStatuses.CancelAsync(id);
+        var result = await _bookingStatuses.CancelAsync(id, GetAuthenticatedUserId());
         if (result.Booking == null)
         {
             if (result.Error == "The requested booking was not found.")
@@ -110,7 +110,7 @@ public sealed class BookingsController : ControllerBase
     [HttpPost("{id:int}/reject")]
     public async Task<IActionResult> Reject(int id)
     {
-        var result = await _bookingStatuses.RejectAsync(id);
+        var result = await _bookingStatuses.RejectAsync(id, GetAuthenticatedUserId());
         if (result.Booking == null)
         {
             if (result.Error == "The requested booking was not found.")
@@ -133,7 +133,7 @@ public sealed class BookingsController : ControllerBase
     [HttpPost("{id:int}/confirm")]
     public async Task<IActionResult> Confirm(int id)
     {
-        var result = await _bookingStatuses.ConfirmAsync(id);
+        var result = await _bookingStatuses.ConfirmAsync(id, GetAuthenticatedUserId());
         if (result.Booking == null)
         {
             if (result.Error == "The requested booking was not found.")
@@ -156,7 +156,7 @@ public sealed class BookingsController : ControllerBase
     [HttpPost("{id:int}/complete")]
     public async Task<IActionResult> Complete(int id)
     {
-        var result = await _bookingStatuses.CompleteAsync(id);
+        var result = await _bookingStatuses.CompleteAsync(id, GetAuthenticatedUserId());
         if (result.Booking == null)
         {
             if (result.Error == "The requested booking was not found.")
@@ -318,5 +318,11 @@ public sealed class BookingsController : ControllerBase
             CreatedAt = booking.CreatedAt,
             UpdatedAt = booking.UpdatedAt
         };
+    }
+
+    private int? GetAuthenticatedUserId()
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return int.TryParse(subject, out var userId) ? userId : null;
     }
 }

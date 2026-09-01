@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-08-30):
+- T282 completed: every successful booking status transition now records a `booking.status_changed` audit event with the booking ID, JWT-derived Manager/Admin actor ID when present, and the non-sensitive prior-to-next status transition. Failed validation and missing-booking requests do not produce audit records.
 - T281 completed: successful and failed login attempts now write `authentication.login_succeeded` and `authentication.login_failed` audit events. Successful events identify the authenticated user; failures deliberately contain no account identifier, credentials, email address, or token.
 - T280 completed: the persisted audit event model was already established by T249 (`AuditLog`, configuration, and `IAuditLogService`). Added `AuditEventTypes` as the canonical stable action taxonomy for authentication, booking, and user-administration audit wiring in T281-T284.
 - T270 completed: added end-to-end coverage verifying an anonymous booking request reaches an active Manager's authenticated notification feed with the correct `booking.created` type and booking link. This complements focused notification service/API and booking-trigger tests from T260-T269.

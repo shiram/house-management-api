@@ -450,6 +450,35 @@ public class BookingServiceTests
     }
 
     [Fact]
+    public async Task TransitionAsync_AuditsSuccessfulStatusChangeWithActor()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Bookings.Add(new Booking
+        {
+            Id = 1,
+            Reference = "BK-AUDIT-STATUS",
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+            Status = BookingStatus.Requested
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingStatusService(context).ConfirmAsync(1, changedByUserId: 42);
+
+        Assert.NotNull(result.Booking);
+        var audit = await context.AuditLogs.SingleAsync();
+        Assert.Equal(AuditEventTypes.BookingStatusChanged, audit.Action);
+        Assert.Equal("Booking", audit.EntityType);
+        Assert.Equal(1, audit.EntityId);
+        Assert.Equal(42, audit.UserId);
+        Assert.Equal("Requested -> Confirmed", audit.Details);
+    }
+
+    [Fact]
     public async Task AssignHouseHelpAsync_NotifiesLinkedHouseHelpAndRegisteredClient()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()
@@ -545,7 +574,8 @@ public class BookingServiceTests
         return new BookingStatusService(
             context,
             new BookingTransitionValidator(),
-            new NotificationService(context));
+            new NotificationService(context),
+            new AuditLogService(context));
     }
 
     private static CreateAnonymousBookingRequest CreateRequest(
