@@ -25,9 +25,9 @@ public sealed class SystemSettingsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize)
     {
-        var settings = await _settings.GetAllAsync();
+        var settings = await _settings.GetAllAsync(page, pageSize);
         var dtos = settings.Select(ToDto);
 
         var response = ApiResponseFactory.Create(this, dtos, "System settings retrieved", StatusCodes.Status200OK);

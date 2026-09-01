@@ -1,5 +1,6 @@
 using HouseManagement.Api.Data;
 using HouseManagement.Api.Models;
+using HouseManagement.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseManagement.Api.Services;
@@ -13,13 +14,14 @@ public sealed class ServiceCatalogService : IServiceCatalogService
         _db = db;
     }
 
-    public async Task<IEnumerable<Service>> GetActiveAsync()
+    public async Task<IEnumerable<Service>> GetActiveAsync(int? page = null, int? pageSize = null)
     {
         return await _db.Services
             .AsNoTracking()
             .Where(service => service.IsActive)
             .OrderBy(service => service.Name)
             .ThenBy(service => service.Code)
+            .ApplyPagination(page, pageSize)
             .ToListAsync();
     }
 
@@ -31,15 +33,7 @@ public sealed class ServiceCatalogService : IServiceCatalogService
             .ThenBy(service => service.Code)
             .AsQueryable();
 
-        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
-        {
-            var boundedPageSize = Math.Min(pageSize.Value, 100);
-            query = query
-                .Skip((page.Value - 1) * boundedPageSize)
-                .Take(boundedPageSize);
-        }
-
-        return await query.ToListAsync();
+        return await query.ApplyPagination(page, pageSize).ToListAsync();
     }
 
     public async Task<Service?> GetActiveByIdAsync(int id)

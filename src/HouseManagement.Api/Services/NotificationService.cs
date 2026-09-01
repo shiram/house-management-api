@@ -1,5 +1,6 @@
 using HouseManagement.Api.Data;
 using HouseManagement.Api.Models;
+using HouseManagement.Api.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseManagement.Api.Services;
@@ -57,15 +58,9 @@ public sealed class NotificationService : INotificationService
             .OrderByDescending(notification => notification.CreatedAt)
             .ThenByDescending(notification => notification.Id);
 
-        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
-        {
-            var boundedPageSize = Math.Min(pageSize.Value, 100);
-            query = query
-                .Skip((page.Value - 1) * boundedPageSize)
-                .Take(boundedPageSize);
-        }
-
-        return await query.ToListAsync(cancellationToken);
+        return await query
+            .ApplyPagination(page, pageSize)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<Notification?> GetByIdForUserAsync(int id, int userId, CancellationToken cancellationToken = default)

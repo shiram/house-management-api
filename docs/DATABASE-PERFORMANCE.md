@@ -39,3 +39,7 @@ The existing `(AssignedHouseHelpId, ScheduledStart, ScheduledEnd)` index aligns 
 The check runs within the existing serializable transaction and per-HouseHelp in-process lock. Those safeguards are preserved because query performance must not weaken double-booking protection.
 
 Before adding a filtered or wider index, capture an actual SQL Server execution plan with representative per-HouseHelp booking history and verify logical reads, duration, lock waits, and index seek/scan behavior. A candidate filtered index must use the same reserving-status definition as the business rule and cannot be added until that definition and workload evidence are validated.
+
+## T306 pagination
+
+All collection queries use a shared default of 50 items per page and enforce a maximum of 100. Callers may request `page` and `pageSize`; absent, zero, or negative values use the safe first-page default. HouseHelp directories now use last name, first name, and ID ordering before pagination so pages are stable. API consumers must request subsequent pages explicitly.

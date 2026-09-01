@@ -41,15 +41,8 @@ public sealed class AdministrationController : ControllerBase
             .OrderBy(user => user.Id)
             .AsQueryable();
 
-        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
-        {
-            var boundedPageSize = Math.Min(pageSize.Value, 100);
-            query = query
-                .Skip((page.Value - 1) * boundedPageSize)
-                .Take(boundedPageSize);
-        }
-
         var users = await query
+            .ApplyPagination(page, pageSize)
             .Select(user => new UserDto
             {
                 Id = user.Id,

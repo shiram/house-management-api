@@ -327,15 +327,7 @@ public sealed class BookingService : IBookingService
             .OrderByDescending(booking => booking.CreatedAt)
             .ThenByDescending(booking => booking.Id);
 
-        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
-        {
-            var boundedPageSize = Math.Min(pageSize.Value, 100);
-            query = query
-                .Skip((page.Value - 1) * boundedPageSize)
-                .Take(boundedPageSize);
-        }
-
-        return query;
+        return query.ApplyPagination(page, pageSize);
     }
 
     private static bool IsAvailableForBooking(HouseHelp houseHelp, Booking booking)

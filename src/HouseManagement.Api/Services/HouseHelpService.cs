@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.Models;
+using HouseManagement.Api.Common;
 
 namespace HouseManagement.Api.Services;
 
@@ -47,14 +48,12 @@ public class HouseHelpService : IHouseHelpService
             query = query.Where(h => h.UserId == userId.Value);
         }
 
-        // simple pagination
-        if (page.HasValue && pageSize.HasValue && page > 0 && pageSize > 0)
-        {
-            var skip = (page.Value - 1) * pageSize.Value;
-            query = query.Skip(skip).Take(pageSize.Value);
-        }
-
-        return await query.ToListAsync();
+        return await query
+            .OrderBy(h => h.LastName)
+            .ThenBy(h => h.FirstName)
+            .ThenBy(h => h.Id)
+            .ApplyPagination(page, pageSize)
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<HouseHelp>> GetEligibleAsync(int serviceId, string? city = null)
