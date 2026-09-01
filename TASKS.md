@@ -193,7 +193,7 @@
 # PHASE 14 — Audit & Security
 
 - [x] T280 — Define audit event model
-- [ ] T281 — Audit authentication events
+- [x] T281 — Audit authentication events
 - [ ] T282 — Audit booking status changes
 - [ ] T283 — Audit HouseHelp assignment
 - [ ] T284 — Audit administrative changes

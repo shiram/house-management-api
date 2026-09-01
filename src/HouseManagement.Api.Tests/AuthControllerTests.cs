@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Common.Api;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +33,7 @@ public class AuthControllerTests
         var tokenMock = new Mock<ITokenService>();
         tokenMock.Setup(t => t.CreateToken(It.IsAny<User>())).Returns("test-token");
 
-        var controller = new AuthController(context, hasher, tokenMock.Object)
+        var controller = new AuthController(context, hasher, tokenMock.Object, new AuditLogService(context))
         {
             ControllerContext = new ControllerContext
             {
@@ -89,7 +90,7 @@ public class AuthControllerTests
         await context.SaveChangesAsync();
 
         var tokenMock = new Mock<ITokenService>();
-        var controller = new AuthController(context, hasher, tokenMock.Object);
+        var controller = new AuthController(context, hasher, tokenMock.Object, new AuditLogService(context));
 
         var req = new RegisterRequest
         {
@@ -125,7 +126,7 @@ public class AuthControllerTests
         var tokenMock = new Mock<ITokenService>();
         tokenMock.Setup(t => t.CreateToken(It.IsAny<User>())).Returns("test-token");
 
-        var controller = new AuthController(context, hasher, tokenMock.Object);
+        var controller = new AuthController(context, hasher, tokenMock.Object, new AuditLogService(context));
 
         var result = await controller.Login(new LoginRequest
         {
@@ -140,6 +141,13 @@ public class AuthControllerTests
         Assert.NotNull(envelope.Data);
         Assert.Equal("test-token", envelope.Data!.Token);
         Assert.Equal("manager", envelope.Data.Role);
+
+        var audit = await context.AuditLogs.SingleAsync();
+        Assert.Equal(AuditEventTypes.AuthenticationLoginSucceeded, audit.Action);
+        Assert.Equal("User", audit.EntityType);
+        Assert.Equal((await context.Users.SingleAsync(user => user.Email == "login@example.com")).Id, audit.EntityId);
+        Assert.Equal(audit.EntityId, audit.UserId);
+        Assert.Null(audit.Details);
     }
 
     [Fact]
@@ -165,7 +173,7 @@ public class AuthControllerTests
         var tokenMock = new Mock<ITokenService>();
         tokenMock.Setup(t => t.CreateToken(It.IsAny<User>())).Returns("token123");
 
-        var controller = new AuthController(context, hasher, tokenMock.Object);
+        var controller = new AuthController(context, hasher, tokenMock.Object, new AuditLogService(context));
 
         var req = new LoginRequest { Email = "login@example.com", Password = "Password123!" };
         var before = System.DateTime.UtcNow;
@@ -199,7 +207,7 @@ public class AuthControllerTests
         await context.SaveChangesAsync();
 
         var tokenMock = new Mock<ITokenService>();
-        var controller = new AuthController(context, hasher, tokenMock.Object);
+        var controller = new AuthController(context, hasher, tokenMock.Object, new AuditLogService(context));
 
         var req = new LoginRequest { Email = "login2@example.com", Password = "WrongPassword" };
         var result = await controller.Login(req);
@@ -207,6 +215,17 @@ public class AuthControllerTests
 
         var missingResult = await controller.Login(new LoginRequest { Email = "noone@example.com", Password = "whatever" });
         Assert.IsType<UnauthorizedObjectResult>(missingResult);
+
+        var failedAudits = await context.AuditLogs.ToListAsync();
+        Assert.Equal(2, failedAudits.Count);
+        Assert.All(failedAudits, audit =>
+        {
+            Assert.Equal(AuditEventTypes.AuthenticationLoginFailed, audit.Action);
+            Assert.Equal("User", audit.EntityType);
+            Assert.Null(audit.EntityId);
+            Assert.Null(audit.UserId);
+            Assert.Null(audit.Details);
+        });
     }
 
     [Fact]
@@ -230,7 +249,7 @@ public class AuthControllerTests
         await context.SaveChangesAsync();
 
         var tokenMock = new Mock<ITokenService>();
-        var controller = new AuthController(context, hasher, tokenMock.Object);
+        var controller = new AuthController(context, hasher, tokenMock.Object, new AuditLogService(context));
 
         var result = await controller.Login(new LoginRequest { Email = "deactivated@example.com", Password = "Password123!" });
 
@@ -247,7 +266,7 @@ public class AuthControllerTests
         await using var context = new HouseContext(options);
         var hasher = new PasswordHasher();
         var tokenMock = new Mock<ITokenService>();
-        var controller = new AuthController(context, hasher, tokenMock.Object);
+        var controller = new AuthController(context, hasher, tokenMock.Object, new AuditLogService(context));
         controller.ModelState.AddModelError("Email", "The Email field is required.");
 
         var result = await controller.Register(new RegisterRequest());
