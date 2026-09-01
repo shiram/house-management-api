@@ -21,3 +21,21 @@ Reviewed on 2026-09-01 against EF Core query shapes and entity configurations. T
 5. Query performance changes must be measured against SQL Server with representative data, actual execution plans, logical reads, and elapsed time. EF Core in-memory tests cannot validate index usage or query plans.
 
 No migration or index was added by T304 because the current code-level review does not provide production workload evidence for a safe, targeted schema change. T305 separately reviews the booking conflict query.
+
+## T305 booking conflict query review
+
+Reviewed on 2026-09-01. Assignment uses an `AnyAsync`/`EXISTS` overlap check scoped to one assigned HouseHelp:
+
+```text
+AssignedHouseHelpId = requestedHouseHelpId
+AND BookingId != requestedBookingId
+AND status reserves the HouseHelp
+AND ScheduledStart < requestedEnd
+AND requestedStart < ScheduledEnd
+```
+
+The existing `(AssignedHouseHelpId, ScheduledStart, ScheduledEnd)` index aligns with the equality predicate and the first time-range predicate. SQL Server can seek to the selected HouseHelp and constrain candidate bookings by start time; the second time-range condition and status remain residual predicates, which is normal for interval-overlap queries. `AnyAsync` avoids entity materialization and returns once a conflict is found.
+
+The check runs within the existing serializable transaction and per-HouseHelp in-process lock. Those safeguards are preserved because query performance must not weaken double-booking protection.
+
+Before adding a filtered or wider index, capture an actual SQL Server execution plan with representative per-HouseHelp booking history and verify logical reads, duration, lock waits, and index seek/scan behavior. A candidate filtered index must use the same reserving-status definition as the business rule and cannot be added until that definition and workload evidence are validated.
