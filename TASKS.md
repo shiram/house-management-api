@@ -183,7 +183,7 @@
 - [x] T263 — Notify Manager when a new booking is created
 - [x] T264 — Notify client when booking is confirmed
 - [x] T265 — Notify HouseHelp when assigned
-- [ ] T266 — Notify client when booking status changes
+- [x] T266 — Notify client when booking status changes
 - [ ] T267 — Add notification read/unread state
 - [ ] T269 — Add email/SMS abstraction without hard-coding a provider
 - [ ] T270 — Add notification tests

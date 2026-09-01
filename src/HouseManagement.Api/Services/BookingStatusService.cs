@@ -40,15 +40,28 @@ public sealed class BookingStatusService : IBookingStatusService
         booking.Status = nextStatus;
         booking.UpdatedAt = DateTimeOffset.UtcNow;
 
-        if (nextStatus == BookingStatus.Confirmed && booking.Client?.UserId is int clientUserId)
+        if (booking.Client?.UserId is int clientUserId)
         {
-            await _notifications.CreateAsync(
-                clientUserId,
-                NotificationTypes.BookingConfirmed,
-                "Booking confirmed",
-                $"Your booking ({booking.Reference}) has been confirmed.",
-                "Booking",
-                booking.Id);
+            if (nextStatus == BookingStatus.Confirmed)
+            {
+                await _notifications.CreateAsync(
+                    clientUserId,
+                    NotificationTypes.BookingConfirmed,
+                    "Booking confirmed",
+                    $"Your booking ({booking.Reference}) has been confirmed.",
+                    "Booking",
+                    booking.Id);
+            }
+            else
+            {
+                await _notifications.CreateAsync(
+                    clientUserId,
+                    NotificationTypes.BookingStatusChanged,
+                    "Booking status updated",
+                    $"Your booking ({booking.Reference}) status changed to {nextStatus}.",
+                    "Booking",
+                    booking.Id);
+            }
         }
         else
         {

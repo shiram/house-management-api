@@ -128,6 +128,7 @@ public sealed class BookingService : IBookingService
         {
             var booking = await _db.Bookings
                 .Include(item => item.Service)
+                .Include(item => item.Client)
                 .SingleOrDefaultAsync(item => item.Id == bookingId);
 
             if (booking == null)
@@ -188,6 +189,17 @@ public sealed class BookingService : IBookingService
                     NotificationTypes.BookingAssigned,
                     "New booking assignment",
                     $"You have been assigned to booking ({booking.Reference}).",
+                    "Booking",
+                    booking.Id);
+            }
+
+            if (booking.Client?.UserId is int clientUserId)
+            {
+                await _notifications.CreateAsync(
+                    clientUserId,
+                    NotificationTypes.BookingStatusChanged,
+                    "Booking status updated",
+                    $"Your booking ({booking.Reference}) status changed to {BookingStatus.Assigned}.",
                     "Booking",
                     booking.Id);
             }

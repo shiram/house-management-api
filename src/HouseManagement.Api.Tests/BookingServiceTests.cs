@@ -407,7 +407,50 @@ public class BookingServiceTests
     }
 
     [Fact]
-    public async Task AssignHouseHelpAsync_NotifiesLinkedHouseHelpUser()
+    public async Task CancelAsync_NotifiesRegisteredClientOfStatusChange()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Users.Add(new User
+        {
+            Id = 1,
+            UserName = "client",
+            Email = "client@example.com",
+            PasswordHash = "hash"
+        });
+        context.Clients.Add(new Client
+        {
+            Id = 1,
+            UserId = 1,
+            Name = "Registered Client",
+            Phone = "+254700000001"
+        });
+        context.Bookings.Add(new Booking
+        {
+            Id = 1,
+            Reference = "BK-CANCEL-NOTIFY",
+            ClientId = 1,
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+            Status = BookingStatus.Confirmed
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingStatusService(context).CancelAsync(1);
+
+        Assert.NotNull(result.Booking);
+        var notification = await context.Notifications.SingleAsync();
+        Assert.Equal(1, notification.UserId);
+        Assert.Equal(NotificationTypes.BookingStatusChanged, notification.Type);
+        Assert.Equal("Booking status updated", notification.Title);
+        Assert.Equal("Your booking (BK-CANCEL-NOTIFY) status changed to Cancelled.", notification.Message);
+    }
+
+    [Fact]
+    public async Task AssignHouseHelpAsync_NotifiesLinkedHouseHelpAndRegisteredClient()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -415,15 +458,30 @@ public class BookingServiceTests
 
         await using var context = new HouseContext(options);
         var scheduledStart = DateTimeOffset.UtcNow.AddDays(1).Date.AddHours(10);
-        context.Users.Add(new User
+        context.Users.AddRange(
+            new User
+            {
+                Id = 1,
+                UserName = "househelp",
+                Email = "househelp@example.com",
+                PasswordHash = "hash",
+                Role = Roles.HouseHelp
+            },
+            new User
+            {
+                Id = 2,
+                UserName = "client",
+                Email = "client@example.com",
+                PasswordHash = "hash"
+            });
+        context.Services.Add(new Service { Id = 1, Code = "CLEANING", Name = "Cleaning", BasePrice = 25, IsActive = true });
+        context.Clients.Add(new Client
         {
             Id = 1,
-            UserName = "househelp",
-            Email = "househelp@example.com",
-            PasswordHash = "hash",
-            Role = Roles.HouseHelp
+            UserId = 2,
+            Name = "Registered Client",
+            Phone = "+254700000002"
         });
-        context.Services.Add(new Service { Id = 1, Code = "CLEANING", Name = "Cleaning", BasePrice = 25, IsActive = true });
         context.HouseHelps.Add(new HouseHelp
         {
             Id = 1,
@@ -451,6 +509,7 @@ public class BookingServiceTests
             Id = 1,
             Reference = "BK-ASSIGN-NOTIFY",
             ServiceId = 1,
+            ClientId = 1,
             ScheduledStart = scheduledStart,
             ScheduledEnd = scheduledStart.AddHours(2),
             Status = BookingStatus.Confirmed
@@ -460,13 +519,20 @@ public class BookingServiceTests
         var result = await CreateBookingService(context).AssignHouseHelpAsync(1, 1);
 
         Assert.NotNull(result.Booking);
-        var notification = await context.Notifications.SingleAsync();
-        Assert.Equal(1, notification.UserId);
-        Assert.Equal(NotificationTypes.BookingAssigned, notification.Type);
-        Assert.Equal("New booking assignment", notification.Title);
-        Assert.Equal("You have been assigned to booking (BK-ASSIGN-NOTIFY).", notification.Message);
-        Assert.Equal("Booking", notification.RelatedEntityType);
-        Assert.Equal(1, notification.RelatedEntityId);
+        var notifications = await context.Notifications.ToListAsync();
+        Assert.Equal(2, notifications.Count);
+
+        var houseHelpNotification = Assert.Single(notifications, notification => notification.UserId == 1);
+        Assert.Equal(NotificationTypes.BookingAssigned, houseHelpNotification.Type);
+        Assert.Equal("New booking assignment", houseHelpNotification.Title);
+        Assert.Equal("You have been assigned to booking (BK-ASSIGN-NOTIFY).", houseHelpNotification.Message);
+        Assert.Equal("Booking", houseHelpNotification.RelatedEntityType);
+        Assert.Equal(1, houseHelpNotification.RelatedEntityId);
+
+        var clientNotification = Assert.Single(notifications, notification => notification.UserId == 2);
+        Assert.Equal(NotificationTypes.BookingStatusChanged, clientNotification.Type);
+        Assert.Equal("Booking status updated", clientNotification.Title);
+        Assert.Equal("Your booking (BK-ASSIGN-NOTIFY) status changed to Assigned.", clientNotification.Message);
     }
 
     private static BookingService CreateBookingService(HouseContext context)
