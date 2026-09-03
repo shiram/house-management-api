@@ -241,7 +241,7 @@
 - [x] T340 — HouseHelp ratings/reviews
 - [x] T341 — Customer booking history
 - [x] T342 — Repeat booking
-- [ ] T343 — Favorite/preferred HouseHelp
+- [x] T343 — Favorite/preferred HouseHelp
 - [ ] T344 — Pricing rules
 - [ ] T345 — Promotions/discounts
 - [ ] T346 — Payment integration abstraction
