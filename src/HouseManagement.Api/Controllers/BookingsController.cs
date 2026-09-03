@@ -332,6 +332,9 @@ public sealed class BookingsController : ControllerBase
                 Country = serviceAddress?.Country ?? string.Empty
             },
             Notes = booking.Notes,
+            AppliedPromotionCode = booking.AppliedPromotionCode,
+            AppliedPromotionName = booking.AppliedPromotionName,
+            DiscountAmount = booking.DiscountAmount,
             TotalPrice = booking.TotalPrice,
             PriceLines = booking.PriceLines.Select(line => new BookingPriceLineDto
             {

@@ -105,6 +105,103 @@ public class BookingServiceTests
     }
 
     [Fact]
+    public async Task CreateAnonymousAsync_AppliesPromotionAndSnapshotsDiscount()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "CLEANING",
+            Name = "Cleaning",
+            BasePrice = 100,
+            PricingMode = ServicePricingMode.Fixed,
+            IsActive = true
+        });
+        context.Promotions.Add(new Promotion
+        {
+            Id = 1,
+            Code = "SAVE10",
+            Name = "Save 10",
+            DiscountType = PromotionDiscountType.Percentage,
+            DiscountValue = 10,
+            StartsAt = DateTimeOffset.UtcNow.AddDays(-1),
+            EndsAt = DateTimeOffset.UtcNow.AddDays(7),
+            UsageLimit = 5,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingService(context).CreateAnonymousAsync(CreateRequest(promotionCode: " save10 "));
+
+        Assert.NotNull(result.Booking);
+        Assert.Equal("SAVE10", result.Booking!.AppliedPromotionCode);
+        Assert.Equal("Save 10", result.Booking.AppliedPromotionName);
+        Assert.Equal(10m, result.Booking.DiscountAmount);
+        Assert.Equal(90m, result.Booking.TotalPrice);
+        Assert.Contains(result.Booking.PriceLines, line =>
+            line.Description == "Promotion: SAVE10" &&
+            line.UnitPrice == -10m &&
+            line.LineTotal == -10m);
+        Assert.Equal(1, await context.Promotions.Where(promotion => promotion.Id == 1).Select(promotion => promotion.TimesUsed).SingleAsync());
+    }
+
+    [Fact]
+    public async Task CreateAnonymousAsync_RejectsPromotionNotValidForBooking()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "CLEANING",
+            Name = "Cleaning",
+            BasePrice = 100,
+            PricingMode = ServicePricingMode.Fixed,
+            IsActive = true
+        });
+        context.Promotions.AddRange(
+            new Promotion
+            {
+                Code = "LAUNDRYONLY",
+                Name = "Laundry only",
+                DiscountType = PromotionDiscountType.FixedAmount,
+                DiscountValue = 10,
+                StartsAt = DateTimeOffset.UtcNow.AddDays(-1),
+                EligibleServiceId = 999,
+                IsActive = true
+            },
+            new Promotion
+            {
+                Code = "USEDUP",
+                Name = "Used up",
+                DiscountType = PromotionDiscountType.FixedAmount,
+                DiscountValue = 10,
+                StartsAt = DateTimeOffset.UtcNow.AddDays(-1),
+                UsageLimit = 1,
+                TimesUsed = 1,
+                IsActive = true
+            });
+        await context.SaveChangesAsync();
+
+        var service = CreateBookingService(context);
+        var serviceMismatch = await service.CreateAnonymousAsync(CreateRequest(promotionCode: "LAUNDRYONLY"));
+        var usedUp = await service.CreateAnonymousAsync(CreateRequest(promotionCode: "USEDUP"));
+
+        Assert.Null(serviceMismatch.Booking);
+        Assert.Contains("not valid", serviceMismatch.Error);
+        Assert.Null(usedUp.Booking);
+        Assert.Contains("not valid", usedUp.Error);
+        Assert.Empty(await context.Bookings.ToListAsync());
+    }
+
+    [Fact]
     public async Task CreateAnonymousAsync_RejectsInactiveServiceAndInvalidSchedule()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()
@@ -664,7 +761,8 @@ public class BookingServiceTests
         int serviceId = 1,
         DateTimeOffset? start = null,
         DateTimeOffset? end = null,
-        IEnumerable<BookingPriceItemRequest>? pricingItems = null)
+        IEnumerable<BookingPriceItemRequest>? pricingItems = null,
+        string? promotionCode = null)
     {
         return new CreateAnonymousBookingRequest
         {
@@ -680,7 +778,8 @@ public class BookingServiceTests
                 City = "Nairobi",
                 Country = "Kenya"
             },
-            PricingItems = pricingItems ?? []
+            PricingItems = pricingItems ?? [],
+            PromotionCode = promotionCode
         };
     }
 }

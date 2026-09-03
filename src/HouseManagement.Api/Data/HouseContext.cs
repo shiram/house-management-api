@@ -32,4 +32,5 @@ public class HouseContext : DbContext
     public DbSet<ClientHouseHelpPreference> ClientHouseHelpPreferences { get; set; }
     public DbSet<ServicePriceRule> ServicePriceRules { get; set; }
     public DbSet<BookingPriceLine> BookingPriceLines { get; set; }
+    public DbSet<Promotion> Promotions { get; set; }
 }

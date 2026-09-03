@@ -33,7 +33,13 @@ public sealed class BookingService : IBookingService
 
     public sealed record BookingPricingResult(
         List<BookingPriceLine> PriceLines,
-        decimal TotalPrice,
+        decimal Subtotal,
+        string? Error);
+
+    private sealed record BookingDiscountResult(
+        Promotion? Promotion,
+        decimal DiscountAmount,
+        BookingPriceLine? PriceLine,
         string? Error);
 
     public async Task<BookingCreationResult> CreateAnonymousAsync(CreateAnonymousBookingRequest request)
@@ -55,6 +61,21 @@ public sealed class BookingService : IBookingService
         if (pricing.Error != null)
         {
             return new BookingCreationResult(null, pricing.Error);
+        }
+
+        var discount = await CreateDiscountSnapshotAsync(
+            request.PromotionCode,
+            service.Id,
+            pricing.Subtotal,
+            request.ScheduledStart);
+        if (discount.Error != null)
+        {
+            return new BookingCreationResult(null, discount.Error);
+        }
+
+        if (discount.PriceLine != null)
+        {
+            pricing.PriceLines.Add(discount.PriceLine);
         }
 
         Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
@@ -88,10 +109,19 @@ public sealed class BookingService : IBookingService
             ScheduledEnd = request.ScheduledEnd,
             Status = BookingStatus.Requested,
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
-            TotalPrice = pricing.TotalPrice,
+            AppliedPromotionCode = discount.Promotion?.Code,
+            AppliedPromotionName = discount.Promotion?.Name,
+            DiscountAmount = discount.DiscountAmount,
+            TotalPrice = pricing.Subtotal - discount.DiscountAmount,
             PriceLines = pricing.PriceLines,
             CreatedAt = DateTimeOffset.UtcNow
         };
+
+        if (discount.Promotion != null)
+        {
+            discount.Promotion.TimesUsed += 1;
+            discount.Promotion.UpdatedAt = DateTimeOffset.UtcNow;
+        }
 
         _db.Bookings.Add(booking);
         await _db.SaveChangesAsync();
@@ -138,6 +168,21 @@ public sealed class BookingService : IBookingService
             return new BookingCreationResult(null, pricing.Error);
         }
 
+        var discount = await CreateDiscountSnapshotAsync(
+            request.PromotionCode,
+            sourceBooking.ServiceId,
+            pricing.Subtotal,
+            request.ScheduledStart);
+        if (discount.Error != null)
+        {
+            return new BookingCreationResult(null, discount.Error);
+        }
+
+        if (discount.PriceLine != null)
+        {
+            pricing.PriceLines.Add(discount.PriceLine);
+        }
+
         var sourceAddress = sourceBooking.ServiceAddress;
         var booking = new Booking
         {
@@ -157,10 +202,19 @@ public sealed class BookingService : IBookingService
             ScheduledEnd = request.ScheduledEnd,
             Status = BookingStatus.Requested,
             Notes = sourceBooking.Notes,
-            TotalPrice = pricing.TotalPrice,
+            AppliedPromotionCode = discount.Promotion?.Code,
+            AppliedPromotionName = discount.Promotion?.Name,
+            DiscountAmount = discount.DiscountAmount,
+            TotalPrice = pricing.Subtotal - discount.DiscountAmount,
             PriceLines = pricing.PriceLines,
             CreatedAt = DateTimeOffset.UtcNow
         };
+
+        if (discount.Promotion != null)
+        {
+            discount.Promotion.TimesUsed += 1;
+            discount.Promotion.UpdatedAt = DateTimeOffset.UtcNow;
+        }
 
         _db.Bookings.Add(booking);
         await _db.SaveChangesAsync();
@@ -494,6 +548,56 @@ public sealed class BookingService : IBookingService
         }
 
         return new BookingPricingResult(lines, totalPrice, null);
+    }
+
+    private async Task<BookingDiscountResult> CreateDiscountSnapshotAsync(
+        string? promotionCode,
+        int serviceId,
+        decimal subtotal,
+        DateTimeOffset scheduledStart)
+    {
+        if (string.IsNullOrWhiteSpace(promotionCode))
+        {
+            return new BookingDiscountResult(null, 0, null, null);
+        }
+
+        var normalizedCode = promotionCode.Trim().ToUpperInvariant();
+        var promotion = await _db.Promotions.SingleOrDefaultAsync(item => item.Code == normalizedCode);
+        if (promotion == null ||
+            !promotion.IsActive ||
+            promotion.StartsAt > scheduledStart ||
+            (promotion.EndsAt.HasValue && promotion.EndsAt.Value < scheduledStart) ||
+            (promotion.EligibleServiceId.HasValue && promotion.EligibleServiceId.Value != serviceId) ||
+            (promotion.UsageLimit.HasValue && promotion.TimesUsed >= promotion.UsageLimit.Value))
+        {
+            return new BookingDiscountResult(null, 0, null, "The promotion code is not valid for this booking.");
+        }
+
+        var discountAmount = promotion.DiscountType == PromotionDiscountType.Percentage
+            ? Math.Round(subtotal * promotion.DiscountValue / 100m, 2, MidpointRounding.AwayFromZero)
+            : promotion.DiscountValue;
+
+        if (discountAmount <= 0)
+        {
+            return new BookingDiscountResult(null, 0, null, "The promotion code is not valid for this booking.");
+        }
+
+        if (discountAmount > subtotal)
+        {
+            discountAmount = subtotal;
+        }
+
+        return new BookingDiscountResult(
+            promotion,
+            discountAmount,
+            new BookingPriceLine
+            {
+                Description = $"Promotion: {promotion.Code}",
+                Quantity = 1,
+                UnitPrice = -discountAmount,
+                LineTotal = -discountAmount
+            },
+            null);
     }
 
     private static bool IsAvailableForBooking(HouseHelp houseHelp, Booking booking)

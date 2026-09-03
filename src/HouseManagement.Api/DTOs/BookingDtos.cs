@@ -13,6 +13,7 @@ public class CreateBookingRequest
     public ServiceAddressRequest Address { get; set; } = new();
     public string? Notes { get; set; }
     public IEnumerable<BookingPriceItemRequest> PricingItems { get; set; } = [];
+    public string? PromotionCode { get; set; }
 }
 
 public sealed class CreateAnonymousBookingRequest : CreateBookingRequest
@@ -36,6 +37,7 @@ public sealed class RepeatBookingRequest
     public DateTimeOffset ScheduledStart { get; set; }
     public DateTimeOffset ScheduledEnd { get; set; }
     public IEnumerable<BookingPriceItemRequest> PricingItems { get; set; } = [];
+    public string? PromotionCode { get; set; }
 }
 
 public sealed class BookingPriceItemRequest
@@ -84,6 +86,9 @@ public sealed class BookingDto
     public DateTimeOffset? AssignedAt { get; set; }
     public ServiceAddressRequest Address { get; set; } = new();
     public string? Notes { get; set; }
+    public string? AppliedPromotionCode { get; set; }
+    public string? AppliedPromotionName { get; set; }
+    public decimal DiscountAmount { get; set; }
     public decimal TotalPrice { get; set; }
     public IEnumerable<BookingPriceLineDto> PriceLines { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; }
