@@ -244,7 +244,7 @@
 - [x] T343 — Favorite/preferred HouseHelp
 - [x] T344 — Pricing rules
 - [x] T345 — Promotions/discounts
-- [ ] T346 — Payment integration abstraction
+- [x] T346 — Payment integration abstraction
 - [ ] T347 — Payment provider integration(clients will pay with cards(visa), mobile money (mtn and airtel for uganda))
 - [ ] T349 — HouseHelp earnings/reporting
 - [ ] T350 — Advanced reporting/export

@@ -91,6 +91,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IHouseHelpRatingService, HouseHelpRatingService>();
 builder.Services.AddScoped<IClientHouseHelpPreferenceService, ClientHouseHelpPreferenceService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddSingleton<IBookingTransitionValidator, BookingTransitionValidator>();
 
 // JWT configuration

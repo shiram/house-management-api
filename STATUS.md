@@ -1,6 +1,6 @@
 # House Management — AI Development Status
 
-Last updated: 2026-09-03T00:00:00+00:00 — Promotions and discounts finalized
+Last updated: 2026-09-03T00:00:00+00:00 — Payment integration abstraction finalized
 
 ## Inspection summary
 
@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-09-03):
+- T346 completed: added provider-neutral payment records, card/mobile-money method types, payment statuses, an `IPaymentGateway` abstraction, and `IPaymentService` orchestration for provider-backed payment initiation. The service validates currency/idempotency, blocks duplicate active payments, persists provider references and checkout URLs, and leaves real card/mobile-money provider integration to T347.
 - T345 completed: added manager/admin promotion management, percentage and fixed-amount discounts, optional service eligibility, active date windows, usage limits, and booking-time discount snapshots. Anonymous and repeat bookings can apply valid promotion codes; accepted bookings persist promotion code/name, discount amount, adjusted total price, and a negative discount line so historical booking totals remain immutable after promotion changes.
 - T344 completed: pricing rules and booking price snapshots are in place for fixed and per-unit services. Duplicate unit-name checks are now case-insensitive, and new tests cover fixed pricing, per-unit pricing, and duplicate-rule rejection without touching authentication or production config.
 - T286 completed: reviewed all protected controller actions. AdminOnly covers users/settings/audit logs; ManagerOrAdmin covers service, HouseHelp, booking, and manager-availability operations; HouseHelpOnly covers assigned bookings and self-availability; notifications and client bookings are authenticated owner-scoped. No authorization-semantic changes were required.
