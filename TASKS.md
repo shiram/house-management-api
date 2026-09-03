@@ -253,7 +253,7 @@
 
 # PHASE 18 — HouseHelp Profiles & Media
 
-- [ ] T360 — Define HouseHelp profile fields, visibility contract, and authorization rules
+- [x] T360 — Define HouseHelp profile fields, visibility contract, and authorization rules
 - [ ] T361 — Add private HouseHelp profile fields and an EF Core migration
 - [ ] T362 — Create profile-image storage and safe image-processing abstraction
 - [ ] T363 — Implement authorized HouseHelp profile update endpoints
