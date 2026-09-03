@@ -803,24 +803,69 @@ public class BookingIntegrationTests : IClassFixture<WebApplicationFactory<Progr
                 Email = "client-user@example.com",
                 CreatedAt = DateTimeOffset.UtcNow
             };
-            db.Clients.Add(client);
-            db.Bookings.Add(new Booking
+            var otherClient = new Client
             {
-                Id = 101,
-                Reference = "BK-MINE",
-                ServiceId = 1,
-                ClientId = client.Id,
-                ServiceAddress = new ServiceAddress
-                {
-                    Line1 = "40 Mine Lane",
-                    City = "Nairobi",
-                    Country = "Kenya"
-                },
-                ScheduledStart = DateTimeOffset.UtcNow.AddDays(4),
-                ScheduledEnd = DateTimeOffset.UtcNow.AddDays(4).AddHours(2),
-                Status = BookingStatus.Requested,
+                Id = 21,
+                UserId = 78,
+                Name = "Other Client",
+                Phone = "+254700000078",
+                Email = "other-client@example.com",
                 CreatedAt = DateTimeOffset.UtcNow
-            });
+            };
+            db.Clients.Add(client);
+            db.Clients.Add(otherClient);
+            db.Bookings.AddRange(
+                new Booking
+                {
+                    Id = 101,
+                    Reference = "BK-MINE",
+                    ServiceId = 1,
+                    ClientId = client.Id,
+                    ServiceAddress = new ServiceAddress
+                    {
+                        Line1 = "40 Mine Lane",
+                        City = "Nairobi",
+                        Country = "Kenya"
+                    },
+                    ScheduledStart = DateTimeOffset.UtcNow.AddDays(4),
+                    ScheduledEnd = DateTimeOffset.UtcNow.AddDays(4).AddHours(2),
+                    Status = BookingStatus.Requested,
+                    CreatedAt = DateTimeOffset.UtcNow
+                },
+                new Booking
+                {
+                    Id = 102,
+                    Reference = "BK-MINE-COMPLETED",
+                    ServiceId = 1,
+                    ClientId = client.Id,
+                    ServiceAddress = new ServiceAddress
+                    {
+                        Line1 = "41 Mine Lane",
+                        City = "Nairobi",
+                        Country = "Kenya"
+                    },
+                    ScheduledStart = DateTimeOffset.UtcNow.AddDays(-4),
+                    ScheduledEnd = DateTimeOffset.UtcNow.AddDays(-4).AddHours(2),
+                    Status = BookingStatus.Completed,
+                    CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-1)
+                },
+                new Booking
+                {
+                    Id = 103,
+                    Reference = "BK-NOT-MINE",
+                    ServiceId = 1,
+                    ClientId = otherClient.Id,
+                    ServiceAddress = new ServiceAddress
+                    {
+                        Line1 = "42 Other Lane",
+                        City = "Nairobi",
+                        Country = "Kenya"
+                    },
+                    ScheduledStart = DateTimeOffset.UtcNow.AddDays(5),
+                    ScheduledEnd = DateTimeOffset.UtcNow.AddDays(5).AddHours(2),
+                    Status = BookingStatus.Requested,
+                    CreatedAt = DateTimeOffset.UtcNow.AddMinutes(1)
+                });
             await db.SaveChangesAsync();
         }
 
@@ -830,7 +875,17 @@ public class BookingIntegrationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var payload = await response.Content.ReadFromJsonAsync<ApiResponse<List<BookingDto>>>();
         Assert.NotNull(payload);
-        Assert.Contains(payload!.Data!, dto => dto.Reference == "BK-MINE");
+        Assert.Equal(
+            new[] { "BK-MINE", "BK-MINE-COMPLETED" },
+            payload!.Data!.Select(dto => dto.Reference));
+
+        var completedResponse = await clientUser.GetAsync("/api/bookings/mine?status=Completed");
+        Assert.Equal(HttpStatusCode.OK, completedResponse.StatusCode);
+        var completed = await completedResponse.Content.ReadFromJsonAsync<ApiResponse<List<BookingDto>>>();
+        Assert.NotNull(completed);
+        var completedBookings = Assert.IsType<List<BookingDto>>(completed!.Data);
+        Assert.Single(completedBookings);
+        Assert.Equal("BK-MINE-COMPLETED", completedBookings[0].Reference);
     }
 
     [Fact]
