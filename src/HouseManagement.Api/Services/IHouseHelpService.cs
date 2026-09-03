@@ -10,7 +10,10 @@ public interface IHouseHelpService
     Task<IEnumerable<HouseHelp>> GetFilteredAsync(string? city = null, string? skill = null, bool? isActive = null, int? page = null, int? pageSize = null, int? userId = null);
     Task<IEnumerable<HouseHelp>> GetEligibleAsync(int serviceId, string? city = null);
     Task<HouseHelp?> GetByIdAsync(int id);
+    Task<HouseHelp?> GetByUserIdAsync(int userId);
     Task<HouseHelp> CreateAsync(HouseHelp houseHelp, IEnumerable<string>? skills);
     Task<bool> UpdateAsync(HouseHelp houseHelp, IEnumerable<string>? skills);
+    Task<bool> UpdateOwnProfileAsync(HouseHelp houseHelp);
+    Task<bool> UpdateProfileAsync(HouseHelp houseHelp);
     Task<bool> SetActiveAsync(int id, bool isActive);
 }

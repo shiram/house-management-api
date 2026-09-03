@@ -256,7 +256,7 @@
 - [x] T360 — Define HouseHelp profile fields, visibility contract, and authorization rules
 - [x] T361 — Add private HouseHelp profile fields and an EF Core migration
 - [x] T362 — Create profile-image storage and safe image-processing abstraction
-- [ ] T363 — Implement authorized HouseHelp profile update endpoints
+- [x] T363 — Implement authorized HouseHelp profile update endpoints
 - [ ] T364 — Implement secure profile-image upload and replacement workflow
 - [ ] T365 — Implement safe profile-image retrieval and public-profile image projection
 - [ ] T366 — Audit HouseHelp profile and media changes

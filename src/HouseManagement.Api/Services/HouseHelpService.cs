@@ -93,6 +93,11 @@ public class HouseHelpService : IHouseHelpService
         return await _db.HouseHelps.Include(h => h.Skills).SingleOrDefaultAsync(h => h.Id == id);
     }
 
+    public async Task<HouseHelp?> GetByUserIdAsync(int userId)
+    {
+        return await _db.HouseHelps.Include(h => h.Skills).SingleOrDefaultAsync(h => h.UserId == userId);
+    }
+
     public async Task<HouseHelp> CreateAsync(HouseHelp houseHelp, IEnumerable<string>? skills)
     {
         _db.HouseHelps.Add(houseHelp);
@@ -133,6 +138,46 @@ public class HouseHelpService : IHouseHelpService
         return true;
     }
 
+    public async Task<bool> UpdateOwnProfileAsync(HouseHelp houseHelp)
+    {
+        var existing = await _db.HouseHelps.SingleOrDefaultAsync(h => h.Id == houseHelp.Id);
+        if (existing == null) return false;
+
+        existing.FirstName = houseHelp.FirstName.Trim();
+        existing.LastName = houseHelp.LastName.Trim();
+        existing.Phone = houseHelp.Phone.Trim();
+        existing.City = houseHelp.City.Trim();
+        existing.Address = NormalizeOptional(houseHelp.Address);
+        existing.Bio = NormalizeOptional(houseHelp.Bio);
+        existing.YearsOfExperience = houseHelp.YearsOfExperience;
+        existing.Languages = NormalizeOptional(houseHelp.Languages);
+
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> UpdateProfileAsync(HouseHelp houseHelp)
+    {
+        var existing = await _db.HouseHelps.SingleOrDefaultAsync(h => h.Id == houseHelp.Id);
+        if (existing == null) return false;
+
+        existing.FirstName = houseHelp.FirstName.Trim();
+        existing.LastName = houseHelp.LastName.Trim();
+        existing.Phone = houseHelp.Phone.Trim();
+        existing.City = houseHelp.City.Trim();
+        existing.Address = NormalizeOptional(houseHelp.Address);
+        existing.Bio = NormalizeOptional(houseHelp.Bio);
+        existing.YearsOfExperience = houseHelp.YearsOfExperience;
+        existing.Languages = NormalizeOptional(houseHelp.Languages);
+        existing.EmergencyContactName = NormalizeOptional(houseHelp.EmergencyContactName);
+        existing.EmergencyContactPhone = NormalizeOptional(houseHelp.EmergencyContactPhone);
+        existing.NationalIdLast4 = NormalizeOptional(houseHelp.NationalIdLast4);
+        existing.VerificationStatus = houseHelp.VerificationStatus;
+
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<bool> SetActiveAsync(int id, bool isActive)
     {
         var existing = await _db.HouseHelps.SingleOrDefaultAsync(h => h.Id == id);
@@ -140,5 +185,10 @@ public class HouseHelpService : IHouseHelpService
         existing.IsActive = isActive;
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }

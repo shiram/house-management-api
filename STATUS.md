@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-09-03):
+- T363 completed: added authorized HouseHelp profile update endpoints. HouseHelp users can view/update only their own self-service fields using JWT-derived ownership; Manager/Admin users can update operational profile fields including verification status and emergency contact metadata without exposing raw image storage keys.
 - T362 completed: added provider-neutral profile-image storage and processing abstractions with a local generated-key storage implementation. Image validation now enforces configured maximum size, allowed MIME types/extensions, and file-signature matching for JPEG, PNG, and WebP without exposing raw storage paths or trusting client-provided paths.
 - T361 completed: added HouseHelp profile fields for bio, years of experience, languages, emergency contact details, national ID last-four storage, verification status, and profile-image metadata. Added an additive EF migration with a safe `Unverified` default for existing profiles plus persistence coverage; public profile endpoints remain unchanged.
 - T360 completed: documented the HouseHelp profile and media contract in `docs/HOUSEHELP-PROFILES.md`, including public/private/internal field visibility, JWT-derived self-service ownership rules, Manager/Admin operational permissions, safe image handling rules, and audit expectations for T361-T367.

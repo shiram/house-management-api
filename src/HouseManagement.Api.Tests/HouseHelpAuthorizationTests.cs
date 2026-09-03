@@ -11,7 +11,9 @@ public class HouseHelpAuthorizationTests
     public static TheoryData<Type, string> HouseHelpEndpoints => new()
     {
         { typeof(AvailabilityController), nameof(AvailabilityController.ReplaceOwnWeekly) },
-        { typeof(BookingsController), nameof(BookingsController.GetAssignedForCurrentHouseHelp) }
+        { typeof(BookingsController), nameof(BookingsController.GetAssignedForCurrentHouseHelp) },
+        { typeof(HouseHelpsController), nameof(HouseHelpsController.GetOwnProfile) },
+        { typeof(HouseHelpsController), nameof(HouseHelpsController.UpdateOwnProfile) }
     };
 
     [Theory]

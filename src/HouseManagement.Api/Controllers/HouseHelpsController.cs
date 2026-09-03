@@ -1,4 +1,6 @@
 using System.Linq;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Common.Security;
@@ -38,6 +40,46 @@ public class HouseHelpsController : ControllerBase
         if (h == null || !h.IsActive) return NotFound();
 
         var response = ApiResponseFactory.Create(this, ToPublicDto(h), "HouseHelp retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.HouseHelpOnly)]
+    [HttpGet("me/profile")]
+    public async Task<IActionResult> GetOwnProfile()
+    {
+        if (!TryGetAuthenticatedUserId(out var userId)) return Unauthorized();
+
+        var houseHelp = await _svc.GetByUserIdAsync(userId);
+        if (houseHelp == null) return NotFound();
+
+        var response = ApiResponseFactory.Create(this, ToOwnProfileDto(houseHelp), "HouseHelp profile retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.HouseHelpOnly)]
+    [HttpPut("me/profile")]
+    public async Task<IActionResult> UpdateOwnProfile([FromBody] UpdateOwnHouseHelpProfileRequest req)
+    {
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+        if (!TryGetAuthenticatedUserId(out var userId)) return Unauthorized();
+
+        var existing = await _svc.GetByUserIdAsync(userId);
+        if (existing == null) return NotFound();
+
+        existing.FirstName = req.FirstName;
+        existing.LastName = req.LastName;
+        existing.Phone = req.Phone;
+        existing.City = req.City;
+        existing.Address = req.Address;
+        existing.Bio = req.Bio;
+        existing.YearsOfExperience = req.YearsOfExperience;
+        existing.Languages = req.Languages;
+
+        var ok = await _svc.UpdateOwnProfileAsync(existing);
+        if (!ok) return NotFound();
+
+        var updated = await _svc.GetByUserIdAsync(userId);
+        var response = ApiResponseFactory.Create(this, ToOwnProfileDto(updated!), "HouseHelp profile updated", StatusCodes.Status200OK);
         return Ok(response);
     }
 
@@ -109,6 +151,41 @@ public class HouseHelpsController : ControllerBase
     }
 
     [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{id}/profile")]
+    public async Task<IActionResult> UpdateProfile(int id, [FromBody] UpdateHouseHelpProfileRequest req)
+    {
+        if (!Enum.IsDefined(req.VerificationStatus))
+        {
+            ModelState.AddModelError(nameof(req.VerificationStatus), "Verification status is not supported.");
+        }
+
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+
+        var existing = await _svc.GetByIdAsync(id);
+        if (existing == null) return NotFound();
+
+        existing.FirstName = req.FirstName;
+        existing.LastName = req.LastName;
+        existing.Phone = req.Phone;
+        existing.City = req.City;
+        existing.Address = req.Address;
+        existing.Bio = req.Bio;
+        existing.YearsOfExperience = req.YearsOfExperience;
+        existing.Languages = req.Languages;
+        existing.EmergencyContactName = req.EmergencyContactName;
+        existing.EmergencyContactPhone = req.EmergencyContactPhone;
+        existing.NationalIdLast4 = req.NationalIdLast4;
+        existing.VerificationStatus = req.VerificationStatus;
+
+        var ok = await _svc.UpdateProfileAsync(existing);
+        if (!ok) return NotFound();
+
+        var updated = await _svc.GetByIdAsync(id);
+        var response = ApiResponseFactory.Create(this, ToProfileDto(updated!), "HouseHelp profile updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpPut("{id}/activate")]
     public async Task<IActionResult> SetActive(int id, [FromQuery] bool active = true)
     {
@@ -117,6 +194,60 @@ public class HouseHelpsController : ControllerBase
 
         var response = ApiResponseFactory.Create<object?>(this, null, "HouseHelp status updated", StatusCodes.Status200OK);
         return Ok(response);
+    }
+
+    private static HouseHelpProfileDto ToProfileDto(HouseHelp houseHelp)
+    {
+        return new HouseHelpProfileDto
+        {
+            Id = houseHelp.Id,
+            UserId = houseHelp.UserId,
+            FirstName = houseHelp.FirstName,
+            LastName = houseHelp.LastName,
+            Phone = houseHelp.Phone,
+            City = houseHelp.City,
+            Address = houseHelp.Address,
+            Bio = houseHelp.Bio,
+            YearsOfExperience = houseHelp.YearsOfExperience,
+            Languages = houseHelp.Languages,
+            EmergencyContactName = houseHelp.EmergencyContactName,
+            EmergencyContactPhone = houseHelp.EmergencyContactPhone,
+            NationalIdLast4 = houseHelp.NationalIdLast4,
+            VerificationStatus = houseHelp.VerificationStatus.ToString(),
+            ProfileImageContentType = houseHelp.ProfileImageContentType,
+            ProfileImageSizeBytes = houseHelp.ProfileImageSizeBytes,
+            ProfileImageUpdatedAt = houseHelp.ProfileImageUpdatedAt,
+            IsActive = houseHelp.IsActive,
+            Skills = houseHelp.Skills.Select(s => s.ServiceName)
+        };
+    }
+
+    private static OwnHouseHelpProfileDto ToOwnProfileDto(HouseHelp houseHelp)
+    {
+        return new OwnHouseHelpProfileDto
+        {
+            Id = houseHelp.Id,
+            FirstName = houseHelp.FirstName,
+            LastName = houseHelp.LastName,
+            Phone = houseHelp.Phone,
+            City = houseHelp.City,
+            Address = houseHelp.Address,
+            Bio = houseHelp.Bio,
+            YearsOfExperience = houseHelp.YearsOfExperience,
+            Languages = houseHelp.Languages,
+            VerificationStatus = houseHelp.VerificationStatus.ToString(),
+            ProfileImageContentType = houseHelp.ProfileImageContentType,
+            ProfileImageSizeBytes = houseHelp.ProfileImageSizeBytes,
+            ProfileImageUpdatedAt = houseHelp.ProfileImageUpdatedAt,
+            IsActive = houseHelp.IsActive,
+            Skills = houseHelp.Skills.Select(s => s.ServiceName)
+        };
+    }
+
+    private bool TryGetAuthenticatedUserId(out int userId)
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return int.TryParse(subject, out userId);
     }
 }
 

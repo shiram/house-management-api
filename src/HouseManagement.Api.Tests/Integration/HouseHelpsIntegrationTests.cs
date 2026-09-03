@@ -38,11 +38,17 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         });
     }
 
-    private string CreateToken(string role)
+    private string CreateToken(string role, int? userId = null)
     {
         var key = "PleaseChangeThisSecretOrSetEnvVar";
         var keyBytes = Encoding.UTF8.GetBytes(key);
-        var claims = new[] { new Claim(ClaimTypes.Role, role) };
+        var claims = new List<Claim> { new(ClaimTypes.Role, role) };
+        if (userId.HasValue)
+        {
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()));
+            claims.Add(new Claim(JwtRegisteredClaimNames.Sub, userId.Value.ToString()));
+        }
+
         var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
             issuer: "HouseManagement",
@@ -266,5 +272,175 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var response = await client.GetAsync("/api/admin/househelps/999999");
 
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Put_OwnProfile_UpdatesOnlyCurrentHouseHelpAllowedFields()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+
+        var createResp = await client.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            UserId = 501,
+            FirstName = "Self",
+            LastName = "Before",
+            Phone = "+256700000001",
+            City = "Kampala",
+            Address = "Old address"
+        });
+        createResp.EnsureSuccessStatusCode();
+        var created = await createResp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var adminUpdate = await client.PutAsJsonAsync($"/api/househelps/{created!.Data!.Id}/profile", new UpdateHouseHelpProfileRequest
+        {
+            FirstName = "Self",
+            LastName = "Before",
+            Phone = "+256700000001",
+            City = "Kampala",
+            Address = "Old address",
+            Bio = "Old bio",
+            YearsOfExperience = 2,
+            Languages = "English",
+            EmergencyContactName = "Private Contact",
+            EmergencyContactPhone = "+256700000002",
+            NationalIdLast4 = "ABCD",
+            VerificationStatus = HouseManagement.Api.Models.HouseHelpVerificationStatus.Verified
+        });
+        adminUpdate.EnsureSuccessStatusCode();
+
+        var houseHelpClient = _factory.CreateClient();
+        houseHelpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("househelp", 501));
+        var response = await houseHelpClient.PutAsJsonAsync("/api/househelps/me/profile", new UpdateOwnHouseHelpProfileRequest
+        {
+            FirstName = "Self",
+            LastName = "After",
+            Phone = "+256700000003",
+            City = "Entebbe",
+            Address = "New address",
+            Bio = "Updated public bio",
+            YearsOfExperience = 4,
+            Languages = "English,Luganda"
+        });
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("\"userId\"", content);
+        Assert.DoesNotContain("EmergencyContactName", content);
+        Assert.DoesNotContain("NationalIdLast4", content);
+
+        var envelope = JsonSerializer.Deserialize<ApiResponse<OwnHouseHelpProfileDto>>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(envelope);
+        Assert.Equal("Self", envelope!.Data!.FirstName);
+        Assert.Equal("After", envelope.Data.LastName);
+        Assert.Equal("+256700000003", envelope.Data.Phone);
+        Assert.Equal("Updated public bio", envelope.Data.Bio);
+
+        var adminRead = await client.PutAsJsonAsync($"/api/househelps/{created.Data.Id}/profile", new UpdateHouseHelpProfileRequest
+        {
+            FirstName = "Self",
+            LastName = "After",
+            Phone = "+256700000003",
+            City = "Entebbe",
+            Address = "New address",
+            Bio = "Updated public bio",
+            YearsOfExperience = 4,
+            Languages = "English,Luganda",
+            EmergencyContactName = "Private Contact",
+            EmergencyContactPhone = "+256700000002",
+            NationalIdLast4 = "ABCD",
+            VerificationStatus = HouseManagement.Api.Models.HouseHelpVerificationStatus.Verified
+        });
+        adminRead.EnsureSuccessStatusCode();
+        var adminEnvelope = await adminRead.Content.ReadFromJsonAsync<ApiResponse<HouseHelpProfileDto>>();
+        Assert.Equal("Private Contact", adminEnvelope!.Data!.EmergencyContactName);
+        Assert.Equal("ABCD", adminEnvelope.Data.NationalIdLast4);
+        Assert.Equal("Verified", adminEnvelope.Data.VerificationStatus);
+    }
+
+    [Fact]
+    public async Task Get_OwnProfile_UsesAuthenticatedUserClaim()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResp = await client.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            UserId = 777,
+            FirstName = "Claim",
+            LastName = "Owner",
+            Phone = "+256700000004",
+            City = "Kampala"
+        });
+        createResp.EnsureSuccessStatusCode();
+
+        var houseHelpClient = _factory.CreateClient();
+        houseHelpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("househelp", 777));
+
+        var response = await houseHelpClient.GetAsync("/api/househelps/me/profile");
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        var envelope = await response.Content.ReadFromJsonAsync<ApiResponse<OwnHouseHelpProfileDto>>();
+        Assert.Equal("Claim", envelope!.Data!.FirstName);
+        Assert.Equal("Owner", envelope.Data.LastName);
+    }
+
+    [Fact]
+    public async Task Put_Profile_AllowsManagerToUpdateOperationalProfileFields()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResp = await client.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            FirstName = "Ops",
+            LastName = "Before",
+            Phone = "+256700000005",
+            City = "Kampala"
+        });
+        createResp.EnsureSuccessStatusCode();
+        var created = await createResp.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var manager = _factory.CreateClient();
+        manager.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("manager", 2));
+        var response = await manager.PutAsJsonAsync($"/api/househelps/{created!.Data!.Id}/profile", new UpdateHouseHelpProfileRequest
+        {
+            FirstName = "Ops",
+            LastName = "After",
+            Phone = "+256700000006",
+            City = "Jinja",
+            Address = "Operations address",
+            Bio = "Operational profile bio",
+            YearsOfExperience = 6,
+            Languages = "English,Swahili",
+            EmergencyContactName = "Ops Emergency",
+            EmergencyContactPhone = "+256700000007",
+            NationalIdLast4 = "WXYZ",
+            VerificationStatus = HouseManagement.Api.Models.HouseHelpVerificationStatus.PendingReview
+        });
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        var envelope = await response.Content.ReadFromJsonAsync<ApiResponse<HouseHelpProfileDto>>();
+        Assert.Equal("After", envelope!.Data!.LastName);
+        Assert.Equal("Jinja", envelope.Data.City);
+        Assert.Equal("Ops Emergency", envelope.Data.EmergencyContactName);
+        Assert.Equal("WXYZ", envelope.Data.NationalIdLast4);
+        Assert.Equal("PendingReview", envelope.Data.VerificationStatus);
+    }
+
+    [Fact]
+    public async Task Put_Profile_RejectsHouseHelpRole()
+    {
+        var houseHelpClient = _factory.CreateClient();
+        houseHelpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("househelp", 123));
+
+        var response = await houseHelpClient.PutAsJsonAsync("/api/househelps/1/profile", new UpdateHouseHelpProfileRequest
+        {
+            FirstName = "Blocked",
+            LastName = "User",
+            Phone = "+256700000008",
+            City = "Kampala",
+            VerificationStatus = HouseManagement.Api.Models.HouseHelpVerificationStatus.Verified
+        });
+
+        Assert.True(response.StatusCode == System.Net.HttpStatusCode.Forbidden || response.StatusCode == System.Net.HttpStatusCode.Unauthorized);
     }
 }
