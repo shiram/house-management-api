@@ -16,6 +16,17 @@ public class HouseHelp
     public string Phone { get; set; } = null!;
     public string City { get; set; } = null!;
     public string? Address { get; set; }
+    public string? Bio { get; set; }
+    public int? YearsOfExperience { get; set; }
+    public string? Languages { get; set; }
+    public string? EmergencyContactName { get; set; }
+    public string? EmergencyContactPhone { get; set; }
+    public string? NationalIdLast4 { get; set; }
+    public HouseHelpVerificationStatus VerificationStatus { get; set; } = HouseHelpVerificationStatus.Unverified;
+    public string? ProfileImageStorageKey { get; set; }
+    public string? ProfileImageContentType { get; set; }
+    public long? ProfileImageSizeBytes { get; set; }
+    public DateTimeOffset? ProfileImageUpdatedAt { get; set; }
 
     public bool IsActive { get; set; } = true;
 

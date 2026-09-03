@@ -1,6 +1,6 @@
 # House Management — AI Development Status
 
-Last updated: 2026-09-03T00:00:00+00:00 — HouseHelp profile contract finalized
+Last updated: 2026-09-03T00:00:00+00:00 — HouseHelp profile fields finalized
 
 ## Inspection summary
 
@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-09-03):
+- T361 completed: added HouseHelp profile fields for bio, years of experience, languages, emergency contact details, national ID last-four storage, verification status, and profile-image metadata. Added an additive EF migration with a safe `Unverified` default for existing profiles plus persistence coverage; public profile endpoints remain unchanged.
 - T360 completed: documented the HouseHelp profile and media contract in `docs/HOUSEHELP-PROFILES.md`, including public/private/internal field visibility, JWT-derived self-service ownership rules, Manager/Admin operational permissions, safe image handling rules, and audit expectations for T361-T367.
 - T350 completed: added Manager/Admin advanced reporting with operational booking totals, status/service breakdowns, gross booking value, discounts, succeeded-payment totals, outstanding amounts, average booking value, date-range filtering, and CSV booking export. Reporting is read-only and uses existing booking/payment snapshots without adding new persistence or provider behavior.
 - T349 completed: added read-only HouseHelp earnings reporting based on completed assigned bookings. Manager/Admin users can retrieve all HouseHelp earnings summaries or a specific HouseHelp report; HouseHelp users can retrieve only their own report via JWT-derived identity. Reports include completed booking count, gross booking value, succeeded-payment amount, outstanding amount, date-range filtering, and booking-level breakdowns without adding payout or provider-specific payment behavior.

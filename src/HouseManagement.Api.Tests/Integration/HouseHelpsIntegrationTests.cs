@@ -1,3 +1,4 @@
+using System;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.IdentityModel.Tokens.Jwt;
@@ -8,8 +9,11 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using HouseManagement.Api.Common.Api;
+using HouseManagement.Api.Data;
 using HouseManagement.Api.DTOs;
 
 namespace HouseManagement.Api.Tests.Integration;
@@ -20,7 +24,18 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
 
     public HouseHelpsIntegrationTests(WebApplicationFactory<Program> factory)
     {
-        _factory = factory;
+        var databaseName = $"househelps_integration_{Guid.NewGuid()}";
+        _factory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                var descriptor = services.SingleOrDefault(item => item.ServiceType == typeof(DbContextOptions<HouseContext>));
+                if (descriptor != null) services.Remove(descriptor);
+
+                services.AddDbContext<HouseContext>(options =>
+                    options.UseInMemoryDatabase(databaseName));
+            });
+        });
     }
 
     private string CreateToken(string role)
