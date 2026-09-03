@@ -264,6 +264,25 @@
 
 ---
 
+# PHASE 19 — Pricing
+
+- [ ] T380 — Define pricing architecture, terminology, and service pricing boundaries
+- [ ] T381 — Extend pricing modes to support time-based pricing without breaking fixed and per-unit pricing
+- [ ] T382 — Model time-based pricing units, minimum billable duration, rounding policy, and overtime rules
+- [ ] T383 — Add effective-dated pricing versions so future price changes do not alter historical bookings
+- [ ] T384 — Add server-side quote calculation for fixed, per-unit, and time-based services before booking submission
+- [ ] T385 — Validate booking duration, pricing inputs, and unavailable pricing combinations server-side
+- [ ] T386 — Add optional service fees and surcharges for location, urgency, weekend, holiday, or after-hours work
+- [ ] T387 — Define tax/VAT handling and receipt-ready price breakdown fields without introducing payment-provider coupling
+- [ ] T388 — Add manager/admin pricing administration endpoints for time-based rates, pricing versions, fees, and surcharges
+- [ ] T389 — Add public pricing projection fields so clients can understand how a service will be charged
+- [ ] T390 — Preserve immutable booking price snapshots across pricing-rule, rate, fee, and surcharge changes
+- [ ] T391 — Add pricing audit events for rate, rule, fee, surcharge, and pricing-version changes
+- [ ] T392 — Add pricing tests for fixed, per-unit, time-based, surcharge, effective-date, and immutable-snapshot behavior
+- [ ] T393 — Document pricing operations, examples, edge cases, and manager/admin workflows
+
+---
+
 # Agent operating rules
 
 ## Parallel-safe work
