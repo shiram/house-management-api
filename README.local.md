@@ -12,6 +12,9 @@ Environment variables (recommended):
 - ConnectionStrings__DefaultConnection: SQL Server connection string
 - DEV_SEED_PASSWORD: optional password used to create development admin, manager, and househelp users
 - DevelopmentSeed__Enabled: set to `true` to enable development data seeding explicitly
+- PaymentProviders__GenericHttp__Enabled: set to `true` only when using a sandbox payment gateway adapter
+- PaymentProviders__GenericHttp__EndpointUrl: sandbox payment-initiation endpoint for the generic HTTP adapter
+- PaymentProviders__GenericHttp__ApiKey: optional sandbox provider key; do not commit it to source control
 
 CI / Deployment notes:
 - The repository CI workflow requires a repository secret JWT_KEY to be configured (see .github/workflows/ci.yml). The workflow fails if JWT_KEY is not set.
@@ -20,6 +23,7 @@ CI / Deployment notes:
 - When running in Development with `DevelopmentSeed__Enabled=true` and DEV_SEED_PASSWORD configured, startup idempotently seeds `dev-admin`, `dev-manager`, and `dev-househelp`.
 - Development startup also idempotently seeds the sample `HOUSE_CLEANING` and `LAUNDRY` services.
 - Development startup also idempotently seeds two sample HouseHelp profiles without creating authentication accounts.
+- Payment provider secrets must be supplied via environment variables or a secret store. The committed generic HTTP provider config is disabled by default and contains no credentials.
 
 Security:
 - Do not commit secret keys to Git. Use environment variables or a secret store in CI and production.

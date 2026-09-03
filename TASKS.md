@@ -245,7 +245,7 @@
 - [x] T344 — Pricing rules
 - [x] T345 — Promotions/discounts
 - [x] T346 — Payment integration abstraction
-- [ ] T347 — Payment provider integration(clients will pay with cards(visa), mobile money (mtn and airtel for uganda))
+- [x] T347 — Payment provider integration (generic HTTP sandbox adapter for Visa cards and MTN/Airtel Uganda mobile money)
 - [ ] T349 — HouseHelp earnings/reporting
 - [ ] T350 — Advanced reporting/export
 
@@ -280,6 +280,16 @@
 - [ ] T391 — Add pricing audit events for rate, rule, fee, surcharge, and pricing-version changes
 - [ ] T392 — Add pricing tests for fixed, per-unit, time-based, surcharge, effective-date, and immutable-snapshot behavior
 - [ ] T393 — Document pricing operations, examples, edge cases, and manager/admin workflows
+
+---
+
+# PHASE 20 — Payment Provider Selection
+
+- [ ] T400 — Compare Flutterwave, Pesapal, DPO, and any locally preferred Uganda payment gateway for card and MTN/Airtel mobile-money coverage
+- [ ] T401 — Select the production payment provider based on Uganda coverage, settlement reliability, fees, chargeback support, reconciliation tooling, developer experience, and operational support
+- [ ] T402 — Replace or extend the generic HTTP sandbox adapter with the selected provider-specific card and mobile-money implementation
+- [ ] T403 — Add secure webhook signature verification and payment status reconciliation for the selected provider
+- [ ] T404 — Add provider-specific sandbox integration tests and operational runbook without committing credentials
 
 ---
 

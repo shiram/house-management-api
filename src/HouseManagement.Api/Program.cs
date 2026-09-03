@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using HouseManagement.Api.Common.Api;
+using HouseManagement.Api.Infrastructure.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,6 +93,18 @@ builder.Services.AddScoped<IHouseHelpRatingService, HouseHelpRatingService>();
 builder.Services.AddScoped<IClientHouseHelpPreferenceService, ClientHouseHelpPreferenceService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.Configure<GenericHttpPaymentGatewayOptions>(
+    builder.Configuration.GetSection("PaymentProviders:GenericHttp"));
+builder.Services.AddHttpClient<GenericHttpPaymentGateway>((serviceProvider, client) =>
+{
+    var options = serviceProvider
+        .GetRequiredService<Microsoft.Extensions.Options.IOptions<GenericHttpPaymentGatewayOptions>>()
+        .Value;
+    var timeoutSeconds = options.TimeoutSeconds > 0 ? options.TimeoutSeconds : 30;
+    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+});
+builder.Services.AddScoped<IPaymentGateway>(serviceProvider =>
+    serviceProvider.GetRequiredService<GenericHttpPaymentGateway>());
 builder.Services.AddSingleton<IBookingTransitionValidator, BookingTransitionValidator>();
 
 // JWT configuration
