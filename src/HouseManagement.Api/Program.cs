@@ -93,6 +93,7 @@ builder.Services.AddScoped<IHouseHelpRatingService, HouseHelpRatingService>();
 builder.Services.AddScoped<IClientHouseHelpPreferenceService, ClientHouseHelpPreferenceService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IHouseHelpEarningsService, HouseHelpEarningsService>();
 builder.Services.Configure<GenericHttpPaymentGatewayOptions>(
     builder.Configuration.GetSection("PaymentProviders:GenericHttp"));
 builder.Services.AddHttpClient<GenericHttpPaymentGateway>((serviceProvider, client) =>

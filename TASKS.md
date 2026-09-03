@@ -246,7 +246,7 @@
 - [x] T345 — Promotions/discounts
 - [x] T346 — Payment integration abstraction
 - [x] T347 — Payment provider integration (generic HTTP sandbox adapter for Visa cards and MTN/Airtel Uganda mobile money)
-- [ ] T349 — HouseHelp earnings/reporting
+- [x] T349 — HouseHelp earnings/reporting
 - [ ] T350 — Advanced reporting/export
 
 ---

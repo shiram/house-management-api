@@ -42,7 +42,9 @@ public class AdminAuthorizationTests
         { typeof(AdminServicesController), nameof(AdminServicesController.GetAll) },
         { typeof(AdminServicesController), nameof(AdminServicesController.Get) },
         { typeof(AdminHouseHelpsController), nameof(AdminHouseHelpsController.GetAll) },
-        { typeof(AdminHouseHelpsController), nameof(AdminHouseHelpsController.Get) }
+        { typeof(AdminHouseHelpsController), nameof(AdminHouseHelpsController.Get) },
+        { typeof(HouseHelpEarningsController), nameof(HouseHelpEarningsController.GetForHouseHelp) },
+        { typeof(HouseHelpEarningsController), nameof(HouseHelpEarningsController.GetSummaries) }
     };
 
     [Theory]
@@ -57,5 +59,17 @@ public class AdminAuthorizationTests
 
         Assert.NotNull(attribute);
         Assert.Equal(AuthorizationPolicies.ManagerOrAdmin, attribute!.Policy);
+    }
+
+    [Fact]
+    public void HouseHelpEarningsMineEndpoint_RequiresHouseHelpOnlyPolicy()
+    {
+        var method = typeof(HouseHelpEarningsController).GetMethod(nameof(HouseHelpEarningsController.GetMine));
+        Assert.NotNull(method);
+
+        var attribute = method!.GetCustomAttribute<AuthorizeAttribute>();
+
+        Assert.NotNull(attribute);
+        Assert.Equal(AuthorizationPolicies.HouseHelpOnly, attribute!.Policy);
     }
 }
