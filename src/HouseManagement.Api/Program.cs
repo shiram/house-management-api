@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using HouseManagement.Api.Common.Api;
+using HouseManagement.Api.Infrastructure.Files;
 using HouseManagement.Api.Infrastructure.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -95,6 +96,10 @@ builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IHouseHelpEarningsService, HouseHelpEarningsService>();
 builder.Services.AddScoped<IAdvancedReportingService, AdvancedReportingService>();
+builder.Services.Configure<ProfileImageOptions>(
+    builder.Configuration.GetSection("ProfileImages"));
+builder.Services.AddScoped<IProfileImageProcessor, ProfileImageProcessor>();
+builder.Services.AddScoped<IProfileImageStorage, LocalProfileImageStorage>();
 builder.Services.Configure<GenericHttpPaymentGatewayOptions>(
     builder.Configuration.GetSection("PaymentProviders:GenericHttp"));
 builder.Services.AddHttpClient<GenericHttpPaymentGateway>((serviceProvider, client) =>
