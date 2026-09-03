@@ -40,6 +40,34 @@ public sealed class BookingsController : ControllerBase
         return CreatedAtAction(nameof(CreateAnonymous), new { id = booking.Id }, response);
     }
 
+    [Authorize]
+    [HttpPost("{id:int}/repeat")]
+    public async Task<IActionResult> Repeat(int id, [FromBody] RepeatBookingRequest request)
+    {
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (!int.TryParse(subject, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _bookings.RepeatAsync(userId, id, request);
+        if (result.Booking == null)
+        {
+            if (result.Error == "The requested completed booking was not found.")
+            {
+                return NotFound();
+            }
+
+            return BadRequest(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status400BadRequest));
+        }
+
+        var booking = result.Booking;
+        var response = ApiResponseFactory.Create(this, ToDto(booking), "Repeat booking request created", StatusCodes.Status201Created);
+        return CreatedAtAction(nameof(CreateAnonymous), new { id = booking.Id }, response);
+    }
+
     [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id)

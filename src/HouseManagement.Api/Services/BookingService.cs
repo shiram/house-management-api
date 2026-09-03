@@ -82,6 +82,73 @@ public sealed class BookingService : IBookingService
         _db.Bookings.Add(booking);
         await _db.SaveChangesAsync();
 
+        await NotifyManagersOfNewBookingAsync(booking, isRepeat: false);
+
+        if (transaction != null)
+        {
+            await transaction.CommitAsync();
+            await transaction.DisposeAsync();
+        }
+        return new BookingCreationResult(booking, null);
+    }
+
+    public async Task<BookingCreationResult> RepeatAsync(int clientUserId, int bookingId, RepeatBookingRequest request)
+    {
+        if (request.ScheduledStart >= request.ScheduledEnd || request.ScheduledStart <= DateTimeOffset.UtcNow)
+        {
+            return new BookingCreationResult(null, "The requested service time must be a future range.");
+        }
+
+        var sourceBooking = await _db.Bookings
+            .Include(booking => booking.Client)
+            .Include(booking => booking.Service)
+            .Include(booking => booking.ServiceAddress)
+            .SingleOrDefaultAsync(booking => booking.Id == bookingId);
+
+        if (sourceBooking == null ||
+            sourceBooking.Client?.UserId != clientUserId ||
+            sourceBooking.Status != BookingStatus.Completed)
+        {
+            return new BookingCreationResult(null, "The requested completed booking was not found.");
+        }
+
+        if (!sourceBooking.Service.IsActive)
+        {
+            return new BookingCreationResult(null, "The requested service is not available.");
+        }
+
+        var sourceAddress = sourceBooking.ServiceAddress;
+        var booking = new Booking
+        {
+            Reference = await GenerateReferenceAsync(),
+            ServiceId = sourceBooking.ServiceId,
+            ClientId = sourceBooking.ClientId,
+            ServiceAddress = new ServiceAddress
+            {
+                Line1 = sourceAddress.Line1,
+                Line2 = sourceAddress.Line2,
+                City = sourceAddress.City,
+                Region = sourceAddress.Region,
+                PostalCode = sourceAddress.PostalCode,
+                Country = sourceAddress.Country
+            },
+            ScheduledStart = request.ScheduledStart,
+            ScheduledEnd = request.ScheduledEnd,
+            Status = BookingStatus.Requested,
+            Notes = sourceBooking.Notes,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.Bookings.Add(booking);
+        await _db.SaveChangesAsync();
+
+        await NotifyManagersOfNewBookingAsync(booking, isRepeat: true);
+
+        return new BookingCreationResult(booking, null);
+    }
+
+    private async Task NotifyManagersOfNewBookingAsync(Booking booking, bool isRepeat)
+    {
         var managerIds = await _db.Users
             .AsNoTracking()
             .Where(user => user.IsActive && user.Role == Roles.Manager)
@@ -94,17 +161,12 @@ public sealed class BookingService : IBookingService
                 managerId,
                 NotificationTypes.BookingCreated,
                 "New booking request",
-                $"A new booking request ({booking.Reference}) has been submitted.",
+                isRepeat
+                    ? $"A repeat booking request ({booking.Reference}) has been submitted."
+                    : $"A new booking request ({booking.Reference}) has been submitted.",
                 "Booking",
                 booking.Id);
         }
-
-        if (transaction != null)
-        {
-            await transaction.CommitAsync();
-            await transaction.DisposeAsync();
-        }
-        return new BookingCreationResult(booking, null);
     }
 
     public async Task<BookingAssignmentResult> AssignHouseHelpAsync(int bookingId, int houseHelpId, int? assignedByUserId = null)

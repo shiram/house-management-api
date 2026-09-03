@@ -6,6 +6,7 @@ namespace HouseManagement.Api.Services;
 public interface IBookingService
 {
     Task<BookingCreationResult> CreateAnonymousAsync(CreateAnonymousBookingRequest request);
+    Task<BookingCreationResult> RepeatAsync(int clientUserId, int bookingId, RepeatBookingRequest request);
     Task<BookingAssignmentResult> AssignHouseHelpAsync(int bookingId, int houseHelpId, int? assignedByUserId = null);
     Task<Booking?> GetByIdAsync(int id);
     Task<Booking?> GetByReferenceAsync(string reference);

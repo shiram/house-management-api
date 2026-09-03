@@ -30,6 +30,12 @@ public sealed class CreateAuthenticatedBookingRequest : CreateBookingRequest
 {
 }
 
+public sealed class RepeatBookingRequest
+{
+    public DateTimeOffset ScheduledStart { get; set; }
+    public DateTimeOffset ScheduledEnd { get; set; }
+}
+
 public sealed class AssignHouseHelpRequest
 {
     [Range(1, int.MaxValue)]

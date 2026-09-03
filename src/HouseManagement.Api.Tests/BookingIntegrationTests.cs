@@ -889,6 +889,63 @@ public class BookingIntegrationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
+    public async Task AuthenticatedClientCanRepeatOwnCompletedBooking()
+    {
+        var factory = CreateFactory();
+        await SeedServiceAsync(factory);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+            var client = new Client
+            {
+                Id = 30,
+                UserId = 88,
+                Name = "Repeat Client",
+                Phone = "+254700000088",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            db.Clients.Add(client);
+            db.Bookings.Add(new Booking
+            {
+                Id = 104,
+                Reference = "BK-REPEAT-SOURCE",
+                ServiceId = 1,
+                ClientId = client.Id,
+                ServiceAddress = new ServiceAddress
+                {
+                    Line1 = "44 Repeat Lane",
+                    City = "Nairobi",
+                    Country = "Kenya"
+                },
+                ScheduledStart = DateTimeOffset.UtcNow.AddDays(-5),
+                ScheduledEnd = DateTimeOffset.UtcNow.AddDays(-5).AddHours(2),
+                Status = BookingStatus.Completed,
+                Notes = "Use the gate entrance.",
+                CreatedAt = DateTimeOffset.UtcNow.AddDays(-6)
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var scheduledStart = DateTimeOffset.UtcNow.AddDays(7);
+        var clientUser = CreateAuthenticatedClient(factory, "manager", 88);
+        var response = await clientUser.PostAsJsonAsync("/api/bookings/104/repeat", new RepeatBookingRequest
+        {
+            ScheduledStart = scheduledStart,
+            ScheduledEnd = scheduledStart.AddHours(2)
+        });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var payload = await response.Content.ReadFromJsonAsync<ApiResponse<BookingDto>>();
+        var repeated = Assert.IsType<BookingDto>(payload!.Data);
+        Assert.NotEqual(104, repeated.Id);
+        Assert.Equal(BookingStatus.Requested, repeated.Status);
+        Assert.Equal("Use the gate entrance.", repeated.Notes);
+        Assert.Equal("44 Repeat Lane", repeated.Address.Line1);
+        Assert.Equal(scheduledStart, repeated.ScheduledStart);
+    }
+
+    [Fact]
     public async Task AnonymousClientCanTrackBooking_ByReference()
     {
         var factory = CreateFactory();
