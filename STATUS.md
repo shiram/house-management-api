@@ -1,6 +1,6 @@
 # House Management — AI Development Status
 
-Last updated: 2026-09-03T00:00:00+00:00 — HouseHelp earnings reporting finalized
+Last updated: 2026-09-03T00:00:00+00:00 — Advanced reporting and export finalized
 
 ## Inspection summary
 
@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-09-03):
+- T350 completed: added Manager/Admin advanced reporting with operational booking totals, status/service breakdowns, gross booking value, discounts, succeeded-payment totals, outstanding amounts, average booking value, date-range filtering, and CSV booking export. Reporting is read-only and uses existing booking/payment snapshots without adding new persistence or provider behavior.
 - T349 completed: added read-only HouseHelp earnings reporting based on completed assigned bookings. Manager/Admin users can retrieve all HouseHelp earnings summaries or a specific HouseHelp report; HouseHelp users can retrieve only their own report via JWT-derived identity. Reports include completed booking count, gross booking value, succeeded-payment amount, outstanding amount, date-range filtering, and booking-level breakdowns without adding payout or provider-specific payment behavior.
 - T347 completed: added a sandbox-ready generic HTTP payment gateway adapter for card and mobile-money flows without committing provider credentials. The adapter is disabled by default, supports UGX/card/mobile-money configuration, sends provider-neutral initiation payloads with idempotency headers, maps provider references/checkout URLs/statuses, and documents environment-variable placeholders. Provider-specific production selection is deferred to the new Payment Provider Selection phase.
 - T346 completed: added provider-neutral payment records, card/mobile-money method types, payment statuses, an `IPaymentGateway` abstraction, and `IPaymentService` orchestration for provider-backed payment initiation. The service validates currency/idempotency, blocks duplicate active payments, persists provider references and checkout URLs, and leaves real card/mobile-money provider integration to T347.

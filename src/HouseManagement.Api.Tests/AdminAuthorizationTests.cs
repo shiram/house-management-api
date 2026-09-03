@@ -44,7 +44,9 @@ public class AdminAuthorizationTests
         { typeof(AdminHouseHelpsController), nameof(AdminHouseHelpsController.GetAll) },
         { typeof(AdminHouseHelpsController), nameof(AdminHouseHelpsController.Get) },
         { typeof(HouseHelpEarningsController), nameof(HouseHelpEarningsController.GetForHouseHelp) },
-        { typeof(HouseHelpEarningsController), nameof(HouseHelpEarningsController.GetSummaries) }
+        { typeof(HouseHelpEarningsController), nameof(HouseHelpEarningsController.GetSummaries) },
+        { typeof(ReportsController), nameof(ReportsController.GetSummary) },
+        { typeof(ReportsController), nameof(ReportsController.ExportBookings) }
     };
 
     [Theory]
