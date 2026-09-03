@@ -18,6 +18,7 @@ public sealed class ServiceCatalogService : IServiceCatalogService
     {
         return await _db.Services
             .AsNoTracking()
+            .Include(service => service.PriceRules.Where(rule => rule.IsActive))
             .Where(service => service.IsActive)
             .OrderBy(service => service.Name)
             .ThenBy(service => service.Code)
@@ -27,7 +28,10 @@ public sealed class ServiceCatalogService : IServiceCatalogService
 
     public async Task<IEnumerable<Service>> GetAllAsync(int? page = null, int? pageSize = null, bool? isActive = null)
     {
-        var query = _db.Services.AsNoTracking().AsQueryable();
+        var query = _db.Services
+            .AsNoTracking()
+            .Include(service => service.PriceRules)
+            .AsQueryable();
 
         if (isActive.HasValue)
         {
@@ -45,12 +49,16 @@ public sealed class ServiceCatalogService : IServiceCatalogService
     {
         return await _db.Services
             .AsNoTracking()
+            .Include(service => service.PriceRules.Where(rule => rule.IsActive))
             .SingleOrDefaultAsync(service => service.Id == id && service.IsActive);
     }
 
     public async Task<Service?> GetByIdAsync(int id)
     {
-        return await _db.Services.AsNoTracking().SingleOrDefaultAsync(service => service.Id == id);
+        return await _db.Services
+            .AsNoTracking()
+            .Include(service => service.PriceRules)
+            .SingleOrDefaultAsync(service => service.Id == id);
     }
 
     public async Task<bool> CodeExistsAsync(string code, int? excludingId = null)
@@ -85,6 +93,7 @@ public sealed class ServiceCatalogService : IServiceCatalogService
         existing.Name = service.Name.Trim();
         existing.Description = string.IsNullOrWhiteSpace(service.Description) ? null : service.Description.Trim();
         existing.BasePrice = service.BasePrice;
+        existing.PricingMode = service.PricingMode;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -95,6 +104,83 @@ public sealed class ServiceCatalogService : IServiceCatalogService
     {
         var existing = await _db.Services.SingleOrDefaultAsync(item => item.Id == id);
         if (existing == null) return false;
+
+        existing.IsActive = isActive;
+        existing.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<ServicePriceRule?> CreatePriceRuleAsync(int serviceId, ServicePriceRule rule)
+    {
+        var serviceExists = await _db.Services.AnyAsync(service => service.Id == serviceId);
+        if (!serviceExists)
+        {
+            return null;
+        }
+
+        var unitName = rule.UnitName.Trim();
+        if (string.IsNullOrWhiteSpace(unitName))
+        {
+            return null;
+        }
+
+        var exists = await _db.ServicePriceRules.AnyAsync(item =>
+            item.ServiceId == serviceId &&
+            item.UnitName != null &&
+            item.UnitName.Trim().Equals(unitName, StringComparison.OrdinalIgnoreCase));
+        if (exists)
+        {
+            return null;
+        }
+
+        rule.ServiceId = serviceId;
+        rule.UnitName = unitName;
+        _db.ServicePriceRules.Add(rule);
+        await _db.SaveChangesAsync();
+        return rule;
+    }
+
+    public async Task<ServicePriceRuleUpdateResult> UpdatePriceRuleAsync(int serviceId, int ruleId, ServicePriceRule rule)
+    {
+        var existing = await _db.ServicePriceRules
+            .SingleOrDefaultAsync(item => item.Id == ruleId && item.ServiceId == serviceId);
+        if (existing == null)
+        {
+            return new ServicePriceRuleUpdateResult(false, false);
+        }
+
+        var unitName = rule.UnitName.Trim();
+        if (string.IsNullOrWhiteSpace(unitName))
+        {
+            return new ServicePriceRuleUpdateResult(true, false);
+        }
+
+        var duplicate = await _db.ServicePriceRules.AnyAsync(item =>
+            item.ServiceId == serviceId &&
+            item.Id != ruleId &&
+            item.UnitName != null &&
+            item.UnitName.Trim().Equals(unitName, StringComparison.OrdinalIgnoreCase));
+        if (duplicate)
+        {
+            return new ServicePriceRuleUpdateResult(true, true);
+        }
+
+        existing.UnitName = unitName;
+        existing.UnitPrice = rule.UnitPrice;
+        existing.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync();
+        return new ServicePriceRuleUpdateResult(true, false);
+    }
+
+    public async Task<bool> SetPriceRuleActiveAsync(int serviceId, int ruleId, bool isActive)
+    {
+        var existing = await _db.ServicePriceRules
+            .SingleOrDefaultAsync(item => item.Id == ruleId && item.ServiceId == serviceId);
+        if (existing == null)
+        {
+            return false;
+        }
 
         existing.IsActive = isActive;
         existing.UpdatedAt = DateTimeOffset.UtcNow;

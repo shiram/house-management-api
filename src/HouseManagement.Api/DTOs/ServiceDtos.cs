@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HouseManagement.Api.Models;
 
 namespace HouseManagement.Api.DTOs;
 
@@ -9,6 +10,8 @@ public sealed class ServiceDto
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public decimal BasePrice { get; set; }
+    public ServicePricingMode PricingMode { get; set; }
+    public IEnumerable<ServicePriceRuleDto> PriceRules { get; set; } = [];
     public bool IsActive { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
@@ -30,6 +33,8 @@ public sealed class CreateServiceRequest
 
     [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal BasePrice { get; set; }
+
+    public ServicePricingMode PricingMode { get; set; } = ServicePricingMode.Fixed;
 }
 
 public sealed class UpdateServiceRequest
@@ -48,4 +53,34 @@ public sealed class UpdateServiceRequest
 
     [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal BasePrice { get; set; }
+
+    public ServicePricingMode PricingMode { get; set; } = ServicePricingMode.Fixed;
+}
+
+public sealed class ServicePriceRuleDto
+{
+    public int Id { get; set; }
+    public string UnitName { get; set; } = null!;
+    public decimal UnitPrice { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public sealed class CreateServicePriceRuleRequest
+{
+    [Required]
+    [StringLength(128, MinimumLength = 2)]
+    public string UnitName { get; set; } = null!;
+
+    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    public decimal UnitPrice { get; set; }
+}
+
+public sealed class UpdateServicePriceRuleRequest
+{
+    [Required]
+    [StringLength(128, MinimumLength = 2)]
+    public string UnitName { get; set; } = null!;
+
+    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    public decimal UnitPrice { get; set; }
 }

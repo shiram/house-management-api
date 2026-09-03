@@ -332,6 +332,14 @@ public sealed class BookingsController : ControllerBase
                 Country = serviceAddress?.Country ?? string.Empty
             },
             Notes = booking.Notes,
+            TotalPrice = booking.TotalPrice,
+            PriceLines = booking.PriceLines.Select(line => new BookingPriceLineDto
+            {
+                Description = line.Description,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                LineTotal = line.LineTotal
+            }),
             CreatedAt = booking.CreatedAt,
             UpdatedAt = booking.UpdatedAt
         };

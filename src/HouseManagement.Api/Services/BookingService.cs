@@ -31,6 +31,11 @@ public sealed class BookingService : IBookingService
         _auditLogs = auditLogs;
     }
 
+    public sealed record BookingPricingResult(
+        List<BookingPriceLine> PriceLines,
+        decimal TotalPrice,
+        string? Error);
+
     public async Task<BookingCreationResult> CreateAnonymousAsync(CreateAnonymousBookingRequest request)
     {
         if (request.ScheduledStart >= request.ScheduledEnd || request.ScheduledStart <= DateTimeOffset.UtcNow)
@@ -39,10 +44,17 @@ public sealed class BookingService : IBookingService
         }
 
         var service = await _db.Services
+            .Include(item => item.PriceRules)
             .SingleOrDefaultAsync(item => item.Id == request.ServiceId && item.IsActive);
         if (service == null)
         {
             return new BookingCreationResult(null, "The requested service is not available.");
+        }
+
+        var pricing = CreatePriceSnapshot(service, request.PricingItems);
+        if (pricing.Error != null)
+        {
+            return new BookingCreationResult(null, pricing.Error);
         }
 
         Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
@@ -76,6 +88,8 @@ public sealed class BookingService : IBookingService
             ScheduledEnd = request.ScheduledEnd,
             Status = BookingStatus.Requested,
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+            TotalPrice = pricing.TotalPrice,
+            PriceLines = pricing.PriceLines,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -102,6 +116,7 @@ public sealed class BookingService : IBookingService
         var sourceBooking = await _db.Bookings
             .Include(booking => booking.Client)
             .Include(booking => booking.Service)
+                .ThenInclude(service => service.PriceRules)
             .Include(booking => booking.ServiceAddress)
             .SingleOrDefaultAsync(booking => booking.Id == bookingId);
 
@@ -115,6 +130,12 @@ public sealed class BookingService : IBookingService
         if (!sourceBooking.Service.IsActive)
         {
             return new BookingCreationResult(null, "The requested service is not available.");
+        }
+
+        var pricing = CreatePriceSnapshot(sourceBooking.Service, request.PricingItems);
+        if (pricing.Error != null)
+        {
+            return new BookingCreationResult(null, pricing.Error);
         }
 
         var sourceAddress = sourceBooking.ServiceAddress;
@@ -136,6 +157,8 @@ public sealed class BookingService : IBookingService
             ScheduledEnd = request.ScheduledEnd,
             Status = BookingStatus.Requested,
             Notes = sourceBooking.Notes,
+            TotalPrice = pricing.TotalPrice,
+            PriceLines = pricing.PriceLines,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -300,6 +323,7 @@ public sealed class BookingService : IBookingService
             .AsNoTracking()
             .Include(booking => booking.Service)
             .Include(booking => booking.ServiceAddress)
+            .Include(booking => booking.PriceLines)
             .SingleOrDefaultAsync(booking => booking.Id == id);
     }
 
@@ -315,6 +339,7 @@ public sealed class BookingService : IBookingService
             .AsNoTracking()
             .Include(booking => booking.Service)
             .Include(booking => booking.ServiceAddress)
+            .Include(booking => booking.PriceLines)
             .SingleOrDefaultAsync(booking => booking.Reference == normalized);
     }
 
@@ -378,6 +403,7 @@ public sealed class BookingService : IBookingService
         query = query
             .Include(booking => booking.Service)
             .Include(booking => booking.ServiceAddress)
+            .Include(booking => booking.PriceLines)
             .AsQueryable();
 
         if (status.HasValue)
@@ -390,6 +416,84 @@ public sealed class BookingService : IBookingService
             .ThenByDescending(booking => booking.Id);
 
         return query.ApplyPagination(page, pageSize);
+    }
+
+    private static BookingPricingResult CreatePriceSnapshot(
+        Service service,
+        IEnumerable<BookingPriceItemRequest>? requestedItems)
+    {
+        const decimal maximumPersistablePrice = 9999999999999999.99m;
+        var items = requestedItems?.ToList() ?? [];
+
+        if (service.PricingMode == ServicePricingMode.Fixed)
+        {
+            if (items.Count > 0)
+            {
+                return new BookingPricingResult([], 0, "This service uses fixed pricing and does not accept pricing items.");
+            }
+
+            return new BookingPricingResult(
+                [new BookingPriceLine
+                {
+                    Description = service.Name,
+                    Quantity = 1,
+                    UnitPrice = service.BasePrice,
+                    LineTotal = service.BasePrice
+                }],
+                service.BasePrice,
+                null);
+        }
+
+        if (items.Count == 0)
+        {
+            return new BookingPricingResult([], 0, "At least one pricing item is required for this service.");
+        }
+
+        if (items.GroupBy(item => item.PriceRuleId).Any(group => group.Count() > 1))
+        {
+            return new BookingPricingResult([], 0, "Each pricing item can only be selected once.");
+        }
+
+        var rulesById = service.PriceRules
+            .Where(rule => rule.IsActive)
+            .ToDictionary(rule => rule.Id);
+        var lines = new List<BookingPriceLine>();
+        decimal totalPrice = 0;
+
+        foreach (var item in items)
+        {
+            if (item.Quantity is < 1 or > 100000)
+            {
+                return new BookingPricingResult([], 0, "Each pricing item quantity must be between 1 and 100000.");
+            }
+
+            if (!rulesById.TryGetValue(item.PriceRuleId, out var rule))
+            {
+                return new BookingPricingResult([], 0, "One or more selected pricing items are not available for this service.");
+            }
+
+            if (rule.UnitPrice > maximumPersistablePrice / item.Quantity)
+            {
+                return new BookingPricingResult([], 0, "The calculated booking price is too large.");
+            }
+
+            var lineTotal = rule.UnitPrice * item.Quantity;
+            if (lineTotal > maximumPersistablePrice - totalPrice)
+            {
+                return new BookingPricingResult([], 0, "The calculated booking price is too large.");
+            }
+
+            lines.Add(new BookingPriceLine
+            {
+                Description = rule.UnitName,
+                Quantity = item.Quantity,
+                UnitPrice = rule.UnitPrice,
+                LineTotal = lineTotal
+            });
+            totalPrice += lineTotal;
+        }
+
+        return new BookingPricingResult(lines, totalPrice, null);
     }
 
     private static bool IsAvailableForBooking(HouseHelp houseHelp, Booking booking)

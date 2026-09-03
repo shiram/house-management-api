@@ -48,6 +48,14 @@ public sealed class AdminServicesController : ControllerBase
             Name = service.Name,
             Description = service.Description,
             BasePrice = service.BasePrice,
+            PricingMode = service.PricingMode,
+            PriceRules = service.PriceRules.Select(rule => new ServicePriceRuleDto
+            {
+                Id = rule.Id,
+                UnitName = rule.UnitName,
+                UnitPrice = rule.UnitPrice,
+                IsActive = rule.IsActive
+            }),
             IsActive = service.IsActive,
             CreatedAt = service.CreatedAt,
             UpdatedAt = service.UpdatedAt

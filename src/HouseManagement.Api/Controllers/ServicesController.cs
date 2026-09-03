@@ -31,6 +31,8 @@ public sealed class ServicesController : ControllerBase
             Name = service.Name,
             Description = service.Description,
             BasePrice = service.BasePrice,
+            PricingMode = service.PricingMode,
+            PriceRules = service.PriceRules.Select(ToPriceRuleDto),
             IsActive = service.IsActive,
             CreatedAt = service.CreatedAt,
             UpdatedAt = service.UpdatedAt
@@ -53,6 +55,8 @@ public sealed class ServicesController : ControllerBase
             Name = service.Name,
             Description = service.Description,
             BasePrice = service.BasePrice,
+            PricingMode = service.PricingMode,
+            PriceRules = service.PriceRules.Select(ToPriceRuleDto),
             IsActive = service.IsActive,
             CreatedAt = service.CreatedAt,
             UpdatedAt = service.UpdatedAt
@@ -72,6 +76,7 @@ public sealed class ServicesController : ControllerBase
             Name = request.Name,
             Description = request.Description,
             BasePrice = request.BasePrice,
+            PricingMode = request.PricingMode,
             IsActive = true
         });
 
@@ -100,6 +105,7 @@ public sealed class ServicesController : ControllerBase
         existing.Name = request.Name;
         existing.Description = request.Description;
         existing.BasePrice = request.BasePrice;
+        existing.PricingMode = request.PricingMode;
 
         await _serviceCatalog.UpdateAsync(existing);
         var response = ApiResponseFactory.Create(this, ToDto(existing), "Service updated", StatusCodes.Status200OK);
@@ -117,6 +123,71 @@ public sealed class ServicesController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("{serviceId:int}/pricing-rules")]
+    public async Task<IActionResult> CreatePriceRule(int serviceId, [FromBody] CreateServicePriceRuleRequest request)
+    {
+        var created = await _serviceCatalog.CreatePriceRuleAsync(serviceId, new ServicePriceRule
+        {
+            UnitName = request.UnitName,
+            UnitPrice = request.UnitPrice,
+            IsActive = true
+        });
+        if (created == null)
+        {
+            return Conflict(ApiResponseFactory.Create<object?>(
+                this,
+                null,
+                "The service was not found or already has a pricing rule with this unit name.",
+                StatusCodes.Status409Conflict));
+        }
+
+        var response = ApiResponseFactory.Create(this, ToPriceRuleDto(created), "Pricing rule created", StatusCodes.Status201Created);
+        return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{serviceId:int}/pricing-rules/{ruleId:int}")]
+    public async Task<IActionResult> UpdatePriceRule(
+        int serviceId,
+        int ruleId,
+        [FromBody] UpdateServicePriceRuleRequest request)
+    {
+        var result = await _serviceCatalog.UpdatePriceRuleAsync(serviceId, ruleId, new ServicePriceRule
+        {
+            UnitName = request.UnitName,
+            UnitPrice = request.UnitPrice
+        });
+        if (!result.Exists)
+        {
+            return NotFound();
+        }
+        if (result.HasDuplicateUnitName)
+        {
+            return Conflict(ApiResponseFactory.Create<object?>(
+                this,
+                null,
+                "The service already has a pricing rule with this unit name.",
+                StatusCodes.Status409Conflict));
+        }
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "Pricing rule updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{serviceId:int}/pricing-rules/{ruleId:int}/activate")]
+    public async Task<IActionResult> SetPriceRuleActive(int serviceId, int ruleId, [FromQuery] bool active = true)
+    {
+        if (!await _serviceCatalog.SetPriceRuleActiveAsync(serviceId, ruleId, active))
+        {
+            return NotFound();
+        }
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "Pricing rule status updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
     private static ServiceDto ToDto(Service service)
     {
         return new ServiceDto
@@ -126,9 +197,22 @@ public sealed class ServicesController : ControllerBase
             Name = service.Name,
             Description = service.Description,
             BasePrice = service.BasePrice,
+            PricingMode = service.PricingMode,
+            PriceRules = service.PriceRules.Select(ToPriceRuleDto),
             IsActive = service.IsActive,
             CreatedAt = service.CreatedAt,
             UpdatedAt = service.UpdatedAt
+        };
+    }
+
+    private static ServicePriceRuleDto ToPriceRuleDto(ServicePriceRule rule)
+    {
+        return new ServicePriceRuleDto
+        {
+            Id = rule.Id,
+            UnitName = rule.UnitName,
+            UnitPrice = rule.UnitPrice,
+            IsActive = rule.IsActive
         };
     }
 }

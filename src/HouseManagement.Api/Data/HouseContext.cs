@@ -30,4 +30,6 @@ public class HouseContext : DbContext
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<HouseHelpRating> HouseHelpRatings { get; set; }
     public DbSet<ClientHouseHelpPreference> ClientHouseHelpPreferences { get; set; }
+    public DbSet<ServicePriceRule> ServicePriceRules { get; set; }
+    public DbSet<BookingPriceLine> BookingPriceLines { get; set; }
 }

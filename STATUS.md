@@ -1,6 +1,6 @@
 # House Management — AI Development Status
 
-Last updated: 2026-08-28T00:00:00+00:00 — Booking lifecycle and integration validation
+Last updated: 2026-09-03T00:00:00+00:00 — Pricing rules and booking price snapshots finalized
 
 ## Inspection summary
 
@@ -119,7 +119,8 @@ Recent actions (2026-08-27):
 - T032-T039 completed: added anonymous-capable Client, Booking and BookingStatus models, weekly HouseHelp availability, ServiceAddress, valid booking transitions, explicit relationship configurations, business uniqueness constraints, and operational indexes. A domain migration is required before these new tables are deployed.
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
-Recent actions (2026-08-30):
+Recent actions (2026-09-03):
+- T344 completed: pricing rules and booking price snapshots are in place for fixed and per-unit services. Duplicate unit-name checks are now case-insensitive, and new tests cover fixed pricing, per-unit pricing, and duplicate-rule rejection without touching authentication or production config.
 - T286 completed: reviewed all protected controller actions. AdminOnly covers users/settings/audit logs; ManagerOrAdmin covers service, HouseHelp, booking, and manager-availability operations; HouseHelpOnly covers assigned bookings and self-availability; notifications and client bookings are authenticated owner-scoped. No authorization-semantic changes were required.
 - T285 completed: documented mandatory sensitive-data logging rules in `docs/SECURITY.md`. Passwords, hashes, tokens, authorization headers, keys, connection strings, contact data, addresses, and system-setting values must not be written to logs or audit details; request/response bodies remain excluded by default.
 - T284 completed: AdminOnly user role/status changes and system-setting upserts now create audit events with JWT-derived actors. User audits record prior-to-next role/status values; system-setting audits intentionally omit setting keys and values to avoid recording configuration data.

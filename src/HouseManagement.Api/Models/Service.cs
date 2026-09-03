@@ -9,8 +9,10 @@ public class Service
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public decimal BasePrice { get; set; }
+    public ServicePricingMode PricingMode { get; set; } = ServicePricingMode.Fixed;
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
     public List<Booking> Bookings { get; set; } = new();
+    public List<ServicePriceRule> PriceRules { get; set; } = new();
 }

@@ -33,6 +33,78 @@ public class BookingServiceTests
     }
 
     [Fact]
+    public async Task CreateAnonymousAsync_UsesFixedAndPerUnitPricingSnapshots()
+    {
+        var fixedOptions = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using (var fixedContext = new HouseContext(fixedOptions))
+        {
+            fixedContext.Services.Add(new Service
+            {
+                Id = 1,
+                Code = "CLEANING",
+                Name = "Cleaning",
+                BasePrice = 45,
+                PricingMode = ServicePricingMode.Fixed,
+                IsActive = true
+            });
+            await fixedContext.SaveChangesAsync();
+
+            var fixedService = CreateBookingService(fixedContext);
+            var fixedResult = await fixedService.CreateAnonymousAsync(CreateRequest(serviceId: 1));
+
+            Assert.NotNull(fixedResult.Booking);
+            Assert.Equal(45m, fixedResult.Booking!.TotalPrice);
+            Assert.Single(fixedResult.Booking.PriceLines);
+            Assert.Equal("Cleaning", fixedResult.Booking.PriceLines.Single().Description);
+            Assert.Equal(1, fixedResult.Booking.PriceLines.Single().Quantity);
+        }
+
+        var perUnitOptions = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using (var perUnitContext = new HouseContext(perUnitOptions))
+        {
+            perUnitContext.Services.Add(new Service
+            {
+                Id = 2,
+                Code = "LAUNDRY",
+                Name = "Laundry",
+                BasePrice = 0,
+                PricingMode = ServicePricingMode.PerUnit,
+                IsActive = true,
+                PriceRules =
+                [
+                    new ServicePriceRule { Id = 1, UnitName = "Load", UnitPrice = 12.5m, IsActive = true },
+                    new ServicePriceRule { Id = 2, UnitName = "Fold", UnitPrice = 7.5m, IsActive = true }
+                ]
+            });
+            await perUnitContext.SaveChangesAsync();
+
+            var perUnitService = CreateBookingService(perUnitContext);
+            var valid = await perUnitService.CreateAnonymousAsync(CreateRequest(serviceId: 2, pricingItems:
+            [
+                new BookingPriceItemRequest { PriceRuleId = 1, Quantity = 2 },
+                new BookingPriceItemRequest { PriceRuleId = 2, Quantity = 3 }
+            ]));
+            var duplicate = await perUnitService.CreateAnonymousAsync(CreateRequest(serviceId: 2, pricingItems:
+            [
+                new BookingPriceItemRequest { PriceRuleId = 1, Quantity = 2 },
+                new BookingPriceItemRequest { PriceRuleId = 1, Quantity = 1 }
+            ]));
+
+            Assert.NotNull(valid.Booking);
+            Assert.Equal(47.5m, valid.Booking!.TotalPrice);
+            Assert.Equal(2, valid.Booking.PriceLines.Count);
+            Assert.Null(duplicate.Booking);
+            Assert.Contains("Each pricing item can only be selected once", duplicate.Error);
+        }
+    }
+
+    [Fact]
     public async Task CreateAnonymousAsync_RejectsInactiveServiceAndInvalidSchedule()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()
@@ -591,7 +663,8 @@ public class BookingServiceTests
     private static CreateAnonymousBookingRequest CreateRequest(
         int serviceId = 1,
         DateTimeOffset? start = null,
-        DateTimeOffset? end = null)
+        DateTimeOffset? end = null,
+        IEnumerable<BookingPriceItemRequest>? pricingItems = null)
     {
         return new CreateAnonymousBookingRequest
         {
@@ -606,7 +679,8 @@ public class BookingServiceTests
                 Line1 = "1 Main Street",
                 City = "Nairobi",
                 Country = "Kenya"
-            }
+            },
+            PricingItems = pricingItems ?? []
         };
     }
 }

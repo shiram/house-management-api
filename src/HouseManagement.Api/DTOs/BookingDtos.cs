@@ -12,6 +12,7 @@ public class CreateBookingRequest
     [Required]
     public ServiceAddressRequest Address { get; set; } = new();
     public string? Notes { get; set; }
+    public IEnumerable<BookingPriceItemRequest> PricingItems { get; set; } = [];
 }
 
 public sealed class CreateAnonymousBookingRequest : CreateBookingRequest
@@ -34,6 +35,16 @@ public sealed class RepeatBookingRequest
 {
     public DateTimeOffset ScheduledStart { get; set; }
     public DateTimeOffset ScheduledEnd { get; set; }
+    public IEnumerable<BookingPriceItemRequest> PricingItems { get; set; } = [];
+}
+
+public sealed class BookingPriceItemRequest
+{
+    [Range(1, int.MaxValue)]
+    public int PriceRuleId { get; set; }
+
+    [Range(1, 100000)]
+    public int Quantity { get; set; }
 }
 
 public sealed class AssignHouseHelpRequest
@@ -73,8 +84,18 @@ public sealed class BookingDto
     public DateTimeOffset? AssignedAt { get; set; }
     public ServiceAddressRequest Address { get; set; } = new();
     public string? Notes { get; set; }
+    public decimal TotalPrice { get; set; }
+    public IEnumerable<BookingPriceLineDto> PriceLines { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class BookingPriceLineDto
+{
+    public string Description { get; set; } = null!;
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal LineTotal { get; set; }
 }
 
 public sealed class BookingTrackingDto

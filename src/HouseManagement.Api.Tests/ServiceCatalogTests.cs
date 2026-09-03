@@ -147,4 +147,64 @@ public class ServiceCatalogTests
         Assert.True((await context.Services.SingleAsync(item => item.Id == 1)).UpdatedAt > originalTimestamp);
         Assert.False(await service.SetActiveAsync(999, true));
     }
+
+    [Fact]
+    public async Task CreatePriceRuleAsync_RejectsDuplicateUnitNames()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "LAUNDRY",
+            Name = "Laundry",
+            IsActive = true,
+            PricingMode = ServicePricingMode.PerUnit,
+            BasePrice = 0m
+        });
+        await context.SaveChangesAsync();
+
+        var service = new ServiceCatalogService(context);
+        var first = await service.CreatePriceRuleAsync(1, new ServicePriceRule { UnitName = "Load", UnitPrice = 12.5m, IsActive = true });
+        var duplicate = await service.CreatePriceRuleAsync(1, new ServicePriceRule { UnitName = " load ", UnitPrice = 15m, IsActive = true });
+
+        Assert.NotNull(first);
+        Assert.Null(duplicate);
+        Assert.Equal(1, await context.ServicePriceRules.CountAsync());
+    }
+
+    [Fact]
+    public async Task UpdatePriceRuleAsync_RejectsDuplicateUnitNamesWithinSameService()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "CLEANING",
+            Name = "Cleaning",
+            IsActive = true,
+            PricingMode = ServicePricingMode.PerUnit,
+            BasePrice = 0m,
+            PriceRules =
+            [
+                new ServicePriceRule { Id = 1, UnitName = "Room", UnitPrice = 18m, IsActive = true },
+                new ServicePriceRule { Id = 2, UnitName = "Hour", UnitPrice = 25m, IsActive = true }
+            ]
+        });
+        await context.SaveChangesAsync();
+
+        var service = new ServiceCatalogService(context);
+        var result = await service.UpdatePriceRuleAsync(1, 1, new ServicePriceRule { UnitName = "hour", UnitPrice = 30m });
+
+        Assert.True(result.Exists);
+        Assert.True(result.HasDuplicateUnitName);
+        Assert.Equal("Room", (await context.ServicePriceRules.SingleAsync(item => item.Id == 1)).UnitName);
+    }
 }

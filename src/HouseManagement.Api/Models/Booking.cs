@@ -18,6 +18,8 @@ public class Booking
     public DateTimeOffset ScheduledEnd { get; set; }
     public BookingStatus Status { get; set; } = BookingStatus.Requested;
     public string? Notes { get; set; }
+    public decimal TotalPrice { get; set; }
+    public List<BookingPriceLine> PriceLines { get; set; } = new();
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 }

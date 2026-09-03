@@ -12,4 +12,9 @@ public interface IServiceCatalogService
     Task<Service?> CreateAsync(Service service);
     Task<bool> UpdateAsync(Service service);
     Task<bool> SetActiveAsync(int id, bool isActive);
+    Task<ServicePriceRule?> CreatePriceRuleAsync(int serviceId, ServicePriceRule rule);
+    Task<ServicePriceRuleUpdateResult> UpdatePriceRuleAsync(int serviceId, int ruleId, ServicePriceRule rule);
+    Task<bool> SetPriceRuleActiveAsync(int serviceId, int ruleId, bool isActive);
 }
+
+public sealed record ServicePriceRuleUpdateResult(bool Exists, bool HasDuplicateUnitName);

@@ -12,6 +12,7 @@ public sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(booking => booking.Reference).HasMaxLength(32).IsRequired();
         builder.Property(booking => booking.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
         builder.Property(booking => booking.Notes).HasMaxLength(2000);
+        builder.Property(booking => booking.TotalPrice).HasPrecision(18, 2);
 
         builder.HasOne(booking => booking.Service)
             .WithMany(service => service.Bookings)

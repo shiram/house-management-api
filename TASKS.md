@@ -242,7 +242,7 @@
 - [x] T341 — Customer booking history
 - [x] T342 — Repeat booking
 - [x] T343 — Favorite/preferred HouseHelp
-- [ ] T344 — Pricing rules
+- [x] T344 — Pricing rules
 - [ ] T345 — Promotions/discounts
 - [ ] T346 — Payment integration abstraction
 - [ ] T347 — Payment provider integration(clients will pay with cards(visa), mobile money (mtn and airtel for uganda))
