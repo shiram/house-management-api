@@ -17,7 +17,7 @@ public class HouseHelpsControllerValidationTests
     public async Task Create_ReturnsBadRequest_WhenModelStateInvalid()
     {
         var mockSvc = new Mock<IHouseHelpService>();
-        var controller = new HouseHelpsController(mockSvc.Object);
+        var controller = CreateController(mockSvc);
         controller.ModelState.AddModelError("Phone", "Invalid phone");
 
         var req = new CreateHouseHelpRequest { FirstName = "X", LastName = "Y", Phone = "bad", City = "Z" };
@@ -35,7 +35,7 @@ public class HouseHelpsControllerValidationTests
     {
         var mockSvc = new Mock<IHouseHelpService>();
         mockSvc.Setup(s => s.GetByIdAsync(99)).ReturnsAsync((HouseHelp?)null);
-        var controller = new HouseHelpsController(mockSvc.Object);
+        var controller = CreateController(mockSvc);
 
         var req = new UpdateHouseHelpRequest { FirstName = "X", LastName = "Y", Phone = "+1", City = "Z" };
         var res = await controller.Update(99, req);
@@ -49,11 +49,18 @@ public class HouseHelpsControllerValidationTests
         mockSvc.Setup(s => s.GetFilteredAsync("Nairobi", "Cleaning", true, 1, 10, null))
             .ReturnsAsync(new List<HouseHelp> { new HouseHelp { Id = 1, FirstName = "A", LastName = "B", Phone = "+1", City = "Nairobi", IsActive = true } });
 
-        var controller = new HouseHelpsController(mockSvc.Object);
+        var controller = CreateController(mockSvc);
         var res = await controller.GetAll("Nairobi", "Cleaning", 1, 10);
         var ok = Assert.IsType<OkObjectResult>(res);
         var envelope = Assert.IsType<ApiResponse<IEnumerable<PublicHouseHelpDto>>>(ok.Value);
         Assert.Equal(200, envelope.StatusCode);
         Assert.NotNull(envelope.Data);
+    }
+
+    private static HouseHelpsController CreateController(Mock<IHouseHelpService> service)
+    {
+        return new HouseHelpsController(
+            service.Object,
+            Mock.Of<IHouseHelpProfileImageService>());
     }
 }

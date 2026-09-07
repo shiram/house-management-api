@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Options;
+using SkiaSharp;
 
 namespace HouseManagement.Api.Infrastructure.Files;
 
 public sealed class ProfileImageProcessor : IProfileImageProcessor
 {
-    private const int SignatureProbeLength = 12;
     private readonly ProfileImageOptions _options;
 
     public ProfileImageProcessor(IOptions<ProfileImageOptions> options)
@@ -52,41 +52,90 @@ public sealed class ProfileImageProcessor : IProfileImageProcessor
             errors["content"] = ["The image file is empty."];
         }
 
-        if (content.Length > _options.MaxSizeBytes)
+        var maximumSize = Math.Min(
+            Math.Max(_options.MaxSizeBytes, 0),
+            ProfileImageOptions.HardMaxSizeBytes);
+        if (content.Length > maximumSize)
         {
-            errors["size"] = [$"The image file must be {_options.MaxSizeBytes} bytes or smaller."];
-        }
-
-        var detected = DetectImageType(content);
-        if (detected == null)
-        {
-            errors["content"] = ["The image file signature is not supported."];
-        }
-        else
-        {
-            if (!string.Equals(detected.ContentType, contentType, StringComparison.OrdinalIgnoreCase))
-            {
-                errors["contentType"] = ["The image content type does not match the file content."];
-            }
-
-            if (!detected.Extensions.Any(item => string.Equals(item, extension, StringComparison.OrdinalIgnoreCase)))
-            {
-                errors["extension"] = ["The image extension does not match the file content."];
-            }
+            errors["size"] = [$"The image file must be {maximumSize} bytes or smaller."];
         }
 
         ThrowIfInvalid(errors);
 
+        using var encodedStream = new SKMemoryStream(content);
+        using var codec = SKCodec.Create(encodedStream);
+        if (codec == null)
+        {
+            errors["content"] = ["The image file is malformed or its format is not supported."];
+            throw new ProfileImageValidationException(errors);
+        }
+
+        var detectedContentType = ContentTypeFor(codec.EncodedFormat);
+        if (detectedContentType == null)
+        {
+            errors["content"] = ["The image file format is not supported."];
+        }
+
+        if (!string.Equals(detectedContentType, contentType, StringComparison.OrdinalIgnoreCase))
+        {
+            errors["contentType"] = ["The image content type does not match the file content."];
+        }
+
+        if (!AllowedExtensionsFor(detectedContentType).Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            errors["extension"] = ["The image extension does not match the file content."];
+        }
+
+        if (codec.Info.Width <= 0 ||
+            codec.Info.Height <= 0 ||
+            codec.Info.Width > _options.MaxWidth ||
+            codec.Info.Height > _options.MaxHeight)
+        {
+            errors["dimensions"] = [$"The image dimensions must not exceed {_options.MaxWidth}x{_options.MaxHeight} pixels."];
+        }
+
+        if (codec.FrameCount > 1)
+        {
+            errors["frames"] = ["Animated or multi-frame profile images are not allowed."];
+        }
+
+        ThrowIfInvalid(errors);
+
+        using var bitmap = new SKBitmap(codec.Info);
+        var decodeResult = codec.GetPixels(bitmap.Info, bitmap.GetPixels());
+        if (decodeResult != SKCodecResult.Success)
+        {
+            errors["content"] = ["The image file could not be decoded safely."];
+            throw new ProfileImageValidationException(errors);
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var normalized = image.Encode(EncodedFormatFor(detectedContentType!), 85);
+        if (normalized == null)
+        {
+            errors["content"] = ["The image file could not be processed safely."];
+            throw new ProfileImageValidationException(errors);
+        }
+
+        var normalizedContent = normalized.ToArray();
+        if (normalizedContent.Length > maximumSize)
+        {
+            errors["size"] = [$"The processed image must be {maximumSize} bytes or smaller."];
+            ThrowIfInvalid(errors);
+        }
+
         return new ProcessedProfileImage(
-            content,
-            detected!.ContentType,
+            normalizedContent,
+            detectedContentType!,
             extension,
-            content.Length);
+            normalizedContent.Length);
     }
 
     private async Task<byte[]> ReadContentAsync(Stream content, CancellationToken cancellationToken)
     {
-        var maximumBytesToRead = _options.MaxSizeBytes <= 0 ? 1 : _options.MaxSizeBytes + 1;
+        var configuredMaximum = _options.MaxSizeBytes <= 0 ? 0 : _options.MaxSizeBytes;
+        var effectiveMaximum = Math.Min(configuredMaximum, ProfileImageOptions.HardMaxSizeBytes);
+        var maximumBytesToRead = effectiveMaximum + 1;
         using var memory = new MemoryStream();
         var buffer = new byte[81920];
         while (memory.Length <= maximumBytesToRead)
@@ -109,43 +158,37 @@ public sealed class ProfileImageProcessor : IProfileImageProcessor
         return memory.ToArray();
     }
 
-    private static DetectedImageType? DetectImageType(byte[] content)
+    private static string? ContentTypeFor(SKEncodedImageFormat format)
     {
-        if (content.Length >= 3 &&
-            content[0] == 0xFF &&
-            content[1] == 0xD8 &&
-            content[2] == 0xFF)
+        return format switch
         {
-            return new DetectedImageType("image/jpeg", [".jpg", ".jpeg"]);
-        }
+            SKEncodedImageFormat.Jpeg => "image/jpeg",
+            SKEncodedImageFormat.Png => "image/png",
+            SKEncodedImageFormat.Webp => "image/webp",
+            _ => null
+        };
+    }
 
-        if (content.Length >= 8 &&
-            content[0] == 0x89 &&
-            content[1] == 0x50 &&
-            content[2] == 0x4E &&
-            content[3] == 0x47 &&
-            content[4] == 0x0D &&
-            content[5] == 0x0A &&
-            content[6] == 0x1A &&
-            content[7] == 0x0A)
+    private static SKEncodedImageFormat EncodedFormatFor(string contentType)
+    {
+        return contentType switch
         {
-            return new DetectedImageType("image/png", [".png"]);
-        }
+            "image/jpeg" => SKEncodedImageFormat.Jpeg,
+            "image/png" => SKEncodedImageFormat.Png,
+            "image/webp" => SKEncodedImageFormat.Webp,
+            _ => throw new InvalidOperationException("The detected image type is not supported.")
+        };
+    }
 
-        if (content.Length >= SignatureProbeLength &&
-            content[0] == 0x52 &&
-            content[1] == 0x49 &&
-            content[2] == 0x46 &&
-            content[3] == 0x46 &&
-            content[8] == 0x57 &&
-            content[9] == 0x45 &&
-            content[10] == 0x42 &&
-            content[11] == 0x50)
+    private static string[] AllowedExtensionsFor(string? contentType)
+    {
+        return contentType switch
         {
-            return new DetectedImageType("image/webp", [".webp"]);
-        }
-
-        return null;
+            "image/jpeg" => [".jpg", ".jpeg"],
+            "image/png" => [".png"],
+            "image/webp" => [".webp"],
+            _ => []
+        };
     }
 
     private static void ThrowIfInvalid(Dictionary<string, string[]> errors)
@@ -155,6 +198,4 @@ public sealed class ProfileImageProcessor : IProfileImageProcessor
             throw new ProfileImageValidationException(errors);
         }
     }
-
-    private sealed record DetectedImageType(string ContentType, string[] Extensions);
 }

@@ -23,7 +23,7 @@ public class HouseHelpsControllerTests
             new HouseHelp { Id = 1, FirstName = "A", LastName = "B", Phone = "+1", City = "C", IsActive = true }
         });
 
-        var controller = new HouseHelpsController(mockSvc.Object);
+        var controller = CreateController(mockSvc);
 
         var res = await controller.GetAll(null, null, null, null);
         var ok = Assert.IsType<OkObjectResult>(res);
@@ -37,7 +37,7 @@ public class HouseHelpsControllerTests
     {
         var mockSvc = new Mock<IHouseHelpService>();
         mockSvc.Setup(s => s.GetByIdAsync(1)).ReturnsAsync((HouseHelp?)null);
-        var controller = new HouseHelpsController(mockSvc.Object);
+        var controller = CreateController(mockSvc);
 
         var res = await controller.Get(1);
         Assert.IsType<NotFoundResult>(res);
@@ -57,7 +57,7 @@ public class HouseHelpsControllerTests
             IsActive = true
         });
 
-        var controller = new HouseHelpsController(mockSvc.Object);
+        var controller = CreateController(mockSvc);
 
         var res = await controller.Get(5);
         var ok = Assert.IsType<OkObjectResult>(res);
@@ -72,7 +72,7 @@ public class HouseHelpsControllerTests
         var mockSvc = new Mock<IHouseHelpService>();
         var hh = new HouseHelp { Id = 5, FirstName = "X", LastName = "Y", Phone = "+1", City = "Z" };
         mockSvc.Setup(s => s.CreateAsync(It.IsAny<HouseHelp>(), It.IsAny<IEnumerable<string>?>())).ReturnsAsync(hh);
-        var controller = new HouseHelpsController(mockSvc.Object);
+        var controller = CreateController(mockSvc);
 
         var req = new CreateHouseHelpRequest { FirstName = "X", LastName = "Y", Phone = "+1", City = "Z" };
         var res = await controller.Create(req);
@@ -80,5 +80,12 @@ public class HouseHelpsControllerTests
         var envelope = Assert.IsType<ApiResponse<HouseHelpDto>>(created.Value);
         Assert.Equal(201, envelope.StatusCode);
         Assert.Equal(5, envelope.Data!.Id);
+    }
+
+    private static HouseHelpsController CreateController(Mock<IHouseHelpService> service)
+    {
+        return new HouseHelpsController(
+            service.Object,
+            Mock.Of<IHouseHelpProfileImageService>());
     }
 }

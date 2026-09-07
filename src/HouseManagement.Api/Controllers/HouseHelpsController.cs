@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.DTOs;
+using HouseManagement.Api.Infrastructure.Files;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -18,10 +19,14 @@ namespace HouseManagement.Api.Controllers;
 public class HouseHelpsController : ControllerBase
 {
     private readonly IHouseHelpService _svc;
+    private readonly IHouseHelpProfileImageService _profileImageService;
 
-    public HouseHelpsController(IHouseHelpService svc)
+    public HouseHelpsController(
+        IHouseHelpService svc,
+        IHouseHelpProfileImageService profileImageService)
     {
         _svc = svc;
+        _profileImageService = profileImageService;
     }
 
     [HttpGet]
@@ -81,6 +86,29 @@ public class HouseHelpsController : ControllerBase
         var updated = await _svc.GetByUserIdAsync(userId);
         var response = ApiResponseFactory.Create(this, ToOwnProfileDto(updated!), "HouseHelp profile updated", StatusCodes.Status200OK);
         return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.HouseHelpOnly)]
+    [HttpPut("me/profile-image")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(ProfileImageOptions.HardMaxMultipartBodyBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ProfileImageOptions.HardMaxSizeBytes)]
+    public async Task<IActionResult> ReplaceOwnProfileImage(
+        [FromForm] UploadHouseHelpProfileImageRequest req,
+        CancellationToken cancellationToken)
+    {
+        if (Request.ContentLength > ProfileImageOptions.HardMaxMultipartBodyBytes)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+
+        if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+        if (!TryGetAuthenticatedUserId(out var userId)) return Unauthorized();
+
+        var existing = await _svc.GetByUserIdAsync(userId);
+        if (existing == null) return NotFound();
+
+        return await ReplaceProfileImageAsync(existing.Id, req.File!, true, cancellationToken);
     }
 
     private static PublicHouseHelpDto ToPublicDto(HouseHelp houseHelp)
@@ -186,6 +214,29 @@ public class HouseHelpsController : ControllerBase
     }
 
     [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{id}/profile-image")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(ProfileImageOptions.HardMaxMultipartBodyBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ProfileImageOptions.HardMaxSizeBytes)]
+    public Task<IActionResult> ReplaceProfileImage(
+        int id,
+        [FromForm] UploadHouseHelpProfileImageRequest req,
+        CancellationToken cancellationToken)
+    {
+        if (Request.ContentLength > ProfileImageOptions.HardMaxMultipartBodyBytes)
+        {
+            return Task.FromResult<IActionResult>(StatusCode(StatusCodes.Status413PayloadTooLarge));
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return Task.FromResult<IActionResult>(ValidationResponseFactory.Create(this, ModelState));
+        }
+
+        return ReplaceProfileImageAsync(id, req.File!, false, cancellationToken);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpPut("{id}/activate")]
     public async Task<IActionResult> SetActive(int id, [FromQuery] bool active = true)
     {
@@ -248,6 +299,41 @@ public class HouseHelpsController : ControllerBase
     {
         var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
         return int.TryParse(subject, out userId);
+    }
+
+    private async Task<IActionResult> ReplaceProfileImageAsync(
+        int houseHelpId,
+        IFormFile file,
+        bool ownProfile,
+        CancellationToken cancellationToken)
+    {
+        HouseHelp? updated;
+        try
+        {
+            await using var content = file.OpenReadStream();
+            updated = await _profileImageService.ReplaceAsync(
+                houseHelpId,
+                new ProfileImageUpload(file.FileName, file.ContentType, content),
+                cancellationToken);
+        }
+        catch (ProfileImageValidationException exception)
+        {
+            foreach (var error in exception.Errors)
+            {
+                foreach (var message in error.Value)
+                {
+                    ModelState.AddModelError(error.Key, message);
+                }
+            }
+
+            return ValidationResponseFactory.Create(this, ModelState);
+        }
+
+        if (updated == null) return NotFound();
+
+        var data = ownProfile ? (object)ToOwnProfileDto(updated) : ToProfileDto(updated);
+        var response = ApiResponseFactory.Create(this, data, "HouseHelp profile image updated", StatusCodes.Status200OK);
+        return Ok(response);
     }
 }
 

@@ -119,6 +119,9 @@ Recent actions (2026-08-27):
 - T032-T039 completed: added anonymous-capable Client, Booking and BookingStatus models, weekly HouseHelp availability, ServiceAddress, valid booking transitions, explicit relationship configurations, business uniqueness constraints, and operational indexes. A domain migration is required before these new tables are deployed.
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
+Recent actions (2026-09-07):
+- T364 completed: added secure multipart profile-image replacement for claim-derived HouseHelp self-service and Manager/Admin operations. Uploads use bounded decoding, dimension and format validation, metadata-stripping re-encoding, a 5 MB hard cap, generated storage keys, serialized SQL Server replacement, rollback cleanup for failed persistence, and post-persistence cleanup of superseded files without exposing raw storage keys.
+
 Recent actions (2026-09-03):
 - T363 completed: added authorized HouseHelp profile update endpoints. HouseHelp users can view/update only their own self-service fields using JWT-derived ownership; Manager/Admin users can update operational profile fields including verification status and emergency contact metadata without exposing raw image storage keys.
 - T362 completed: added provider-neutral profile-image storage and processing abstractions with a local generated-key storage implementation. Image validation now enforces configured maximum size, allowed MIME types/extensions, and file-signature matching for JPEG, PNG, and WebP without exposing raw storage paths or trusting client-provided paths.

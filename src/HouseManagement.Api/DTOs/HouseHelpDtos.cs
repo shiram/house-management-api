@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using HouseManagement.Api.Models;
+using Microsoft.AspNetCore.Http;
 
 namespace HouseManagement.Api.DTOs;
 
@@ -66,6 +67,12 @@ public class PublicHouseHelpDto
     public string LastName { get; set; } = null!;
     public string City { get; set; } = null!;
     public IEnumerable<string> Skills { get; set; } = new List<string>();
+}
+
+public class UploadHouseHelpProfileImageRequest
+{
+    [Required]
+    public IFormFile? File { get; set; }
 }
 
 public class CreateHouseHelpRequest

@@ -83,6 +83,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 
 // HouseHelp domain service
 builder.Services.AddScoped<IHouseHelpService, HouseHelpService>();
+builder.Services.AddScoped<IHouseHelpProfileImageService, HouseHelpProfileImageService>();
 builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();

@@ -50,7 +50,7 @@ Production hosts must provide `JWT_KEY`, `ConnectionStrings__DefaultConnection`,
 
 ## Profile image uploads
 
-No upload endpoint exists yet. Before profile-image uploads are implemented, use a provider-neutral storage abstraction and keep uploaded files outside the application content root and direct static-file serving paths.
+Authenticated HouseHelp users can replace their own image through `PUT /api/househelps/me/profile-image`. Manager/Admin users can replace an image through `PUT /api/househelps/{id}/profile-image`. Both endpoints accept a multipart `file` field, use the provider-neutral storage abstraction, and keep uploaded files outside the application content root and direct static-file serving paths.
 
 - Accept only JPEG, PNG, and WebP profile images. Reject SVG, GIF, PDFs, archives, and all other file types.
 - Enforce a configurable maximum upload size with a server-side hard cap, validate file signatures and decodability rather than trusting the extension or declared MIME type, and constrain decoded image dimensions.
@@ -58,4 +58,4 @@ No upload endpoint exists yet. Before profile-image uploads are implemented, use
 - Re-encode accepted images and strip EXIF metadata before storage so embedded location and device data cannot be exposed.
 - Authorize every upload, replacement, deletion, and private-image retrieval using the authenticated subject and the linked HouseHelp profile. Managers/Admins may be granted operational access only through an explicit authorization rule.
 - Do not expose exact locations, profile notes, source filenames, storage paths, or image metadata in public HouseHelp DTOs. Public image delivery, if approved, must use a safe projected image reference only.
-- Do not log file contents, image metadata, client filenames, storage paths, or full profile locations. Clean up superseded media only after a successful replacement is persisted.
+- Do not log file contents, image metadata, client filenames, storage paths, or full profile locations. Clean up superseded media only after a successful replacement is persisted; remove the newly stored image if persistence fails.

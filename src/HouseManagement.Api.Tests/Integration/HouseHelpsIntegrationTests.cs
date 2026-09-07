@@ -15,16 +15,23 @@ using Xunit;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.DTOs;
+using HouseManagement.Api.Infrastructure.Files;
+using SkiaSharp;
 
 namespace HouseManagement.Api.Tests.Integration;
 
-public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
+    private readonly string _profileImageRoot;
 
     public HouseHelpsIntegrationTests(WebApplicationFactory<Program> factory)
     {
         var databaseName = $"househelps_integration_{Guid.NewGuid()}";
+        _profileImageRoot = Path.Combine(
+            Path.GetTempPath(),
+            "house-management-profile-images",
+            Guid.NewGuid().ToString("N"));
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureServices(services =>
@@ -34,8 +41,19 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
 
                 services.AddDbContext<HouseContext>(options =>
                     options.UseInMemoryDatabase(databaseName));
+                services.PostConfigure<ProfileImageOptions>(options =>
+                    options.StorageRootPath = _profileImageRoot);
             });
         });
+    }
+
+    public void Dispose()
+    {
+        _factory.Dispose();
+        if (Directory.Exists(_profileImageRoot))
+        {
+            Directory.Delete(_profileImageRoot, true);
+        }
     }
 
     private string CreateToken(string role, int? userId = null)
@@ -442,5 +460,185 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         });
 
         Assert.True(response.StatusCode == System.Net.HttpStatusCode.Forbidden || response.StatusCode == System.Net.HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Put_OwnProfileImage_UsesClaimOwnershipAndDoesNotExposeStorageKey()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            UserId = 901,
+            FirstName = "Image",
+            LastName = "Owner",
+            Phone = "+256700000009",
+            City = "Kampala"
+        });
+        createResponse.EnsureSuccessStatusCode();
+
+        var houseHelp = _factory.CreateClient();
+        houseHelp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("househelp", 901));
+        using var upload = CreateImageUpload(PngBytes(), "image/png", "profile.png");
+
+        var response = await houseHelp.PutAsync("/api/househelps/me/profile-image", upload);
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("storageKey", content, StringComparison.OrdinalIgnoreCase);
+        var envelope = JsonSerializer.Deserialize<ApiResponse<OwnHouseHelpProfileDto>>(
+            content,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.Equal("image/png", envelope!.Data!.ProfileImageContentType);
+        Assert.True(envelope.Data.ProfileImageSizeBytes > 0);
+        Assert.NotNull(envelope.Data.ProfileImageUpdatedAt);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+        var stored = await db.HouseHelps.AsNoTracking().SingleAsync(item => item.UserId == 901);
+        Assert.NotNull(stored.ProfileImageStorageKey);
+        var storedPath = GetStoredImagePath(stored.ProfileImageStorageKey!);
+        Assert.True(File.Exists(storedPath));
+        Assert.Equal(stored.ProfileImageSizeBytes, new FileInfo(storedPath).Length);
+    }
+
+    [Fact]
+    public async Task Put_ProfileImage_ReplacesPersistedImageAndRemovesSupersededFile()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            UserId = 902,
+            FirstName = "Replace",
+            LastName = "Image",
+            Phone = "+256700000010",
+            City = "Kampala"
+        });
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var houseHelp = _factory.CreateClient();
+        houseHelp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("househelp", 902));
+        using (var firstUpload = CreateImageUpload(PngBytes(), "image/png", "first.png"))
+        {
+            (await houseHelp.PutAsync("/api/househelps/me/profile-image", firstUpload)).EnsureSuccessStatusCode();
+        }
+
+        string firstStorageKey;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+            firstStorageKey = (await db.HouseHelps.AsNoTracking()
+                .SingleAsync(item => item.Id == created!.Data!.Id)).ProfileImageStorageKey!;
+        }
+
+        var manager = _factory.CreateClient();
+        manager.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("manager", 2));
+        using var replacement = CreateImageUpload(PngBytes(), "image/png", "replacement.png");
+
+        var response = await manager.PutAsync(
+            $"/api/househelps/{created!.Data!.Id}/profile-image",
+            replacement);
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        using var verificationScope = _factory.Services.CreateScope();
+        var verificationDb = verificationScope.ServiceProvider.GetRequiredService<HouseContext>();
+        var stored = await verificationDb.HouseHelps.AsNoTracking()
+            .SingleAsync(item => item.Id == created.Data.Id);
+        Assert.Equal("image/png", stored.ProfileImageContentType);
+        Assert.NotEqual(firstStorageKey, stored.ProfileImageStorageKey);
+        Assert.False(File.Exists(GetStoredImagePath(firstStorageKey)));
+        Assert.True(File.Exists(GetStoredImagePath(stored.ProfileImageStorageKey!)));
+    }
+
+    [Fact]
+    public async Task Put_ProfileImage_RejectsInvalidContentAndHouseHelpManagementAccess()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            UserId = 903,
+            FirstName = "Secure",
+            LastName = "Upload",
+            Phone = "+256700000011",
+            City = "Kampala"
+        });
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var houseHelp = _factory.CreateClient();
+        houseHelp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("househelp", 903));
+        using var unauthorizedUpload = CreateImageUpload(PngBytes(), "image/png", "profile.png");
+        var forbidden = await houseHelp.PutAsync(
+            $"/api/househelps/{created!.Data!.Id}/profile-image",
+            unauthorizedUpload);
+        Assert.Equal(System.Net.HttpStatusCode.Forbidden, forbidden.StatusCode);
+
+        using var invalidUpload = CreateImageUpload([0x01, 0x02, 0x03], "image/png", "profile.png");
+        var invalid = await houseHelp.PutAsync("/api/househelps/me/profile-image", invalidUpload);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, invalid.StatusCode);
+        var envelope = await invalid.Content.ReadFromJsonAsync<ApiResponse<Dictionary<string, string[]>>>();
+        Assert.Contains("content", envelope!.Data!.Keys);
+    }
+
+    [Fact]
+    public async Task Put_OwnProfileImage_RejectsMultipartBodyAboveHardLimit()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            UserId = 904,
+            FirstName = "Bounded",
+            LastName = "Upload",
+            Phone = "+256700000012",
+            City = "Kampala"
+        });
+        createResponse.EnsureSuccessStatusCode();
+
+        var houseHelp = _factory.CreateClient();
+        houseHelp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("househelp", 904));
+        using var upload = CreateImageUpload(PngBytes(), "image/png", "profile.png");
+        upload.Add(new ByteArrayContent(new byte[3 * 1024 * 1024]), "extraOne", "extra-one.bin");
+        upload.Add(new ByteArrayContent(new byte[3 * 1024 * 1024]), "extraTwo", "extra-two.bin");
+
+        var response = await houseHelp.PutAsync("/api/househelps/me/profile-image", upload);
+
+        Assert.True(
+            response.StatusCode == System.Net.HttpStatusCode.BadRequest ||
+            response.StatusCode == System.Net.HttpStatusCode.RequestEntityTooLarge);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+        var stored = await db.HouseHelps.AsNoTracking().SingleAsync(item => item.UserId == 904);
+        Assert.Null(stored.ProfileImageStorageKey);
+    }
+
+    private MultipartFormDataContent CreateImageUpload(
+        byte[] content,
+        string contentType,
+        string fileName)
+    {
+        var fileContent = new ByteArrayContent(content);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        var form = new MultipartFormDataContent();
+        form.Add(fileContent, "File", fileName);
+        return form;
+    }
+
+    private string GetStoredImagePath(string storageKey)
+    {
+        return Path.Combine(_profileImageRoot, Path.Combine(storageKey.Split('/')));
+    }
+
+    private static byte[] PngBytes()
+    {
+        using var bitmap = new SKBitmap(1, 1);
+        bitmap.Erase(SKColors.Blue);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var content = image.Encode(SKEncodedImageFormat.Png, 100);
+        return content.ToArray();
     }
 }
