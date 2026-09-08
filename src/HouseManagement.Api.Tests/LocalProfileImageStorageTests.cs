@@ -71,6 +71,26 @@ public class LocalProfileImageStorageTests
             storage.OpenReadAsync(storageKey, "image/png"));
     }
 
+    [Fact]
+    public async Task SaveAsync_RejectsInvalidHouseHelpId()
+    {
+        var storage = CreateStorage(CreateTempDirectory());
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            storage.SaveAsync(
+                0,
+                new ProcessedProfileImage([0x01], "image/png", ".png", 1)));
+    }
+
+    [Fact]
+    public async Task OpenReadAsync_ThrowsWhenStoredImageIsMissing()
+    {
+        var storage = CreateStorage(CreateTempDirectory());
+
+        await Assert.ThrowsAsync<FileNotFoundException>(() =>
+            storage.OpenReadAsync("househelps/1/missing.png", "image/png"));
+    }
+
     private static LocalProfileImageStorage CreateStorage(string rootPath)
     {
         return new LocalProfileImageStorage(

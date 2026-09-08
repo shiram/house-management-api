@@ -13,7 +13,8 @@ public class HouseHelpAuthorizationTests
         { typeof(AvailabilityController), nameof(AvailabilityController.ReplaceOwnWeekly) },
         { typeof(BookingsController), nameof(BookingsController.GetAssignedForCurrentHouseHelp) },
         { typeof(HouseHelpsController), nameof(HouseHelpsController.GetOwnProfile) },
-        { typeof(HouseHelpsController), nameof(HouseHelpsController.UpdateOwnProfile) }
+        { typeof(HouseHelpsController), nameof(HouseHelpsController.UpdateOwnProfile) },
+        { typeof(HouseHelpsController), nameof(HouseHelpsController.ReplaceOwnProfileImage) }
     };
 
     [Theory]

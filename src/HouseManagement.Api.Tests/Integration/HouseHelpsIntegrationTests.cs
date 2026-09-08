@@ -725,6 +725,15 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, invalid.StatusCode);
         var envelope = await invalid.Content.ReadFromJsonAsync<ApiResponse<Dictionary<string, string[]>>>();
         Assert.Contains("content", envelope!.Data!.Keys);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+        var stored = await db.HouseHelps.AsNoTracking()
+            .SingleAsync(item => item.Id == created.Data.Id);
+        Assert.Null(stored.ProfileImageStorageKey);
+        Assert.False(await db.AuditLogs.AnyAsync(log =>
+            log.Action == AuditEventTypes.HouseHelpProfileImageUpdated &&
+            log.EntityId == created.Data.Id));
     }
 
     [Fact]

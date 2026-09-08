@@ -260,7 +260,7 @@
 - [x] T364 — Implement secure profile-image upload and replacement workflow
 - [x] T365 — Implement safe profile-image retrieval and public-profile image projection
 - [x] T366 — Audit HouseHelp profile and media changes
-- [ ] T367 — Add HouseHelp profile and media unit/integration coverage
+- [x] T367 — Add HouseHelp profile and media unit/integration coverage
 
 ---
 

@@ -26,6 +26,34 @@ public class ProfileImageProcessorTests
         Assert.Equal(1, decoded.Height);
     }
 
+    [Theory]
+    [InlineData("profile.jpg", "image/jpeg", SKEncodedImageFormat.Jpeg)]
+    [InlineData("profile.webp", "image/webp", SKEncodedImageFormat.Webp)]
+    public async Task ProcessAsync_AcceptsAndNormalizesOtherAllowedFormats(
+        string fileName,
+        string contentType,
+        SKEncodedImageFormat format)
+    {
+        var processor = CreateProcessor();
+
+        var processed = await processor.ProcessAsync(new ProfileImageUpload(
+            fileName,
+            contentType,
+            new MemoryStream(ImageBytes(format))));
+
+        Assert.Equal(contentType, processed.ContentType);
+        Assert.Equal(Path.GetExtension(fileName), processed.Extension);
+        Assert.True(processed.SizeBytes > 0);
+        using var encodedStream = new SKMemoryStream(processed.Content);
+        using var codec = SKCodec.Create(encodedStream);
+        Assert.NotNull(codec);
+        Assert.Equal(format, codec.EncodedFormat);
+        using var decoded = SKBitmap.Decode(processed.Content);
+        Assert.NotNull(decoded);
+        Assert.Equal(1, decoded.Width);
+        Assert.Equal(1, decoded.Height);
+    }
+
     [Fact]
     public async Task ProcessAsync_RejectsDisallowedExtension()
     {
@@ -38,6 +66,20 @@ public class ProfileImageProcessorTests
                 new MemoryStream(PngBytes()))));
 
         Assert.Contains("extension", exception.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_RejectsEmptyFile()
+    {
+        var processor = CreateProcessor();
+
+        var exception = await Assert.ThrowsAsync<ProfileImageValidationException>(() =>
+            processor.ProcessAsync(new ProfileImageUpload(
+                "profile.png",
+                "image/png",
+                new MemoryStream())));
+
+        Assert.Contains("content", exception.Errors.Keys);
     }
 
     [Fact]
@@ -134,10 +176,18 @@ public class ProfileImageProcessorTests
 
     private static byte[] PngBytes(int width = 1, int height = 1)
     {
+        return ImageBytes(SKEncodedImageFormat.Png, width, height);
+    }
+
+    private static byte[] ImageBytes(
+        SKEncodedImageFormat format,
+        int width = 1,
+        int height = 1)
+    {
         using var bitmap = new SKBitmap(width, height);
         bitmap.Erase(SKColors.Blue);
         using var image = SKImage.FromBitmap(bitmap);
-        using var content = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var content = image.Encode(format, 100);
         return content.ToArray();
     }
 }

@@ -120,6 +120,7 @@ Recent actions (2026-08-27):
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
 Recent actions (2026-09-08):
+- T367 completed: expanded HouseHelp profile/media coverage across image processing, storage, service orchestration, endpoint authorization, public retrieval, audit safety, and rejected-upload behavior. Added JPEG/WebP normalization, empty/missing media, upload-versus-replacement, inactive-profile, and no-audit-on-failure tests.
 - T366 completed: successful HouseHelp self-service and Manager/Admin profile updates now write `househelp.profile_updated` audit events with JWT-derived actors and changed field names only. Activation changes write `househelp.activation_changed`; image uploads and replacements write `househelp.profile_image_updated` with operation scope while excluding contact values, identity fragments, file names, image metadata, and storage keys. No profile-image deletion endpoint currently exists to audit.
 - T365 completed: added public profile-image retrieval for active HouseHelp profiles through an API-backed route that resolves private storage keys server-side and returns `404` for absent, inactive, or missing images. Public directory/detail projections now include approved profile fields, coarse verification status, and a cache-busted image URL without exposing storage metadata.
 

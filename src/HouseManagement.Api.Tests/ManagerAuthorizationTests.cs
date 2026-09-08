@@ -13,6 +13,7 @@ public class ManagerAuthorizationTests
         { typeof(HouseHelpsController), nameof(HouseHelpsController.Create) },
         { typeof(HouseHelpsController), nameof(HouseHelpsController.Update) },
         { typeof(HouseHelpsController), nameof(HouseHelpsController.UpdateProfile) },
+        { typeof(HouseHelpsController), nameof(HouseHelpsController.ReplaceProfileImage) },
         { typeof(HouseHelpsController), nameof(HouseHelpsController.SetActive) },
         { typeof(AvailabilityController), nameof(AvailabilityController.ReplaceWeekly) },
         { typeof(BookingsController), nameof(BookingsController.Get) },
