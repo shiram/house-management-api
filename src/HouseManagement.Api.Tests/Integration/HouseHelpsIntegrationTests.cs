@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Data;
 using HouseManagement.Api.DTOs;
@@ -205,7 +206,7 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
 
         // manager toggles active=false
         var managerClient = _factory.CreateClient();
-        var managerToken = CreateToken("manager");
+        var managerToken = CreateToken("manager", 2);
         managerClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", managerToken);
         var actResp = await managerClient.PutAsync($"/api/househelps/{createdEnvelope.Data!.Id}/activate?active=false", null);
         Assert.Equal(System.Net.HttpStatusCode.OK, actResp.StatusCode);
@@ -214,10 +215,66 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal(200, envelope!.StatusCode);
         Assert.Equal("HouseHelp status updated", envelope.Message);
 
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+            var audit = await db.AuditLogs.AsNoTracking().SingleAsync(log =>
+                log.Action == AuditEventTypes.HouseHelpActivationChanged &&
+                log.EntityId == createdEnvelope.Data.Id);
+            Assert.Equal(2, audit.UserId);
+            Assert.Equal("True -> False", audit.Details);
+        }
+
         // Inactive profiles remain available to managers through the administrative API only.
         var anon = _factory.CreateClient();
         var detailResponse = await anon.GetAsync($"/api/househelps/{createdEnvelope.Data!.Id}");
         Assert.Equal(System.Net.HttpStatusCode.NotFound, detailResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Put_Update_AuditsPrivateFieldNamesWithoutValues()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            FirstName = "Directory",
+            LastName = "Before",
+            Phone = "+256700000020",
+            City = "Kampala",
+            Address = "Old private address",
+            Skills = ["Cleaning"]
+        });
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var manager = _factory.CreateClient();
+        manager.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("manager", 2));
+        var response = await manager.PutAsJsonAsync(
+            $"/api/househelps/{created!.Data!.Id}",
+            new UpdateHouseHelpRequest
+            {
+                FirstName = "Directory",
+                LastName = "After",
+                Phone = "+256700000021",
+                City = "Entebbe",
+                Address = "New private address",
+                Skills = ["Laundry"]
+            });
+
+        response.EnsureSuccessStatusCode();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+        var audit = await db.AuditLogs.AsNoTracking().SingleAsync(log =>
+            log.Action == AuditEventTypes.HouseHelpProfileUpdated &&
+            log.EntityId == created.Data.Id);
+        Assert.Equal(2, audit.UserId);
+        Assert.Contains(nameof(HouseManagement.Api.Models.HouseHelp.Phone), audit.Details);
+        Assert.Contains(nameof(HouseManagement.Api.Models.HouseHelp.Address), audit.Details);
+        Assert.Contains(nameof(HouseManagement.Api.Models.HouseHelp.Skills), audit.Details);
+        Assert.DoesNotContain("+256700000021", audit.Details);
+        Assert.DoesNotContain("New private address", audit.Details);
     }
 
     [Fact]
@@ -238,6 +295,41 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         hhClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", hhToken);
         var actResp = await hhClient.PutAsync($"/api/househelps/{createdEnvelope.Data!.Id}/activate?active=false", null);
         Assert.True(actResp.StatusCode == System.Net.HttpStatusCode.Forbidden || actResp.StatusCode == System.Net.HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Put_Activate_RejectsManagerWithoutActorClaimBeforeMutation()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            FirstName = "Actor",
+            LastName = "Required",
+            Phone = "+256700000022",
+            City = "Kampala"
+        });
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var managerWithoutActor = _factory.CreateClient();
+        managerWithoutActor.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", CreateToken("manager"));
+
+        var response = await managerWithoutActor.PutAsync(
+            $"/api/househelps/{created!.Data!.Id}/activate?active=false",
+            null);
+
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+        var houseHelp = await db.HouseHelps.AsNoTracking()
+            .SingleAsync(item => item.Id == created.Data.Id);
+        Assert.True(houseHelp.IsActive);
+        Assert.False(await db.AuditLogs.AnyAsync(log =>
+            log.Action == AuditEventTypes.HouseHelpActivationChanged &&
+            log.EntityId == created.Data.Id));
     }
 
     [Fact]
@@ -360,6 +452,19 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal("+256700000003", envelope.Data.Phone);
         Assert.Equal("Updated public bio", envelope.Data.Bio);
 
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+            var audit = await db.AuditLogs.AsNoTracking().SingleAsync(log =>
+                log.Action == AuditEventTypes.HouseHelpProfileUpdated &&
+                log.EntityId == created.Data.Id &&
+                log.UserId == 501);
+            Assert.Contains("Scope: self-service", audit.Details);
+            Assert.Contains(nameof(HouseManagement.Api.Models.HouseHelp.Phone), audit.Details);
+            Assert.DoesNotContain("+256700000003", audit.Details);
+            Assert.DoesNotContain("New address", audit.Details);
+        }
+
         var adminRead = await client.PutAsJsonAsync($"/api/househelps/{created.Data.Id}/profile", new UpdateHouseHelpProfileRequest
         {
             FirstName = "Self",
@@ -448,6 +553,18 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal("Ops Emergency", envelope.Data.EmergencyContactName);
         Assert.Equal("WXYZ", envelope.Data.NationalIdLast4);
         Assert.Equal("PendingReview", envelope.Data.VerificationStatus);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+        var audit = await db.AuditLogs.AsNoTracking().SingleAsync(log =>
+            log.Action == AuditEventTypes.HouseHelpProfileUpdated &&
+            log.EntityId == created.Data.Id);
+        Assert.Equal(2, audit.UserId);
+        Assert.Contains("Scope: management", audit.Details);
+        Assert.Contains(nameof(HouseManagement.Api.Models.HouseHelp.VerificationStatus), audit.Details);
+        Assert.Contains(nameof(HouseManagement.Api.Models.HouseHelp.EmergencyContactPhone), audit.Details);
+        Assert.DoesNotContain("+256700000007", audit.Details);
+        Assert.DoesNotContain("WXYZ", audit.Details);
     }
 
     [Fact]
@@ -506,6 +623,16 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var storedPath = GetStoredImagePath(stored.ProfileImageStorageKey!);
         Assert.True(File.Exists(storedPath));
         Assert.Equal(stored.ProfileImageSizeBytes, new FileInfo(storedPath).Length);
+
+        var audit = await db.AuditLogs.AsNoTracking().SingleAsync(log =>
+            log.Action == AuditEventTypes.HouseHelpProfileImageUpdated &&
+            log.EntityId == stored.Id);
+        Assert.Equal(901, audit.UserId);
+        Assert.Contains("Scope: self-service", audit.Details);
+        Assert.Contains("Operation: upload", audit.Details);
+        Assert.DoesNotContain("ContentType", audit.Details);
+        Assert.DoesNotContain("SizeBytes", audit.Details);
+        Assert.DoesNotContain(stored.ProfileImageStorageKey!, audit.Details);
     }
 
     [Fact]
@@ -556,6 +683,17 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.NotEqual(firstStorageKey, stored.ProfileImageStorageKey);
         Assert.False(File.Exists(GetStoredImagePath(firstStorageKey)));
         Assert.True(File.Exists(GetStoredImagePath(stored.ProfileImageStorageKey!)));
+
+        var audit = await verificationDb.AuditLogs.AsNoTracking().SingleAsync(log =>
+            log.Action == AuditEventTypes.HouseHelpProfileImageUpdated &&
+            log.EntityId == created.Data.Id &&
+            log.UserId == 2);
+        Assert.Contains("Scope: management", audit.Details);
+        Assert.Contains("Operation: replacement", audit.Details);
+        Assert.DoesNotContain("ContentType", audit.Details);
+        Assert.DoesNotContain("SizeBytes", audit.Details);
+        Assert.DoesNotContain(firstStorageKey, audit.Details);
+        Assert.DoesNotContain(stored.ProfileImageStorageKey!, audit.Details);
     }
 
     [Fact]

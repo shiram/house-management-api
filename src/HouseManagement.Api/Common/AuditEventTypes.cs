@@ -12,6 +12,9 @@ public static class AuditEventTypes
     public const string UserActivated = "user.activated";
     public const string SystemSettingUpdated = "system_setting.updated";
     public const string HouseHelpRatingSubmitted = "househelp_rating.submitted";
+    public const string HouseHelpProfileUpdated = "househelp.profile_updated";
+    public const string HouseHelpActivationChanged = "househelp.activation_changed";
+    public const string HouseHelpProfileImageUpdated = "househelp.profile_image_updated";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -22,6 +25,9 @@ public static class AuditEventTypes
         UserRoleChanged,
         UserActivated,
         SystemSettingUpdated,
-        HouseHelpRatingSubmitted
+        HouseHelpRatingSubmitted,
+        HouseHelpProfileUpdated,
+        HouseHelpActivationChanged,
+        HouseHelpProfileImageUpdated
     };
 }

@@ -118,6 +118,14 @@ T366 should audit:
 
 Audit details must not contain phone numbers, addresses, emergency contact data, national ID fragments, raw image paths, tokens, or provider credentials.
 
+Implemented audit actions:
+
+- `househelp.profile_updated` records the affected HouseHelp, JWT-derived actor, self-service or management scope, and changed field names without field values.
+- `househelp.activation_changed` records the affected HouseHelp, JWT-derived actor, and prior-to-next active state.
+- `househelp.profile_image_updated` records the affected HouseHelp, JWT-derived actor, and upload or replacement operation without file names, image metadata, or storage keys.
+
+There is currently no profile-image deletion endpoint. Any future deletion workflow must emit a non-sensitive audit event before it is considered complete.
+
 ## Deferred decisions
 
 - Whether public display should show full last name or an abbreviated last initial can be revisited if privacy requirements change.

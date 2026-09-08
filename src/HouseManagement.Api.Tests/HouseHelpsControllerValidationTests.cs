@@ -8,6 +8,8 @@ using HouseManagement.Api.Services;
 using HouseManagement.Api.Models;
 using HouseManagement.Api.DTOs;
 using System.Collections.Generic;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace HouseManagement.Api.Tests;
 
@@ -59,8 +61,19 @@ public class HouseHelpsControllerValidationTests
 
     private static HouseHelpsController CreateController(Mock<IHouseHelpService> service)
     {
-        return new HouseHelpsController(
+        var controller = new HouseHelpsController(
             service.Object,
-            Mock.Of<IHouseHelpProfileImageService>());
+            Mock.Of<IHouseHelpProfileImageService>(),
+            Mock.Of<IAuditLogService>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [new Claim(ClaimTypes.NameIdentifier, "1")],
+                    "Test"))
+            }
+        };
+        return controller;
     }
 }

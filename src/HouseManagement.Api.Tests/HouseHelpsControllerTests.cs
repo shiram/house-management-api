@@ -86,6 +86,7 @@ public class HouseHelpsControllerTests
     {
         return new HouseHelpsController(
             service.Object,
-            Mock.Of<IHouseHelpProfileImageService>());
+            Mock.Of<IHouseHelpProfileImageService>(),
+            Mock.Of<IAuditLogService>());
     }
 }

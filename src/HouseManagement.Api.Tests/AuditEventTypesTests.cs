@@ -17,7 +17,10 @@ public class AuditEventTypesTests
             AuditEventTypes.UserRoleChanged,
             AuditEventTypes.UserActivated,
             AuditEventTypes.SystemSettingUpdated,
-            AuditEventTypes.HouseHelpRatingSubmitted
+            AuditEventTypes.HouseHelpRatingSubmitted,
+            AuditEventTypes.HouseHelpProfileUpdated,
+            AuditEventTypes.HouseHelpActivationChanged,
+            AuditEventTypes.HouseHelpProfileImageUpdated
         };
 
         Assert.Equal(eventTypes.Length, eventTypes.Distinct(StringComparer.Ordinal).Count());

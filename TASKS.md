@@ -259,7 +259,7 @@
 - [x] T363 — Implement authorized HouseHelp profile update endpoints
 - [x] T364 — Implement secure profile-image upload and replacement workflow
 - [x] T365 — Implement safe profile-image retrieval and public-profile image projection
-- [ ] T366 — Audit HouseHelp profile and media changes
+- [x] T366 — Audit HouseHelp profile and media changes
 - [ ] T367 — Add HouseHelp profile and media unit/integration coverage
 
 ---

@@ -63,7 +63,7 @@ public sealed class HouseHelpProfileImageService : IHouseHelpProfileImageService
         }
     }
 
-    public async Task<HouseHelp?> ReplaceAsync(
+    public async Task<HouseHelpProfileImageUpdateResult?> ReplaceAsync(
         int houseHelpId,
         ProfileImageUpload upload,
         CancellationToken cancellationToken = default)
@@ -128,7 +128,9 @@ public sealed class HouseHelpProfileImageService : IHouseHelpProfileImageService
             await DeleteBestEffortAsync(previousStorageKey);
         }
 
-        return houseHelp;
+        return new HouseHelpProfileImageUpdateResult(
+            houseHelp,
+            !string.IsNullOrWhiteSpace(previousStorageKey));
     }
 
     private async Task DeleteBestEffortAsync(string storageKey)

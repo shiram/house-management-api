@@ -2,6 +2,7 @@ using System.Linq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.DTOs;
@@ -20,13 +21,16 @@ public class HouseHelpsController : ControllerBase
 {
     private readonly IHouseHelpService _svc;
     private readonly IHouseHelpProfileImageService _profileImageService;
+    private readonly IAuditLogService _auditLogs;
 
     public HouseHelpsController(
         IHouseHelpService svc,
-        IHouseHelpProfileImageService profileImageService)
+        IHouseHelpProfileImageService profileImageService,
+        IAuditLogService auditLogs)
     {
         _svc = svc;
         _profileImageService = profileImageService;
+        _auditLogs = auditLogs;
     }
 
     [HttpGet]
@@ -83,6 +87,17 @@ public class HouseHelpsController : ControllerBase
         var existing = await _svc.GetByUserIdAsync(userId);
         if (existing == null) return NotFound();
 
+        var auditDetails = BuildProfileAuditDetails(
+            "self-service",
+            (nameof(HouseHelp.FirstName), !string.Equals(existing.FirstName, req.FirstName.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.LastName), !string.Equals(existing.LastName, req.LastName.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Phone), !string.Equals(existing.Phone, req.Phone.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.City), !string.Equals(existing.City, req.City.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Address), !string.Equals(existing.Address, NormalizeOptional(req.Address), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Bio), !string.Equals(existing.Bio, NormalizeOptional(req.Bio), StringComparison.Ordinal)),
+            (nameof(HouseHelp.YearsOfExperience), existing.YearsOfExperience != req.YearsOfExperience),
+            (nameof(HouseHelp.Languages), !string.Equals(existing.Languages, NormalizeOptional(req.Languages), StringComparison.Ordinal)));
+
         existing.FirstName = req.FirstName;
         existing.LastName = req.LastName;
         existing.Phone = req.Phone;
@@ -94,6 +109,13 @@ public class HouseHelpsController : ControllerBase
 
         var ok = await _svc.UpdateOwnProfileAsync(existing);
         if (!ok) return NotFound();
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.HouseHelpProfileUpdated,
+            nameof(HouseHelp),
+            entityId: existing.Id,
+            userId: userId,
+            details: auditDetails);
 
         var updated = await _svc.GetByUserIdAsync(userId);
         var response = ApiResponseFactory.Create(this, ToOwnProfileDto(updated!), "HouseHelp profile updated", StatusCodes.Status200OK);
@@ -120,7 +142,7 @@ public class HouseHelpsController : ControllerBase
         var existing = await _svc.GetByUserIdAsync(userId);
         if (existing == null) return NotFound();
 
-        return await ReplaceProfileImageAsync(existing.Id, req.File!, true, cancellationToken);
+        return await ReplaceProfileImageAsync(existing.Id, req.File!, true, userId, cancellationToken);
     }
 
     private static PublicHouseHelpDto ToPublicDto(HouseHelp houseHelp)
@@ -193,9 +215,23 @@ public class HouseHelpsController : ControllerBase
     public async Task<IActionResult> Update(int id, [FromBody] UpdateHouseHelpRequest req)
     {
         if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+        if (!TryGetAuthenticatedUserId(out var actorUserId)) return Unauthorized();
 
         var existing = await _svc.GetByIdAsync(id);
         if (existing == null) return NotFound();
+
+        var incomingSkills = (req.Skills ?? Enumerable.Empty<string>())
+            .Where(skill => !string.IsNullOrWhiteSpace(skill))
+            .Select(skill => skill.Trim())
+            .ToHashSet(StringComparer.Ordinal);
+        var auditDetails = BuildProfileAuditDetails(
+            "management",
+            (nameof(HouseHelp.FirstName), !string.Equals(existing.FirstName, req.FirstName.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.LastName), !string.Equals(existing.LastName, req.LastName.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Phone), !string.Equals(existing.Phone, req.Phone.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.City), !string.Equals(existing.City, req.City.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Address), !string.Equals(existing.Address, NormalizeOptional(req.Address), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Skills), !incomingSkills.SetEquals(existing.Skills.Select(skill => skill.ServiceName))));
 
         existing.FirstName = req.FirstName;
         existing.LastName = req.LastName;
@@ -205,6 +241,13 @@ public class HouseHelpsController : ControllerBase
 
         var ok = await _svc.UpdateAsync(existing, req.Skills);
         if (!ok) return NotFound();
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.HouseHelpProfileUpdated,
+            nameof(HouseHelp),
+            entityId: existing.Id,
+            userId: actorUserId,
+            details: auditDetails);
 
         var response = ApiResponseFactory.Create<object?>(this, null, "HouseHelp updated", StatusCodes.Status200OK);
         return Ok(response);
@@ -220,9 +263,25 @@ public class HouseHelpsController : ControllerBase
         }
 
         if (!ModelState.IsValid) return ValidationResponseFactory.Create(this, ModelState);
+        if (!TryGetAuthenticatedUserId(out var actorUserId)) return Unauthorized();
 
         var existing = await _svc.GetByIdAsync(id);
         if (existing == null) return NotFound();
+
+        var auditDetails = BuildProfileAuditDetails(
+            "management",
+            (nameof(HouseHelp.FirstName), !string.Equals(existing.FirstName, req.FirstName.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.LastName), !string.Equals(existing.LastName, req.LastName.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Phone), !string.Equals(existing.Phone, req.Phone.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.City), !string.Equals(existing.City, req.City.Trim(), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Address), !string.Equals(existing.Address, NormalizeOptional(req.Address), StringComparison.Ordinal)),
+            (nameof(HouseHelp.Bio), !string.Equals(existing.Bio, NormalizeOptional(req.Bio), StringComparison.Ordinal)),
+            (nameof(HouseHelp.YearsOfExperience), existing.YearsOfExperience != req.YearsOfExperience),
+            (nameof(HouseHelp.Languages), !string.Equals(existing.Languages, NormalizeOptional(req.Languages), StringComparison.Ordinal)),
+            (nameof(HouseHelp.EmergencyContactName), !string.Equals(existing.EmergencyContactName, NormalizeOptional(req.EmergencyContactName), StringComparison.Ordinal)),
+            (nameof(HouseHelp.EmergencyContactPhone), !string.Equals(existing.EmergencyContactPhone, NormalizeOptional(req.EmergencyContactPhone), StringComparison.Ordinal)),
+            (nameof(HouseHelp.NationalIdLast4), !string.Equals(existing.NationalIdLast4, NormalizeOptional(req.NationalIdLast4), StringComparison.Ordinal)),
+            (nameof(HouseHelp.VerificationStatus), existing.VerificationStatus != req.VerificationStatus));
 
         existing.FirstName = req.FirstName;
         existing.LastName = req.LastName;
@@ -239,6 +298,13 @@ public class HouseHelpsController : ControllerBase
 
         var ok = await _svc.UpdateProfileAsync(existing);
         if (!ok) return NotFound();
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.HouseHelpProfileUpdated,
+            nameof(HouseHelp),
+            entityId: existing.Id,
+            userId: actorUserId,
+            details: auditDetails);
 
         var updated = await _svc.GetByIdAsync(id);
         var response = ApiResponseFactory.Create(this, ToProfileDto(updated!), "HouseHelp profile updated", StatusCodes.Status200OK);
@@ -265,15 +331,33 @@ public class HouseHelpsController : ControllerBase
             return Task.FromResult<IActionResult>(ValidationResponseFactory.Create(this, ModelState));
         }
 
-        return ReplaceProfileImageAsync(id, req.File!, false, cancellationToken);
+        if (!TryGetAuthenticatedUserId(out var actorUserId))
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+
+        return ReplaceProfileImageAsync(id, req.File!, false, actorUserId, cancellationToken);
     }
 
     [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [HttpPut("{id}/activate")]
     public async Task<IActionResult> SetActive(int id, [FromQuery] bool active = true)
     {
+        if (!TryGetAuthenticatedUserId(out var actorUserId)) return Unauthorized();
+
+        var existing = await _svc.GetByIdAsync(id);
+        if (existing == null) return NotFound();
+
+        var previousActive = existing.IsActive;
         var ok = await _svc.SetActiveAsync(id, active);
         if (!ok) return NotFound();
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.HouseHelpActivationChanged,
+            nameof(HouseHelp),
+            entityId: id,
+            userId: actorUserId,
+            details: $"{previousActive} -> {active}");
 
         var response = ApiResponseFactory.Create<object?>(this, null, "HouseHelp status updated", StatusCodes.Status200OK);
         return Ok(response);
@@ -337,13 +421,14 @@ public class HouseHelpsController : ControllerBase
         int houseHelpId,
         IFormFile file,
         bool ownProfile,
+        int actorUserId,
         CancellationToken cancellationToken)
     {
-        HouseHelp? updated;
+        HouseHelpProfileImageUpdateResult? result;
         try
         {
             await using var content = file.OpenReadStream();
-            updated = await _profileImageService.ReplaceAsync(
+            result = await _profileImageService.ReplaceAsync(
                 houseHelpId,
                 new ProfileImageUpload(file.FileName, file.ContentType, content),
                 cancellationToken);
@@ -361,11 +446,35 @@ public class HouseHelpsController : ControllerBase
             return ValidationResponseFactory.Create(this, ModelState);
         }
 
-        if (updated == null) return NotFound();
+        if (result == null) return NotFound();
 
-        var data = ownProfile ? (object)ToOwnProfileDto(updated) : ToProfileDto(updated);
+        await _auditLogs.LogAsync(
+            AuditEventTypes.HouseHelpProfileImageUpdated,
+            nameof(HouseHelp),
+            entityId: result.HouseHelp.Id,
+            userId: actorUserId,
+            details: $"Scope: {(ownProfile ? "self-service" : "management")}; Operation: {(result.ReplacedExisting ? "replacement" : "upload")}");
+
+        var data = ownProfile
+            ? (object)ToOwnProfileDto(result.HouseHelp)
+            : ToProfileDto(result.HouseHelp);
         var response = ApiResponseFactory.Create(this, data, "HouseHelp profile image updated", StatusCodes.Status200OK);
         return Ok(response);
+    }
+
+    private static string BuildProfileAuditDetails(
+        string scope,
+        params (string Field, bool Changed)[] fields)
+    {
+        var fieldList = string.Join(
+            ",",
+            fields.Where(field => field.Changed).Select(field => field.Field));
+        return $"Scope: {scope}; Fields: {(fieldList.Length == 0 ? "none" : fieldList)}";
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }
 
