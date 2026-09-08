@@ -25,6 +25,44 @@ public sealed class HouseHelpProfileImageService : IHouseHelpProfileImageService
         _logger = logger;
     }
 
+    public async Task<ProfileImageReadResult?> OpenPublicAsync(
+        int houseHelpId,
+        CancellationToken cancellationToken = default)
+    {
+        var image = await _db.HouseHelps
+            .AsNoTracking()
+            .Where(item =>
+                item.Id == houseHelpId &&
+                item.IsActive &&
+                item.ProfileImageStorageKey != null &&
+                item.ProfileImageContentType != null)
+            .Select(item => new
+            {
+                item.ProfileImageStorageKey,
+                item.ProfileImageContentType
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (image == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _storage.OpenReadAsync(
+                image.ProfileImageStorageKey!,
+                image.ProfileImageContentType!,
+                cancellationToken);
+        }
+        catch (FileNotFoundException)
+        {
+            _logger.LogWarning(
+                "Stored profile image is missing for HouseHelp {HouseHelpId}",
+                houseHelpId);
+            return null;
+        }
+    }
+
     public async Task<HouseHelp?> ReplaceAsync(
         int houseHelpId,
         ProfileImageUpload upload,

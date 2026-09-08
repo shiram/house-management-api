@@ -119,6 +119,9 @@ Recent actions (2026-08-27):
 - T032-T039 completed: added anonymous-capable Client, Booking and BookingStatus models, weekly HouseHelp availability, ServiceAddress, valid booking transitions, explicit relationship configurations, business uniqueness constraints, and operational indexes. A domain migration is required before these new tables are deployed.
 - T050 completed: added feature-specific service response, create, and update DTOs.
 
+Recent actions (2026-09-08):
+- T365 completed: added public profile-image retrieval for active HouseHelp profiles through an API-backed route that resolves private storage keys server-side and returns `404` for absent, inactive, or missing images. Public directory/detail projections now include approved profile fields, coarse verification status, and a cache-busted image URL without exposing storage metadata.
+
 Recent actions (2026-09-07):
 - T364 completed: added secure multipart profile-image replacement for claim-derived HouseHelp self-service and Manager/Admin operations. Uploads use bounded decoding, dimension and format validation, metadata-stripping re-encoding, a 5 MB hard cap, generated storage keys, serialized SQL Server replacement, rollback cleanup for failed persistence, and post-persistence cleanup of superseded files without exposing raw storage keys.
 

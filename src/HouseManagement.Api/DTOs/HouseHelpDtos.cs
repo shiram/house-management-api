@@ -66,6 +66,11 @@ public class PublicHouseHelpDto
     public string FirstName { get; set; } = null!;
     public string LastName { get; set; } = null!;
     public string City { get; set; } = null!;
+    public string? Bio { get; set; }
+    public int? YearsOfExperience { get; set; }
+    public string? Languages { get; set; }
+    public string VerificationStatus { get; set; } = null!;
+    public string? ProfileImageUrl { get; set; }
     public IEnumerable<string> Skills { get; set; } = new List<string>();
 }
 

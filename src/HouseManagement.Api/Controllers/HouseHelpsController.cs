@@ -48,6 +48,18 @@ public class HouseHelpsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("{id}/profile-image")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> GetProfileImage(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var image = await _profileImageService.OpenPublicAsync(id, cancellationToken);
+        if (image == null) return NotFound();
+
+        return File(image.Content, image.ContentType, enableRangeProcessing: true);
+    }
+
     [Authorize(Policy = AuthorizationPolicies.HouseHelpOnly)]
     [HttpGet("me/profile")]
     public async Task<IActionResult> GetOwnProfile()
@@ -119,8 +131,28 @@ public class HouseHelpsController : ControllerBase
             FirstName = houseHelp.FirstName,
             LastName = houseHelp.LastName,
             City = houseHelp.City,
+            Bio = houseHelp.Bio,
+            YearsOfExperience = houseHelp.YearsOfExperience,
+            Languages = houseHelp.Languages,
+            VerificationStatus = houseHelp.VerificationStatus == HouseHelpVerificationStatus.Verified
+                ? nameof(HouseHelpVerificationStatus.Verified)
+                : nameof(HouseHelpVerificationStatus.Unverified),
+            ProfileImageUrl = BuildPublicProfileImageUrl(houseHelp),
             Skills = houseHelp.Skills.Select(s => s.ServiceName)
         };
+    }
+
+    private static string? BuildPublicProfileImageUrl(HouseHelp houseHelp)
+    {
+        if (string.IsNullOrWhiteSpace(houseHelp.ProfileImageStorageKey))
+        {
+            return null;
+        }
+
+        var version = houseHelp.ProfileImageUpdatedAt?.ToUnixTimeMilliseconds();
+        return version.HasValue
+            ? $"/api/househelps/{houseHelp.Id}/profile-image?v={version.Value}"
+            : $"/api/househelps/{houseHelp.Id}/profile-image";
     }
 
     [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]

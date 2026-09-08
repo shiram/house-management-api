@@ -105,6 +105,7 @@ All HouseHelp self-service operations must derive identity from JWT claims. Do n
 - Return a safe retrieval URL or API route, not the underlying storage path.
 - Replacing an image should orphan/delete the previous image through the storage abstraction where possible.
 - Public image retrieval must only serve images for active public profiles.
+- Public profile DTOs expose a derived `/api/househelps/{id}/profile-image` URL with an update-time version. The retrieval route resolves the private storage key server-side, returns `404` for inactive profiles, absent metadata, or missing stored files, and disables response storage so deactivation is enforced on every request.
 
 ## Audit expectations
 

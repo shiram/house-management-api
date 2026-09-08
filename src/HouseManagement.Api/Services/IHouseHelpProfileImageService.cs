@@ -5,6 +5,10 @@ namespace HouseManagement.Api.Services;
 
 public interface IHouseHelpProfileImageService
 {
+    Task<ProfileImageReadResult?> OpenPublicAsync(
+        int houseHelpId,
+        CancellationToken cancellationToken = default);
+
     Task<HouseHelp?> ReplaceAsync(
         int houseHelpId,
         ProfileImageUpload upload,

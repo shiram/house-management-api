@@ -151,6 +151,9 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.DoesNotContain("\"phone\"", content);
         Assert.DoesNotContain("\"address\"", content);
         Assert.DoesNotContain("\"isActive\"", content);
+        Assert.DoesNotContain("\"profileImageStorageKey\"", content);
+        Assert.DoesNotContain("\"profileImageContentType\"", content);
+        Assert.DoesNotContain("\"profileImageSizeBytes\"", content);
         var envelope = JsonSerializer.Deserialize<ApiResponse<List<PublicHouseHelpDto>>>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.NotNull(envelope);
         Assert.Equal(200, envelope!.StatusCode);
@@ -179,6 +182,9 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.DoesNotContain("\"phone\"", content);
         Assert.DoesNotContain("\"address\"", content);
         Assert.DoesNotContain("\"isActive\"", content);
+        Assert.DoesNotContain("\"profileImageStorageKey\"", content);
+        Assert.DoesNotContain("\"profileImageContentType\"", content);
+        Assert.DoesNotContain("\"profileImageSizeBytes\"", content);
         var envelope = JsonSerializer.Deserialize<ApiResponse<PublicHouseHelpDto>>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.NotNull(envelope);
         Assert.Equal(createdEnvelope.Data.Id, envelope!.Data!.Id);
@@ -614,6 +620,157 @@ public class HouseHelpsIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
         var stored = await db.HouseHelps.AsNoTracking().SingleAsync(item => item.UserId == 904);
         Assert.Null(stored.ProfileImageStorageKey);
+    }
+
+    [Fact]
+    public async Task PublicProfile_ProjectsSafeImageUrlAndServesOnlyActiveProfileImage()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            UserId = 905,
+            FirstName = "Public",
+            LastName = "Profile",
+            Phone = "+256700000013",
+            City = "Kampala"
+        });
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var profileUpdate = await admin.PutAsJsonAsync(
+            $"/api/househelps/{created!.Data!.Id}/profile",
+            new UpdateHouseHelpProfileRequest
+            {
+                FirstName = "Public",
+                LastName = "Profile",
+                Phone = "+256700000013",
+                City = "Kampala",
+                Bio = "Experienced home care professional",
+                YearsOfExperience = 5,
+                Languages = "English,Luganda",
+                VerificationStatus = HouseManagement.Api.Models.HouseHelpVerificationStatus.Verified
+            });
+        profileUpdate.EnsureSuccessStatusCode();
+
+        using (var upload = CreateImageUpload(PngBytes(), "image/png", "profile.png"))
+        {
+            (await admin.PutAsync(
+                $"/api/househelps/{created.Data.Id}/profile-image",
+                upload)).EnsureSuccessStatusCode();
+        }
+
+        var anonymous = _factory.CreateClient();
+        var detailResponse = await anonymous.GetAsync($"/api/househelps/{created.Data.Id}");
+        detailResponse.EnsureSuccessStatusCode();
+        var detailContent = await detailResponse.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("storageKey", detailContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("profileImageContentType", detailContent, StringComparison.OrdinalIgnoreCase);
+        var detail = JsonSerializer.Deserialize<ApiResponse<PublicHouseHelpDto>>(
+            detailContent,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.Equal("Experienced home care professional", detail!.Data!.Bio);
+        Assert.Equal(5, detail.Data.YearsOfExperience);
+        Assert.Equal("English,Luganda", detail.Data.Languages);
+        Assert.Equal("Verified", detail.Data.VerificationStatus);
+        Assert.StartsWith(
+            $"/api/househelps/{created.Data.Id}/profile-image?v=",
+            detail.Data.ProfileImageUrl,
+            StringComparison.Ordinal);
+
+        var imageResponse = await anonymous.GetAsync(detail.Data.ProfileImageUrl);
+        Assert.Equal(System.Net.HttpStatusCode.OK, imageResponse.StatusCode);
+        Assert.Equal("image/png", imageResponse.Content.Headers.ContentType!.MediaType);
+        Assert.True(imageResponse.Headers.CacheControl!.NoStore);
+        var imageContent = await imageResponse.Content.ReadAsByteArrayAsync();
+        using var decoded = SKBitmap.Decode(imageContent);
+        Assert.NotNull(decoded);
+        Assert.Equal(1, decoded.Width);
+        Assert.Equal(1, decoded.Height);
+
+        (await admin.PutAsync(
+            $"/api/househelps/{created.Data.Id}/activate?active=false",
+            null)).EnsureSuccessStatusCode();
+
+        var inactiveImageResponse = await anonymous.GetAsync(detail.Data.ProfileImageUrl);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, inactiveImageResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_ProfileImage_ReturnsNotFoundWhenStoredFileIsMissing()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            FirstName = "Missing",
+            LastName = "Image",
+            Phone = "+256700000014",
+            City = "Kampala"
+        });
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        using (var upload = CreateImageUpload(PngBytes(), "image/png", "profile.png"))
+        {
+            (await admin.PutAsync(
+                $"/api/househelps/{created!.Data!.Id}/profile-image",
+                upload)).EnsureSuccessStatusCode();
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+            var stored = await db.HouseHelps.AsNoTracking()
+                .SingleAsync(item => item.Id == created.Data.Id);
+            File.Delete(GetStoredImagePath(stored.ProfileImageStorageKey!));
+        }
+
+        var anonymous = _factory.CreateClient();
+        var response = await anonymous.GetAsync(
+            $"/api/househelps/{created.Data.Id}/profile-image");
+
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(HouseManagement.Api.Models.HouseHelpVerificationStatus.Unverified, "Unverified")]
+    [InlineData(HouseManagement.Api.Models.HouseHelpVerificationStatus.PendingReview, "Unverified")]
+    [InlineData(HouseManagement.Api.Models.HouseHelpVerificationStatus.Rejected, "Unverified")]
+    [InlineData(HouseManagement.Api.Models.HouseHelpVerificationStatus.Verified, "Verified")]
+    public async Task PublicProfile_ProjectsCoarseVerificationStatus(
+        HouseManagement.Api.Models.HouseHelpVerificationStatus status,
+        string expected)
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("admin", 1));
+        var createResponse = await admin.PostAsJsonAsync("/api/househelps", new CreateHouseHelpRequest
+        {
+            FirstName = $"Status{status}",
+            LastName = "Projection",
+            Phone = "+256700000015",
+            City = "Kampala"
+        });
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<HouseHelpDto>>();
+
+        var profileUpdate = await admin.PutAsJsonAsync(
+            $"/api/househelps/{created!.Data!.Id}/profile",
+            new UpdateHouseHelpProfileRequest
+            {
+                FirstName = $"Status{status}",
+                LastName = "Projection",
+                Phone = "+256700000015",
+                City = "Kampala",
+                VerificationStatus = status
+            });
+        profileUpdate.EnsureSuccessStatusCode();
+
+        var anonymous = _factory.CreateClient();
+        var detail = await anonymous.GetFromJsonAsync<ApiResponse<PublicHouseHelpDto>>(
+            $"/api/househelps/{created.Data.Id}");
+
+        Assert.Equal(expected, detail!.Data!.VerificationStatus);
     }
 
     private MultipartFormDataContent CreateImageUpload(
