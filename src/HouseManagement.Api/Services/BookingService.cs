@@ -51,6 +51,7 @@ public sealed class BookingService : IBookingService
 
         var service = await _db.Services
             .Include(item => item.PriceRules)
+            .Include(item => item.TimePricingPolicy)
             .SingleOrDefaultAsync(item => item.Id == request.ServiceId && item.IsActive);
         if (service == null)
         {
@@ -147,6 +148,8 @@ public sealed class BookingService : IBookingService
             .Include(booking => booking.Client)
             .Include(booking => booking.Service)
                 .ThenInclude(service => service.PriceRules)
+            .Include(booking => booking.Service)
+                .ThenInclude(service => service.TimePricingPolicy)
             .Include(booking => booking.ServiceAddress)
             .SingleOrDefaultAsync(booking => booking.Id == bookingId);
 
@@ -500,7 +503,10 @@ public sealed class BookingService : IBookingService
 
         if (service.PricingMode == ServicePricingMode.TimeBased)
         {
-            return new BookingPricingResult([], 0, "Time-based pricing is not configured for this service.");
+            var error = service.TimePricingPolicy == null
+                ? "Time-based pricing is not configured for this service."
+                : "Time-based pricing calculation is not available yet.";
+            return new BookingPricingResult([], 0, error);
         }
 
         if (service.PricingMode != ServicePricingMode.PerUnit)

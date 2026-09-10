@@ -15,4 +15,5 @@ public class Service
     public DateTimeOffset? UpdatedAt { get; set; }
     public List<Booking> Bookings { get; set; } = new();
     public List<ServicePriceRule> PriceRules { get; set; } = new();
+    public ServiceTimePricingPolicy? TimePricingPolicy { get; set; }
 }

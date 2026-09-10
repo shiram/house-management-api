@@ -141,6 +141,39 @@ public class BookingServiceTests
     }
 
     [Fact]
+    public async Task CreateAnonymousAsync_RejectsConfiguredTimeBasedPricingUntilCalculationIsImplemented()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "HOURLY_CLEANING",
+            Name = "Hourly Cleaning",
+            PricingMode = ServicePricingMode.TimeBased,
+            IsActive = true,
+            TimePricingPolicy = new ServiceTimePricingPolicy
+            {
+                BillingUnit = TimePricingUnit.Hour,
+                UnitPrice = 25m,
+                MinimumBillableDurationMinutes = 60,
+                BillingIncrementMinutes = 30,
+                RoundingPolicy = TimeRoundingPolicy.Up
+            }
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingService(context).CreateAnonymousAsync(CreateRequest(serviceId: 1));
+
+        Assert.Null(result.Booking);
+        Assert.Equal("Time-based pricing calculation is not available yet.", result.Error);
+        Assert.Empty(await context.Bookings.ToListAsync());
+    }
+
+    [Fact]
     public async Task CreateAnonymousAsync_AppliesPromotionAndSnapshotsDiscount()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()

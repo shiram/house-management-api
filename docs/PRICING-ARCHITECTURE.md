@@ -15,7 +15,8 @@ This document defines the pricing boundary for Phase 19. It preserves the curren
 
 The existing implementation remains valid and must be extended incrementally:
 
-- `Service.PricingMode` supports `Fixed`, `PerUnit`, and `TimeBased`. Time-based services cannot be booked until their duration policy is introduced by T382.
+- `Service.PricingMode` supports `Fixed`, `PerUnit`, and `TimeBased`. Time-based services cannot be booked until quote calculation is introduced by T384.
+- `ServiceTimePricingPolicy` stores the current time-based rate, billing unit, minimum billable duration, rounding increment/policy, and optional overtime threshold/rate.
 - `Service.BasePrice` is the fixed-service amount.
 - `ServicePriceRule` stores active per-unit names and unit prices.
 - Booking requests submit `PricingItems` containing a price-rule identifier and integer quantity.
@@ -27,7 +28,7 @@ The existing implementation remains valid and must be extended incrementally:
 Current limitations:
 
 - Pricing rules are mutable and are not effective-dated.
-- There is no duration billing policy for the time-based pricing mode.
+- Time-based policy persistence exists, but booking and quote calculation do not consume it yet.
 - Quote calculation is private to booking creation; there is no public quote endpoint.
 - There are no service fees, surcharges, tax lines, or persisted currency on the booking snapshot.
 - Per-unit quantities are whole numbers only.
@@ -157,7 +158,18 @@ requested duration
   -> rate calculation
 ```
 
-T382 will define the persistence and exact calculation fields. Until then, booking creation rejects time-based services with an explicit configuration error. Time-based pricing must not infer policy solely from the booking UI or from an unversioned global setting.
+`ServiceTimePricingPolicy` defines:
+
+- `BillingUnit`: minute, hour, or day
+- `UnitPrice`: the regular price for one billing unit
+- `MinimumBillableDurationMinutes`: the minimum duration charged for a booking
+- `BillingIncrementMinutes`: the duration increment used by the rounding policy
+- `RoundingPolicy`: none, up, down, or nearest
+- `OvertimeThresholdMinutes` and `OvertimeUnitPrice`: an optional pair defining when the overtime rate starts
+
+Durations and thresholds are persisted in whole minutes so they are independent of display units and avoid floating-point time arithmetic. Overtime fields must both be absent or both be present, the threshold cannot be below the minimum billable duration, and all configured rates and durations must be positive.
+
+Until T384 implements calculation, booking creation rejects configured time-based services explicitly. Time-based pricing must not infer policy solely from the booking UI or from an unversioned global setting.
 
 ## Pricing resolution and calculation flow
 
@@ -265,7 +277,7 @@ API responses use pricing-specific DTOs and never expose EF entities. Public pro
 
 | Task | Boundary established by this document |
 |---|---|
-| T381-T382 | Add time-based mode and duration-policy persistence without changing existing fixed/per-unit semantics. |
+| T381-T382 | Added time-based mode and duration-policy persistence without changing existing fixed/per-unit semantics. |
 | T383 | Introduce immutable effective-dated pricing versions and migrate current definitions. |
 | T384-T385 | Extract deterministic quote calculation and validate all pricing inputs server-side. |
 | T386 | Add composable fees and contextual surcharges. |

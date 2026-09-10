@@ -31,6 +31,7 @@ public class HouseContext : DbContext
     public DbSet<HouseHelpRating> HouseHelpRatings { get; set; }
     public DbSet<ClientHouseHelpPreference> ClientHouseHelpPreferences { get; set; }
     public DbSet<ServicePriceRule> ServicePriceRules { get; set; }
+    public DbSet<ServiceTimePricingPolicy> ServiceTimePricingPolicies { get; set; }
     public DbSet<BookingPriceLine> BookingPriceLines { get; set; }
     public DbSet<Promotion> Promotions { get; set; }
     public DbSet<Payment> Payments { get; set; }
