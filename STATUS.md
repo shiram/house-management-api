@@ -124,6 +124,9 @@ Recent actions (2026-09-08):
 - T366 completed: successful HouseHelp self-service and Manager/Admin profile updates now write `househelp.profile_updated` audit events with JWT-derived actors and changed field names only. Activation changes write `househelp.activation_changed`; image uploads and replacements write `househelp.profile_image_updated` with operation scope while excluding contact values, identity fragments, file names, image metadata, and storage keys. No profile-image deletion endpoint currently exists to audit.
 - T365 completed: added public profile-image retrieval for active HouseHelp profiles through an API-backed route that resolves private storage keys server-side and returns `404` for absent, inactive, or missing images. Public directory/detail projections now include approved profile fields, coarse verification status, and a cache-busted image URL without exposing storage metadata.
 
+Recent actions (2026-09-10):
+- T380 completed: documented the Phase 19 pricing architecture, current fixed/per-unit compatibility, pricing terminology, module ownership, effective-dated version rules, quote and immutable snapshot contracts, calculation invariants, API/authorization boundaries, concurrency expectations, and separation from promotions and payment providers.
+
 Recent actions (2026-09-07):
 - T364 completed: added secure multipart profile-image replacement for claim-derived HouseHelp self-service and Manager/Admin operations. Uploads use bounded decoding, dimension and format validation, metadata-stripping re-encoding, a 5 MB hard cap, generated storage keys, serialized SQL Server replacement, rollback cleanup for failed persistence, and post-persistence cleanup of superseded files without exposing raw storage keys.
 

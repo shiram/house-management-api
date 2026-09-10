@@ -172,6 +172,8 @@ Responsibilities:
 - pricing/configuration
 - active/inactive state
 
+Pricing remains a server-side slice of the Services module. It resolves effective service rates, calculates quotes, and creates immutable booking price snapshots; it does not collect payments or call payment providers. See `docs/PRICING-ARCHITECTURE.md` for the Phase 19 terminology, ownership boundaries, and compatibility rules.
+
 ### Availability
 
 Responsibilities:

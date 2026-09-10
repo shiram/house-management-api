@@ -266,7 +266,7 @@
 
 # PHASE 19 — Pricing
 
-- [ ] T380 — Define pricing architecture, terminology, and service pricing boundaries
+- [x] T380 — Define pricing architecture, terminology, and service pricing boundaries
 - [ ] T381 — Extend pricing modes to support time-based pricing without breaking fixed and per-unit pricing
 - [ ] T382 — Model time-based pricing units, minimum billable duration, rounding policy, and overtime rules
 - [ ] T383 — Add effective-dated pricing versions so future price changes do not alter historical bookings
