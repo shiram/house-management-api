@@ -104,6 +104,42 @@ public class BookingServiceTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CreateAnonymousAsync_RejectsTimeBasedPricingUntilDurationPolicyIsConfigured(bool includePricingItem)
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "HOURLY_CLEANING",
+            Name = "Hourly Cleaning",
+            BasePrice = 0,
+            PricingMode = ServicePricingMode.TimeBased,
+            IsActive = true,
+            PriceRules =
+            [
+                new ServicePriceRule { Id = 1, UnitName = "Hour", UnitPrice = 25m, IsActive = true }
+            ]
+        });
+        await context.SaveChangesAsync();
+
+        var pricingItems = includePricingItem
+            ? new[] { new BookingPriceItemRequest { PriceRuleId = 1, Quantity = 2 } }
+            : null;
+        var result = await CreateBookingService(context).CreateAnonymousAsync(
+            CreateRequest(serviceId: 1, pricingItems: pricingItems));
+
+        Assert.Null(result.Booking);
+        Assert.Equal("Time-based pricing is not configured for this service.", result.Error);
+        Assert.Empty(await context.Bookings.ToListAsync());
+    }
+
     [Fact]
     public async Task CreateAnonymousAsync_AppliesPromotionAndSnapshotsDiscount()
     {

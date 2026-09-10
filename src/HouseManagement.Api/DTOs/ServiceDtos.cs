@@ -34,6 +34,7 @@ public sealed class CreateServiceRequest
     [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal BasePrice { get; set; }
 
+    [EnumDataType(typeof(ServicePricingMode))]
     public ServicePricingMode PricingMode { get; set; } = ServicePricingMode.Fixed;
 }
 
@@ -54,6 +55,7 @@ public sealed class UpdateServiceRequest
     [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal BasePrice { get; set; }
 
+    [EnumDataType(typeof(ServicePricingMode))]
     public ServicePricingMode PricingMode { get; set; } = ServicePricingMode.Fixed;
 }
 

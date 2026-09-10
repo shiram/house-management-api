@@ -498,6 +498,16 @@ public sealed class BookingService : IBookingService
                 null);
         }
 
+        if (service.PricingMode == ServicePricingMode.TimeBased)
+        {
+            return new BookingPricingResult([], 0, "Time-based pricing is not configured for this service.");
+        }
+
+        if (service.PricingMode != ServicePricingMode.PerUnit)
+        {
+            return new BookingPricingResult([], 0, "The service pricing mode is not supported.");
+        }
+
         if (items.Count == 0)
         {
             return new BookingPricingResult([], 0, "At least one pricing item is required for this service.");

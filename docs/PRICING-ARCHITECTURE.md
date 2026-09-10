@@ -15,7 +15,7 @@ This document defines the pricing boundary for Phase 19. It preserves the curren
 
 The existing implementation remains valid and must be extended incrementally:
 
-- `Service.PricingMode` supports `Fixed` and `PerUnit`.
+- `Service.PricingMode` supports `Fixed`, `PerUnit`, and `TimeBased`. Time-based services cannot be booked until their duration policy is introduced by T382.
 - `Service.BasePrice` is the fixed-service amount.
 - `ServicePriceRule` stores active per-unit names and unit prices.
 - Booking requests submit `PricingItems` containing a price-rule identifier and integer quantity.
@@ -27,7 +27,7 @@ The existing implementation remains valid and must be extended incrementally:
 Current limitations:
 
 - Pricing rules are mutable and are not effective-dated.
-- There is no time-based pricing mode or duration billing policy.
+- There is no duration billing policy for the time-based pricing mode.
 - Quote calculation is private to booking creation; there is no public quote endpoint.
 - There are no service fees, surcharges, tax lines, or persisted currency on the booking snapshot.
 - Per-unit quantities are whole numbers only.
@@ -157,7 +157,7 @@ requested duration
   -> rate calculation
 ```
 
-T381 and T382 will define the persistence and exact calculation fields. Time-based pricing must not infer policy solely from the booking UI or from an unversioned global setting.
+T382 will define the persistence and exact calculation fields. Until then, booking creation rejects time-based services with an explicit configuration error. Time-based pricing must not infer policy solely from the booking UI or from an unversioned global setting.
 
 ## Pricing resolution and calculation flow
 

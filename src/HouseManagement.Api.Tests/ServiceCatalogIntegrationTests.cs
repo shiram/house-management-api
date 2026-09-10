@@ -7,6 +7,7 @@ using System.Text;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.DTOs;
 using HouseManagement.Api.Data;
+using HouseManagement.Api.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -114,6 +115,29 @@ public class ServiceCatalogIntegrationTests : IClassFixture<WebApplicationFactor
         var adminDetail = await manager.GetFromJsonAsync<ApiResponse<ServiceDto>>($"/api/admin/services/{created.Data.Id}");
         Assert.Equal(code, adminDetail!.Data!.Code);
         Assert.False(adminDetail.Data.IsActive);
+    }
+
+    [Fact]
+    public async Task ServiceLifecycle_PreservesTimeBasedPricingMode()
+    {
+        var manager = CreateAuthenticatedClient("manager");
+        var anonymous = _factory.CreateClient();
+        var code = $"TIME_{Guid.NewGuid():N}"[..16].ToUpperInvariant();
+
+        var create = await manager.PostAsJsonAsync("/api/services", new CreateServiceRequest
+        {
+            Code = code,
+            Name = "Hourly Cleaning",
+            BasePrice = 0,
+            PricingMode = ServicePricingMode.TimeBased
+        });
+
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<ApiResponse<ServiceDto>>();
+        Assert.Equal(ServicePricingMode.TimeBased, created!.Data!.PricingMode);
+
+        var detail = await anonymous.GetFromJsonAsync<ApiResponse<ServiceDto>>($"/api/services/{created.Data.Id}");
+        Assert.Equal(ServicePricingMode.TimeBased, detail!.Data!.PricingMode);
     }
 
     [Fact]
