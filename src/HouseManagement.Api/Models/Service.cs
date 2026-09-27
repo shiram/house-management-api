@@ -16,4 +16,5 @@ public class Service
     public List<Booking> Bookings { get; set; } = new();
     public List<ServicePriceRule> PriceRules { get; set; } = new();
     public ServiceTimePricingPolicy? TimePricingPolicy { get; set; }
+    public List<ServicePricingVersion> PricingVersions { get; set; } = new();
 }
