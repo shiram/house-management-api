@@ -14,10 +14,12 @@ namespace HouseManagement.Api.Controllers;
 public sealed class ServicesController : ControllerBase
 {
     private readonly IServiceCatalogService _serviceCatalog;
+    private readonly IPricingCalculationService _pricingCalculation;
 
-    public ServicesController(IServiceCatalogService serviceCatalog)
+    public ServicesController(IServiceCatalogService serviceCatalog, IPricingCalculationService pricingCalculation)
     {
         _serviceCatalog = serviceCatalog;
+        _pricingCalculation = pricingCalculation;
     }
 
     [HttpGet]
@@ -63,6 +65,41 @@ public sealed class ServicesController : ControllerBase
         };
 
         var response = ApiResponseFactory.Create(this, dto, "Service retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    // Public, non-persisting price quote so anonymous and authenticated clients can see the
+    // expected charge for fixed, per-unit, and time-based services before submitting a booking.
+    // Uses the same calculator booking creation uses, so a quote and the resulting booking total
+    // never diverge for the same inputs.
+    [HttpPost("{id:int}/quote")]
+    public async Task<IActionResult> Quote(int id, [FromBody] ServiceQuoteRequest request)
+    {
+        var service = await _serviceCatalog.GetActiveByIdAsync(id);
+        if (service == null) return NotFound();
+
+        var result = _pricingCalculation.Calculate(service, request.ScheduledStart, request.ScheduledEnd, request.PricingItems);
+        if (!result.Succeeded)
+        {
+            return BadRequest(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status400BadRequest));
+        }
+
+        var quote = new ServiceQuoteResponse
+        {
+            ServiceId = service.Id,
+            PricingMode = service.PricingMode,
+            PriceLines = result.PriceLines.Select(line => new BookingPriceLineDto
+            {
+                Description = line.Description,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                LineTotal = line.LineTotal
+            }),
+            Subtotal = result.Subtotal,
+            CalculatedAt = DateTimeOffset.UtcNow
+        };
+
+        var response = ApiResponseFactory.Create(this, quote, "Quote calculated", StatusCodes.Status200OK);
         return Ok(response);
     }
 

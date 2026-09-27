@@ -13,6 +13,7 @@ public sealed class BookingService : IBookingService
     private readonly HouseContext _db;
     private readonly INotificationService _notifications;
     private readonly IAuditLogService _auditLogs;
+    private readonly IPricingCalculationService _pricingCalculation;
 
     // In-process guard to serialize concurrent assignment attempts for the same househelp.
     // This complements the database-level serializable transaction: the in-memory EF provider
@@ -24,17 +25,14 @@ public sealed class BookingService : IBookingService
     public BookingService(
         HouseContext db,
         INotificationService notifications,
-        IAuditLogService auditLogs)
+        IAuditLogService auditLogs,
+        IPricingCalculationService pricingCalculation)
     {
         _db = db;
         _notifications = notifications;
         _auditLogs = auditLogs;
+        _pricingCalculation = pricingCalculation;
     }
-
-    public sealed record BookingPricingResult(
-        List<BookingPriceLine> PriceLines,
-        decimal Subtotal,
-        string? Error);
 
     private sealed record BookingDiscountResult(
         Promotion? Promotion,
@@ -58,7 +56,7 @@ public sealed class BookingService : IBookingService
             return new BookingCreationResult(null, "The requested service is not available.");
         }
 
-        var pricing = CreatePriceSnapshot(service, request.PricingItems);
+        var pricing = _pricingCalculation.Calculate(service, request.ScheduledStart, request.ScheduledEnd, request.PricingItems);
         if (pricing.Error != null)
         {
             return new BookingCreationResult(null, pricing.Error);
@@ -165,7 +163,7 @@ public sealed class BookingService : IBookingService
             return new BookingCreationResult(null, "The requested service is not available.");
         }
 
-        var pricing = CreatePriceSnapshot(sourceBooking.Service, request.PricingItems);
+        var pricing = _pricingCalculation.Calculate(sourceBooking.Service, request.ScheduledStart, request.ScheduledEnd, request.PricingItems);
         if (pricing.Error != null)
         {
             return new BookingCreationResult(null, pricing.Error);
@@ -473,97 +471,6 @@ public sealed class BookingService : IBookingService
             .ThenByDescending(booking => booking.Id);
 
         return query.ApplyPagination(page, pageSize);
-    }
-
-    private static BookingPricingResult CreatePriceSnapshot(
-        Service service,
-        IEnumerable<BookingPriceItemRequest>? requestedItems)
-    {
-        const decimal maximumPersistablePrice = 9999999999999999.99m;
-        var items = requestedItems?.ToList() ?? [];
-
-        if (service.PricingMode == ServicePricingMode.Fixed)
-        {
-            if (items.Count > 0)
-            {
-                return new BookingPricingResult([], 0, "This service uses fixed pricing and does not accept pricing items.");
-            }
-
-            return new BookingPricingResult(
-                [new BookingPriceLine
-                {
-                    Description = service.Name,
-                    Quantity = 1,
-                    UnitPrice = service.BasePrice,
-                    LineTotal = service.BasePrice
-                }],
-                service.BasePrice,
-                null);
-        }
-
-        if (service.PricingMode == ServicePricingMode.TimeBased)
-        {
-            var error = service.TimePricingPolicy == null
-                ? "Time-based pricing is not configured for this service."
-                : "Time-based pricing calculation is not available yet.";
-            return new BookingPricingResult([], 0, error);
-        }
-
-        if (service.PricingMode != ServicePricingMode.PerUnit)
-        {
-            return new BookingPricingResult([], 0, "The service pricing mode is not supported.");
-        }
-
-        if (items.Count == 0)
-        {
-            return new BookingPricingResult([], 0, "At least one pricing item is required for this service.");
-        }
-
-        if (items.GroupBy(item => item.PriceRuleId).Any(group => group.Count() > 1))
-        {
-            return new BookingPricingResult([], 0, "Each pricing item can only be selected once.");
-        }
-
-        var rulesById = service.PriceRules
-            .Where(rule => rule.IsActive)
-            .ToDictionary(rule => rule.Id);
-        var lines = new List<BookingPriceLine>();
-        decimal totalPrice = 0;
-
-        foreach (var item in items)
-        {
-            if (item.Quantity is < 1 or > 100000)
-            {
-                return new BookingPricingResult([], 0, "Each pricing item quantity must be between 1 and 100000.");
-            }
-
-            if (!rulesById.TryGetValue(item.PriceRuleId, out var rule))
-            {
-                return new BookingPricingResult([], 0, "One or more selected pricing items are not available for this service.");
-            }
-
-            if (rule.UnitPrice > maximumPersistablePrice / item.Quantity)
-            {
-                return new BookingPricingResult([], 0, "The calculated booking price is too large.");
-            }
-
-            var lineTotal = rule.UnitPrice * item.Quantity;
-            if (lineTotal > maximumPersistablePrice - totalPrice)
-            {
-                return new BookingPricingResult([], 0, "The calculated booking price is too large.");
-            }
-
-            lines.Add(new BookingPriceLine
-            {
-                Description = rule.UnitName,
-                Quantity = item.Quantity,
-                UnitPrice = rule.UnitPrice,
-                LineTotal = lineTotal
-            });
-            totalPrice += lineTotal;
-        }
-
-        return new BookingPricingResult(lines, totalPrice, null);
     }
 
     private async Task<BookingDiscountResult> CreateDiscountSnapshotAsync(

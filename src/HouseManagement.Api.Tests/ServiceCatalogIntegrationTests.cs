@@ -163,6 +163,73 @@ public class ServiceCatalogIntegrationTests : IClassFixture<WebApplicationFactor
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Quote_CalculatesFixedPerUnitAndTimeBasedPricingWithoutCreatingABooking()
+    {
+        var manager = CreateAuthenticatedClient("manager");
+        var anonymous = _factory.CreateClient();
+
+        var fixedCode = $"QFIX_{Guid.NewGuid():N}"[..16].ToUpperInvariant();
+        var fixedCreate = await manager.PostAsJsonAsync("/api/services", new CreateServiceRequest
+        {
+            Code = fixedCode,
+            Name = "Quote Fixed Service",
+            BasePrice = 40m,
+            PricingMode = ServicePricingMode.Fixed
+        });
+        var fixedService = (await fixedCreate.Content.ReadFromJsonAsync<ApiResponse<ServiceDto>>())!.Data!;
+
+        var fixedQuote = await anonymous.PostAsJsonAsync($"/api/services/{fixedService.Id}/quote", new ServiceQuoteRequest
+        {
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1)
+        });
+        Assert.Equal(HttpStatusCode.OK, fixedQuote.StatusCode);
+        var fixedQuoteBody = await fixedQuote.Content.ReadFromJsonAsync<ApiResponse<ServiceQuoteResponse>>();
+        Assert.Equal(40m, fixedQuoteBody!.Data!.Subtotal);
+        Assert.Single(fixedQuoteBody.Data.PriceLines);
+
+        var perUnitCode = $"QUNIT_{Guid.NewGuid():N}"[..16].ToUpperInvariant();
+        var perUnitCreate = await manager.PostAsJsonAsync("/api/services", new CreateServiceRequest
+        {
+            Code = perUnitCode,
+            Name = "Quote Per Unit Service",
+            BasePrice = 0,
+            PricingMode = ServicePricingMode.PerUnit
+        });
+        var perUnitService = (await perUnitCreate.Content.ReadFromJsonAsync<ApiResponse<ServiceDto>>())!.Data!;
+        var ruleCreate = await manager.PostAsJsonAsync($"/api/services/{perUnitService.Id}/pricing-rules", new CreateServicePriceRuleRequest
+        {
+            UnitName = "Room",
+            UnitPrice = 10m
+        });
+        var rule = (await ruleCreate.Content.ReadFromJsonAsync<ApiResponse<ServicePriceRuleDto>>())!.Data!;
+
+        var perUnitQuote = await anonymous.PostAsJsonAsync($"/api/services/{perUnitService.Id}/quote", new ServiceQuoteRequest
+        {
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1),
+            PricingItems = [new BookingPriceItemRequest { PriceRuleId = rule.Id, Quantity = 3 }]
+        });
+        Assert.Equal(HttpStatusCode.OK, perUnitQuote.StatusCode);
+        var perUnitQuoteBody = await perUnitQuote.Content.ReadFromJsonAsync<ApiResponse<ServiceQuoteResponse>>();
+        Assert.Equal(30m, perUnitQuoteBody!.Data!.Subtotal);
+
+        var missingItemsQuote = await anonymous.PostAsJsonAsync($"/api/services/{perUnitService.Id}/quote", new ServiceQuoteRequest
+        {
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1)
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, missingItemsQuote.StatusCode);
+
+        var notFoundQuote = await anonymous.PostAsJsonAsync("/api/services/999999/quote", new ServiceQuoteRequest
+        {
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1)
+        });
+        Assert.Equal(HttpStatusCode.NotFound, notFoundQuote.StatusCode);
+    }
+
     private HttpClient CreateAuthenticatedClient(string role)
     {
         var client = _factory.CreateClient();

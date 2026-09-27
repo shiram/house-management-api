@@ -86,6 +86,7 @@ builder.Services.AddScoped<IHouseHelpService, HouseHelpService>();
 builder.Services.AddScoped<IHouseHelpProfileImageService, HouseHelpProfileImageService>();
 builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
 builder.Services.AddScoped<IServicePricingVersionService, ServicePricingVersionService>();
+builder.Services.AddScoped<IPricingCalculationService, PricingCalculationService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingStatusService, BookingStatusService>();

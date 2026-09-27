@@ -92,7 +92,8 @@ public class RepeatBookingServiceTests
         return new BookingService(
             context,
             new NotificationService(context),
-            new AuditLogService(context));
+            new AuditLogService(context),
+            new PricingCalculationService());
     }
 
     private static RepeatBookingRequest ValidRequest()

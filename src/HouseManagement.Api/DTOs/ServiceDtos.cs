@@ -86,3 +86,19 @@ public sealed class UpdateServicePriceRuleRequest
     [Range(typeof(decimal), "0.01", "9999999999999999.99")]
     public decimal UnitPrice { get; set; }
 }
+
+public sealed class ServiceQuoteRequest
+{
+    public DateTimeOffset ScheduledStart { get; set; }
+    public DateTimeOffset ScheduledEnd { get; set; }
+    public IEnumerable<BookingPriceItemRequest> PricingItems { get; set; } = [];
+}
+
+public sealed class ServiceQuoteResponse
+{
+    public int ServiceId { get; set; }
+    public ServicePricingMode PricingMode { get; set; }
+    public IEnumerable<BookingPriceLineDto> PriceLines { get; set; } = [];
+    public decimal Subtotal { get; set; }
+    public DateTimeOffset CalculatedAt { get; set; }
+}

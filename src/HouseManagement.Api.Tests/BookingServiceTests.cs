@@ -141,7 +141,7 @@ public class BookingServiceTests
     }
 
     [Fact]
-    public async Task CreateAnonymousAsync_RejectsConfiguredTimeBasedPricingUntilCalculationIsImplemented()
+    public async Task CreateAnonymousAsync_CalculatesConfiguredTimeBasedPricingFromDuration()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -166,11 +166,18 @@ public class BookingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var result = await CreateBookingService(context).CreateAnonymousAsync(CreateRequest(serviceId: 1));
+        // An explicit, exact 2-hour (120 minute) window, which is already a multiple of the
+        // 30-minute increment, so 2 * $25/hour = $50 with no rounding adjustment needed.
+        var start = DateTimeOffset.UtcNow.AddDays(1);
+        var result = await CreateBookingService(context).CreateAnonymousAsync(
+            CreateRequest(serviceId: 1, start: start, end: start.AddHours(2)));
 
-        Assert.Null(result.Booking);
-        Assert.Equal("Time-based pricing calculation is not available yet.", result.Error);
-        Assert.Empty(await context.Bookings.ToListAsync());
+        Assert.NotNull(result.Booking);
+        Assert.Equal(50m, result.Booking!.TotalPrice);
+        var line = Assert.Single(result.Booking.PriceLines);
+        Assert.Equal(120, line.Quantity);
+        Assert.Equal(25m, line.UnitPrice);
+        Assert.Equal(50m, line.LineTotal);
     }
 
     [Fact]
@@ -814,7 +821,8 @@ public class BookingServiceTests
         return new BookingService(
             context,
             new NotificationService(context),
-            new AuditLogService(context));
+            new AuditLogService(context),
+            new PricingCalculationService());
     }
 
     private static BookingStatusService CreateBookingStatusService(HouseContext context)

@@ -50,6 +50,7 @@ public sealed class ServiceCatalogService : IServiceCatalogService
         return await _db.Services
             .AsNoTracking()
             .Include(service => service.PriceRules.Where(rule => rule.IsActive))
+            .Include(service => service.TimePricingPolicy)
             .SingleOrDefaultAsync(service => service.Id == id && service.IsActive);
     }
 
