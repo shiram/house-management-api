@@ -78,7 +78,17 @@ public sealed class ServicesController : ControllerBase
         var service = await _serviceCatalog.GetActiveByIdAsync(id);
         if (service == null) return NotFound();
 
-        var result = _pricingCalculation.Calculate(service, request.ScheduledStart, request.ScheduledEnd, request.PricingItems);
+        var holidayDates = service.Surcharges.Any(surcharge => surcharge.TriggerType == SurchargeTriggerType.Holiday)
+            ? await _serviceCatalog.GetHolidayDatesAsync()
+            : null;
+
+        var result = _pricingCalculation.Calculate(
+            service,
+            request.ScheduledStart,
+            request.ScheduledEnd,
+            request.PricingItems,
+            request.Address,
+            holidayDates);
         if (!result.Succeeded)
         {
             return BadRequest(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status400BadRequest));

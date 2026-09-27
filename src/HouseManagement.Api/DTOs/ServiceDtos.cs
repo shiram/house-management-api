@@ -92,6 +92,9 @@ public sealed class ServiceQuoteRequest
     public DateTimeOffset ScheduledStart { get; set; }
     public DateTimeOffset ScheduledEnd { get; set; }
     public IEnumerable<BookingPriceItemRequest> PricingItems { get; set; } = [];
+
+    // Optional booking address context, needed only to evaluate a Location surcharge trigger.
+    public ServiceAddressRequest? Address { get; set; }
 }
 
 public sealed class ServiceQuoteResponse

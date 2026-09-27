@@ -50,13 +50,22 @@ public sealed class BookingService : IBookingService
         var service = await _db.Services
             .Include(item => item.PriceRules)
             .Include(item => item.TimePricingPolicy)
+            .Include(item => item.Fees)
+            .Include(item => item.Surcharges)
             .SingleOrDefaultAsync(item => item.Id == request.ServiceId && item.IsActive);
         if (service == null)
         {
             return new BookingCreationResult(null, "The requested service is not available.");
         }
 
-        var pricing = _pricingCalculation.Calculate(service, request.ScheduledStart, request.ScheduledEnd, request.PricingItems);
+        var holidayDates = await GetHolidayDatesIfNeededAsync(service);
+        var pricing = _pricingCalculation.Calculate(
+            service,
+            request.ScheduledStart,
+            request.ScheduledEnd,
+            request.PricingItems,
+            request.Address,
+            holidayDates);
         if (pricing.Error != null)
         {
             return new BookingCreationResult(null, pricing.Error);
@@ -148,6 +157,10 @@ public sealed class BookingService : IBookingService
                 .ThenInclude(service => service.PriceRules)
             .Include(booking => booking.Service)
                 .ThenInclude(service => service.TimePricingPolicy)
+            .Include(booking => booking.Service)
+                .ThenInclude(service => service.Fees)
+            .Include(booking => booking.Service)
+                .ThenInclude(service => service.Surcharges)
             .Include(booking => booking.ServiceAddress)
             .SingleOrDefaultAsync(booking => booking.Id == bookingId);
 
@@ -163,7 +176,23 @@ public sealed class BookingService : IBookingService
             return new BookingCreationResult(null, "The requested service is not available.");
         }
 
-        var pricing = _pricingCalculation.Calculate(sourceBooking.Service, request.ScheduledStart, request.ScheduledEnd, request.PricingItems);
+        var repeatAddress = new ServiceAddressRequest
+        {
+            Line1 = sourceBooking.ServiceAddress.Line1,
+            Line2 = sourceBooking.ServiceAddress.Line2,
+            City = sourceBooking.ServiceAddress.City,
+            Region = sourceBooking.ServiceAddress.Region,
+            PostalCode = sourceBooking.ServiceAddress.PostalCode,
+            Country = sourceBooking.ServiceAddress.Country
+        };
+        var holidayDates = await GetHolidayDatesIfNeededAsync(sourceBooking.Service);
+        var pricing = _pricingCalculation.Calculate(
+            sourceBooking.Service,
+            request.ScheduledStart,
+            request.ScheduledEnd,
+            request.PricingItems,
+            repeatAddress,
+            holidayDates);
         if (pricing.Error != null)
         {
             return new BookingCreationResult(null, pricing.Error);
@@ -561,5 +590,20 @@ public sealed class BookingService : IBookingService
         while (await _db.Bookings.AnyAsync(booking => booking.Reference == reference));
 
         return reference;
+    }
+
+    // The Holiday surcharge trigger needs a calendar of public holiday dates, but most services
+    // do not configure a Holiday surcharge, so avoid the extra lookup unless one is present.
+    private async Task<IReadOnlyCollection<DateOnly>?> GetHolidayDatesIfNeededAsync(Service service)
+    {
+        if (!service.Surcharges.Any(surcharge => surcharge.IsActive && surcharge.TriggerType == SurchargeTriggerType.Holiday))
+        {
+            return null;
+        }
+
+        return await _db.PublicHolidays
+            .AsNoTracking()
+            .Select(holiday => holiday.Date)
+            .ToListAsync();
     }
 }

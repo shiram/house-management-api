@@ -239,6 +239,77 @@ public class ServiceCatalogIntegrationTests : IClassFixture<WebApplicationFactor
         Assert.Equal(HttpStatusCode.BadRequest, pastScheduleQuote.StatusCode);
     }
 
+    [Fact]
+    public async Task Quote_AppliesActiveFeesAndTriggeredSurchargesThroughTheHttpPipeline()
+    {
+        var manager = CreateAuthenticatedClient("manager");
+        var anonymous = _factory.CreateClient();
+
+        var code = $"QFEE_{Guid.NewGuid():N}"[..16].ToUpperInvariant();
+        var createResponse = await manager.PostAsJsonAsync("/api/services", new CreateServiceRequest
+        {
+            Code = code,
+            Name = "Quote Fee/Surcharge Service",
+            BasePrice = 100m,
+            PricingMode = ServicePricingMode.Fixed
+        });
+        var service = (await createResponse.Content.ReadFromJsonAsync<ApiResponse<ServiceDto>>())!.Data!;
+
+        var holidayDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10).Date);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseContext>();
+
+            db.ServiceFees.Add(new ServiceFee
+            {
+                ServiceId = service.Id,
+                Name = "Booking Fee",
+                AdjustmentType = PricingAdjustmentType.FixedAmount,
+                Amount = 5m,
+                IsActive = true
+            });
+            db.ServiceFees.Add(new ServiceFee
+            {
+                ServiceId = service.Id,
+                Name = "Inactive Fee",
+                AdjustmentType = PricingAdjustmentType.FixedAmount,
+                Amount = 999m,
+                IsActive = false
+            });
+            db.ServiceSurcharges.Add(new ServiceSurcharge
+            {
+                ServiceId = service.Id,
+                Name = "Holiday Surcharge",
+                TriggerType = SurchargeTriggerType.Holiday,
+                AdjustmentType = PricingAdjustmentType.Percentage,
+                Amount = 20m,
+                IsActive = true
+            });
+            db.PublicHolidays.Add(new PublicHoliday
+            {
+                Date = holidayDate,
+                Name = "Integration Test Holiday"
+            });
+
+            await db.SaveChangesAsync();
+        }
+
+        var scheduledStart = new DateTimeOffset(holidayDate.ToDateTime(TimeOnly.FromTimeSpan(TimeSpan.FromHours(9))), TimeSpan.Zero);
+        var quote = await anonymous.PostAsJsonAsync($"/api/services/{service.Id}/quote", new ServiceQuoteRequest
+        {
+            ScheduledStart = scheduledStart,
+            ScheduledEnd = scheduledStart.AddHours(1)
+        });
+
+        Assert.Equal(HttpStatusCode.OK, quote.StatusCode);
+        var quoteBody = await quote.Content.ReadFromJsonAsync<ApiResponse<ServiceQuoteResponse>>();
+
+        // base 100 + fixed fee 5 + 20% holiday surcharge of the 100 base subtotal (20) = 125.
+        Assert.Equal(125m, quoteBody!.Data!.Subtotal);
+        Assert.Equal(3, quoteBody.Data.PriceLines.Count());
+    }
+
     private HttpClient CreateAuthenticatedClient(string role)
     {
         var client = _factory.CreateClient();

@@ -17,4 +17,6 @@ public class Service
     public List<ServicePriceRule> PriceRules { get; set; } = new();
     public ServiceTimePricingPolicy? TimePricingPolicy { get; set; }
     public List<ServicePricingVersion> PricingVersions { get; set; } = new();
+    public List<ServiceFee> Fees { get; set; } = new();
+    public List<ServiceSurcharge> Surcharges { get; set; } = new();
 }

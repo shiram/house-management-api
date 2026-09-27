@@ -37,4 +37,7 @@ public class HouseContext : DbContext
     public DbSet<BookingPriceLine> BookingPriceLines { get; set; }
     public DbSet<Promotion> Promotions { get; set; }
     public DbSet<Payment> Payments { get; set; }
+    public DbSet<ServiceFee> ServiceFees { get; set; }
+    public DbSet<ServiceSurcharge> ServiceSurcharges { get; set; }
+    public DbSet<PublicHoliday> PublicHolidays { get; set; }
 }

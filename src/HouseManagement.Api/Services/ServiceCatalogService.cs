@@ -51,6 +51,8 @@ public sealed class ServiceCatalogService : IServiceCatalogService
             .AsNoTracking()
             .Include(service => service.PriceRules.Where(rule => rule.IsActive))
             .Include(service => service.TimePricingPolicy)
+            .Include(service => service.Fees.Where(fee => fee.IsActive))
+            .Include(service => service.Surcharges.Where(surcharge => surcharge.IsActive))
             .SingleOrDefaultAsync(service => service.Id == id && service.IsActive);
     }
 
@@ -187,5 +189,13 @@ public sealed class ServiceCatalogService : IServiceCatalogService
         existing.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<IReadOnlyCollection<DateOnly>> GetHolidayDatesAsync()
+    {
+        return await _db.PublicHolidays
+            .AsNoTracking()
+            .Select(holiday => holiday.Date)
+            .ToListAsync();
     }
 }

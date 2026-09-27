@@ -15,6 +15,9 @@ public interface IServiceCatalogService
     Task<ServicePriceRule?> CreatePriceRuleAsync(int serviceId, ServicePriceRule rule);
     Task<ServicePriceRuleUpdateResult> UpdatePriceRuleAsync(int serviceId, int ruleId, ServicePriceRule rule);
     Task<bool> SetPriceRuleActiveAsync(int serviceId, int ruleId, bool isActive);
+
+    // Public holiday calendar used to evaluate the Holiday surcharge trigger. Not service-specific.
+    Task<IReadOnlyCollection<DateOnly>> GetHolidayDatesAsync();
 }
 
 public sealed record ServicePriceRuleUpdateResult(bool Exists, bool HasDuplicateUnitName);

@@ -12,7 +12,9 @@ public sealed class PricingCalculationService : IPricingCalculationService
         Service service,
         DateTimeOffset scheduledStart,
         DateTimeOffset scheduledEnd,
-        IEnumerable<BookingPriceItemRequest>? pricingItems)
+        IEnumerable<BookingPriceItemRequest>? pricingItems,
+        ServiceAddressRequest? address = null,
+        IReadOnlyCollection<DateOnly>? holidayDates = null)
     {
         // The requested schedule is validated once, here, for every pricing mode. Fixed and
         // per-unit services do not use the duration to calculate price, but the schedule still
@@ -25,13 +27,20 @@ public sealed class PricingCalculationService : IPricingCalculationService
 
         var items = pricingItems?.ToList() ?? [];
 
-        return service.PricingMode switch
+        var baseResult = service.PricingMode switch
         {
             ServicePricingMode.Fixed => CalculateFixed(service, items),
             ServicePricingMode.PerUnit => CalculatePerUnit(service, items),
             ServicePricingMode.TimeBased => CalculateTimeBased(service, scheduledStart, scheduledEnd, items),
             _ => new PricingCalculationResult([], 0, "The service pricing mode is not supported.")
         };
+
+        if (!baseResult.Succeeded)
+        {
+            return baseResult;
+        }
+
+        return ApplyFeesAndSurcharges(service, baseResult, scheduledStart, address, holidayDates);
     }
 
     private static PricingCalculationResult CalculateFixed(Service service, List<BookingPriceItemRequest> items)
@@ -221,4 +230,109 @@ public sealed class PricingCalculationService : IPricingCalculationService
         TimePricingUnit.Day => "per day",
         _ => string.Empty
     };
+
+    // Fees are always applied when active; surcharges are applied only when their trigger
+    // context matches the requested booking. Both are calculated from the base charge subtotal
+    // (before other fees/surcharges are added), so they do not compound on one another.
+    private static PricingCalculationResult ApplyFeesAndSurcharges(
+        Service service,
+        PricingCalculationResult baseResult,
+        DateTimeOffset scheduledStart,
+        ServiceAddressRequest? address,
+        IReadOnlyCollection<DateOnly>? holidayDates)
+    {
+        var baseSubtotal = baseResult.Subtotal;
+        var lines = new List<BookingPriceLine>(baseResult.PriceLines);
+        var runningTotal = baseSubtotal;
+
+        foreach (var fee in service.Fees.Where(fee => fee.IsActive))
+        {
+            var amount = ComputeAdjustmentAmount(fee.AdjustmentType, fee.Amount, baseSubtotal);
+            if (amount <= 0)
+            {
+                continue;
+            }
+
+            if (amount > MaximumPersistablePrice - runningTotal)
+            {
+                return new PricingCalculationResult([], 0, "The calculated booking price is too large.");
+            }
+
+            lines.Add(new BookingPriceLine { Description = fee.Name, Quantity = 1, UnitPrice = amount, LineTotal = amount });
+            runningTotal += amount;
+        }
+
+        foreach (var surcharge in service.Surcharges.Where(surcharge => surcharge.IsActive))
+        {
+            if (!IsSurchargeTriggered(surcharge, scheduledStart, address, holidayDates))
+            {
+                continue;
+            }
+
+            var amount = ComputeAdjustmentAmount(surcharge.AdjustmentType, surcharge.Amount, baseSubtotal);
+            if (amount <= 0)
+            {
+                continue;
+            }
+
+            if (amount > MaximumPersistablePrice - runningTotal)
+            {
+                return new PricingCalculationResult([], 0, "The calculated booking price is too large.");
+            }
+
+            lines.Add(new BookingPriceLine { Description = surcharge.Name, Quantity = 1, UnitPrice = amount, LineTotal = amount });
+            runningTotal += amount;
+        }
+
+        return new PricingCalculationResult(lines, runningTotal, null);
+    }
+
+    private static decimal ComputeAdjustmentAmount(PricingAdjustmentType adjustmentType, decimal amount, decimal baseSubtotal) =>
+        adjustmentType == PricingAdjustmentType.Percentage
+            ? Math.Round(baseSubtotal * amount / 100m, 2, MidpointRounding.AwayFromZero)
+            : amount;
+
+    private static bool IsSurchargeTriggered(
+        ServiceSurcharge surcharge,
+        DateTimeOffset scheduledStart,
+        ServiceAddressRequest? address,
+        IReadOnlyCollection<DateOnly>? holidayDates) => surcharge.TriggerType switch
+        {
+            SurchargeTriggerType.Weekend => scheduledStart.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday,
+            SurchargeTriggerType.Holiday => holidayDates != null && holidayDates.Contains(DateOnly.FromDateTime(scheduledStart.Date)),
+            SurchargeTriggerType.AfterHours => IsAfterHours(surcharge, scheduledStart),
+            SurchargeTriggerType.Urgent => surcharge.UrgentLeadTimeMinutes.HasValue &&
+                (scheduledStart - DateTimeOffset.UtcNow).TotalMinutes < surcharge.UrgentLeadTimeMinutes.Value,
+            SurchargeTriggerType.Location => address != null && IsLocationMatch(surcharge.LocationMatch, address),
+            _ => false
+        };
+
+    private static bool IsAfterHours(ServiceSurcharge surcharge, DateTimeOffset scheduledStart)
+    {
+        if (!surcharge.AfterHoursStartMinutes.HasValue || !surcharge.AfterHoursEndMinutes.HasValue)
+        {
+            return false;
+        }
+
+        var minuteOfDay = (scheduledStart.Hour * 60) + scheduledStart.Minute;
+        var start = surcharge.AfterHoursStartMinutes.Value;
+        var end = surcharge.AfterHoursEndMinutes.Value;
+
+        // A window where Start <= End is a same-day range (e.g. 00:00-06:00); Start > End wraps
+        // past midnight (e.g. 18:00-08:00 covers the evening through the following morning).
+        return start <= end
+            ? minuteOfDay >= start && minuteOfDay < end
+            : minuteOfDay >= start || minuteOfDay < end;
+    }
+
+    private static bool IsLocationMatch(string? locationMatch, ServiceAddressRequest address)
+    {
+        if (string.IsNullOrWhiteSpace(locationMatch))
+        {
+            return false;
+        }
+
+        return string.Equals(address.City?.Trim(), locationMatch, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(address.Region?.Trim(), locationMatch, StringComparison.OrdinalIgnoreCase);
+    }
 }
