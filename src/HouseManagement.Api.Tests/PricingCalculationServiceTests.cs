@@ -133,7 +133,31 @@ public sealed class PricingCalculationServiceTests
         var result = Calculator.Calculate(service, start, start, null);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("The requested service time must be a valid, positive duration.", result.Error);
+        Assert.Equal("The requested service time must be a future range.", result.Error);
+    }
+
+    [Fact]
+    public void Calculate_RejectsAPastScheduledStartRegardlessOfPricingMode()
+    {
+        var service = new Service { Id = 1, Code = "FIXED", Name = "Fixed", PricingMode = ServicePricingMode.Fixed, BasePrice = 40m, IsActive = true };
+        var start = DateTimeOffset.UtcNow.AddMinutes(-30);
+
+        var result = Calculator.Calculate(service, start, start.AddHours(1), null);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("The requested service time must be a future range.", result.Error);
+    }
+
+    [Fact]
+    public void Calculate_RejectsAnEndBeforeStartRegardlessOfPricingMode()
+    {
+        var service = new Service { Id = 1, Code = "UNIT", Name = "Per Unit", PricingMode = ServicePricingMode.PerUnit, IsActive = true };
+        var start = DateTimeOffset.UtcNow.AddDays(1);
+
+        var result = Calculator.Calculate(service, start, start.AddMinutes(-1), null);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("The requested service time must be a future range.", result.Error);
     }
 
     [Fact]

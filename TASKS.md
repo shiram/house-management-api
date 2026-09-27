@@ -271,7 +271,7 @@
 - [x] T382 — Model time-based pricing units, minimum billable duration, rounding policy, and overtime rules
 - [x] T383 — Add effective-dated pricing versions so future price changes do not alter historical bookings
 - [x] T384 — Add server-side quote calculation for fixed, per-unit, and time-based services before  booking submission
-- [ ] T385 — Validate booking duration, pricing inputs, and unavailable pricing combinations server-side
+- [x] T385 — Validate booking duration, pricing inputs, and unavailable pricing combinations server-side
 - [ ] T386 — Add optional service fees and surcharges for location, urgency, weekend, holiday, or after-hours work
 - [ ] T387 — Define tax/VAT handling and receipt-ready price breakdown fields without introducing payment-provider coupling
 - [ ] T388 — Add manager/admin pricing administration endpoints for time-based rates, pricing versions, fees, and surcharges

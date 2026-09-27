@@ -228,6 +228,15 @@ public class ServiceCatalogIntegrationTests : IClassFixture<WebApplicationFactor
             ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1)
         });
         Assert.Equal(HttpStatusCode.NotFound, notFoundQuote.StatusCode);
+
+        // Fixed pricing does not use the schedule to calculate price, but the requested window is
+        // still a real booking window, so an invalid/past schedule must be rejected here too.
+        var pastScheduleQuote = await anonymous.PostAsJsonAsync($"/api/services/{fixedService.Id}/quote", new ServiceQuoteRequest
+        {
+            ScheduledStart = DateTimeOffset.UtcNow.AddMinutes(-30),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddMinutes(30)
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, pastScheduleQuote.StatusCode);
     }
 
     private HttpClient CreateAuthenticatedClient(string role)
