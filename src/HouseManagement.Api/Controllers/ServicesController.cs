@@ -26,19 +26,7 @@ public sealed class ServicesController : ControllerBase
     public async Task<IActionResult> GetActive([FromQuery] int? page, [FromQuery] int? pageSize)
     {
         var services = await _serviceCatalog.GetActiveAsync(page, pageSize);
-        var dtos = services.Select(service => new ServiceDto
-        {
-            Id = service.Id,
-            Code = service.Code,
-            Name = service.Name,
-            Description = service.Description,
-            BasePrice = service.BasePrice,
-            PricingMode = service.PricingMode,
-            PriceRules = service.PriceRules.Select(ToPriceRuleDto),
-            IsActive = service.IsActive,
-            CreatedAt = service.CreatedAt,
-            UpdatedAt = service.UpdatedAt
-        });
+        var dtos = services.Select(ToDto);
 
         var response = ApiResponseFactory.Create(this, dtos, "Active services retrieved", StatusCodes.Status200OK);
         return Ok(response);
@@ -50,19 +38,7 @@ public sealed class ServicesController : ControllerBase
         var service = await _serviceCatalog.GetActiveByIdAsync(id);
         if (service == null) return NotFound();
 
-        var dto = new ServiceDto
-        {
-            Id = service.Id,
-            Code = service.Code,
-            Name = service.Name,
-            Description = service.Description,
-            BasePrice = service.BasePrice,
-            PricingMode = service.PricingMode,
-            PriceRules = service.PriceRules.Select(ToPriceRuleDto),
-            IsActive = service.IsActive,
-            CreatedAt = service.CreatedAt,
-            UpdatedAt = service.UpdatedAt
-        };
+        var dto = ToDto(service);
 
         var response = ApiResponseFactory.Create(this, dto, "Service retrieved", StatusCodes.Status200OK);
         return Ok(response);
@@ -94,18 +70,38 @@ public sealed class ServicesController : ControllerBase
             return BadRequest(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status400BadRequest));
         }
 
+        var taxRatePercentage = service.IsTaxable ? await _serviceCatalog.GetTaxRatePercentageAsync() : 0m;
+        var taxAmount = _pricingCalculation.CalculateTax(result.Subtotal, taxRatePercentage);
+        var currency = await _serviceCatalog.GetCurrencyCodeAsync();
+        var priceLines = result.PriceLines.Select(line => new BookingPriceLineDto
+        {
+            Description = line.Description,
+            Quantity = line.Quantity,
+            UnitPrice = line.UnitPrice,
+            LineTotal = line.LineTotal
+        }).ToList();
+
+        if (taxAmount > 0)
+        {
+            priceLines.Add(new BookingPriceLineDto
+            {
+                Description = $"Tax ({taxRatePercentage:0.##}%)",
+                Quantity = 1,
+                UnitPrice = taxAmount,
+                LineTotal = taxAmount
+            });
+        }
+
         var quote = new ServiceQuoteResponse
         {
             ServiceId = service.Id,
             PricingMode = service.PricingMode,
-            PriceLines = result.PriceLines.Select(line => new BookingPriceLineDto
-            {
-                Description = line.Description,
-                Quantity = line.Quantity,
-                UnitPrice = line.UnitPrice,
-                LineTotal = line.LineTotal
-            }),
+            PriceLines = priceLines,
             Subtotal = result.Subtotal,
+            TaxRatePercentage = taxAmount > 0 ? taxRatePercentage : 0m,
+            TaxAmount = taxAmount,
+            Total = result.Subtotal + taxAmount,
+            Currency = currency,
             CalculatedAt = DateTimeOffset.UtcNow
         };
 
@@ -124,6 +120,7 @@ public sealed class ServicesController : ControllerBase
             Description = request.Description,
             BasePrice = request.BasePrice,
             PricingMode = request.PricingMode,
+            IsTaxable = request.IsTaxable,
             IsActive = true
         });
 
@@ -153,6 +150,7 @@ public sealed class ServicesController : ControllerBase
         existing.Description = request.Description;
         existing.BasePrice = request.BasePrice;
         existing.PricingMode = request.PricingMode;
+        existing.IsTaxable = request.IsTaxable;
 
         await _serviceCatalog.UpdateAsync(existing);
         var response = ApiResponseFactory.Create(this, ToDto(existing), "Service updated", StatusCodes.Status200OK);
@@ -245,6 +243,7 @@ public sealed class ServicesController : ControllerBase
             Description = service.Description,
             BasePrice = service.BasePrice,
             PricingMode = service.PricingMode,
+            IsTaxable = service.IsTaxable,
             PriceRules = service.PriceRules.Select(ToPriceRuleDto),
             IsActive = service.IsActive,
             CreatedAt = service.CreatedAt,

@@ -49,6 +49,7 @@ public sealed class AdminServicesController : ControllerBase
             Description = service.Description,
             BasePrice = service.BasePrice,
             PricingMode = service.PricingMode,
+            IsTaxable = service.IsTaxable,
             PriceRules = service.PriceRules.Select(rule => new ServicePriceRuleDto
             {
                 Id = rule.Id,

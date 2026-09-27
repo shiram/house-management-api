@@ -226,6 +226,146 @@ public class BookingServiceTests
     }
 
     [Fact]
+    public async Task CreateAnonymousAsync_AppliesConfiguredTaxRateOnThePostDiscountAmount()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "CLEANING",
+            Name = "Cleaning",
+            BasePrice = 100,
+            PricingMode = ServicePricingMode.Fixed,
+            IsActive = true,
+            IsTaxable = true
+        });
+        context.Promotions.Add(new Promotion
+        {
+            Id = 1,
+            Code = "SAVE10",
+            Name = "Save 10",
+            DiscountType = PromotionDiscountType.Percentage,
+            DiscountValue = 10,
+            StartsAt = DateTimeOffset.UtcNow.AddDays(-1),
+            EndsAt = DateTimeOffset.UtcNow.AddDays(7),
+            UsageLimit = 5,
+            IsActive = true
+        });
+        context.SystemSettings.Add(new SystemSetting
+        {
+            Key = PricingSettings.TaxRatePercentageKey,
+            Value = "18"
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingService(context).CreateAnonymousAsync(CreateRequest(promotionCode: "SAVE10"));
+
+        Assert.NotNull(result.Booking);
+        // 100 base - 10 discount = 90 taxable; 18% of 90 = 16.20 tax; total 106.20.
+        Assert.Equal(10m, result.Booking!.DiscountAmount);
+        Assert.Equal(18m, result.Booking.TaxRatePercentage);
+        Assert.Equal(16.2m, result.Booking.TaxAmount);
+        Assert.Equal(106.2m, result.Booking.TotalPrice);
+        Assert.Contains(result.Booking.PriceLines, line =>
+            line.Description == "Tax (18%)" &&
+            line.UnitPrice == 16.2m &&
+            line.LineTotal == 16.2m);
+    }
+
+    [Fact]
+    public async Task CreateAnonymousAsync_DoesNotApplyTaxToAnExemptService()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "CLEANING",
+            Name = "Cleaning",
+            BasePrice = 100,
+            PricingMode = ServicePricingMode.Fixed,
+            IsActive = true,
+            IsTaxable = false
+        });
+        context.SystemSettings.Add(new SystemSetting
+        {
+            Key = PricingSettings.TaxRatePercentageKey,
+            Value = "18"
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingService(context).CreateAnonymousAsync(CreateRequest());
+
+        Assert.NotNull(result.Booking);
+        Assert.Equal(0m, result.Booking!.TaxRatePercentage);
+        Assert.Equal(0m, result.Booking.TaxAmount);
+        Assert.Equal(100m, result.Booking.TotalPrice);
+        Assert.DoesNotContain(result.Booking.PriceLines, line => line.Description.StartsWith("Tax", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task CreateAnonymousAsync_DefaultsCurrencyWhenNoCurrencySettingIsConfigured()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "CLEANING",
+            Name = "Cleaning",
+            BasePrice = 100,
+            PricingMode = ServicePricingMode.Fixed,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingService(context).CreateAnonymousAsync(CreateRequest());
+
+        Assert.NotNull(result.Booking);
+        Assert.Equal(PricingSettings.DefaultCurrencyCode, result.Booking!.Currency);
+    }
+
+    [Fact]
+    public async Task CreateAnonymousAsync_UsesTheConfiguredCurrencySetting()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service
+        {
+            Id = 1,
+            Code = "CLEANING",
+            Name = "Cleaning",
+            BasePrice = 100,
+            PricingMode = ServicePricingMode.Fixed,
+            IsActive = true
+        });
+        context.SystemSettings.Add(new SystemSetting
+        {
+            Key = PricingSettings.CurrencyCodeKey,
+            Value = "kes"
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateBookingService(context).CreateAnonymousAsync(CreateRequest());
+
+        Assert.NotNull(result.Booking);
+        Assert.Equal("KES", result.Booking!.Currency);
+    }
+
+    [Fact]
     public async Task CreateAnonymousAsync_RejectsPromotionNotValidForBooking()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()

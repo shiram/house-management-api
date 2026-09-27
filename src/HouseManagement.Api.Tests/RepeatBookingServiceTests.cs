@@ -79,6 +79,33 @@ public class RepeatBookingServiceTests
         Assert.Single(await context.Bookings.ToListAsync());
     }
 
+    [Fact]
+    public async Task RepeatAsync_AppliesTheConfiguredTaxRateToTheRepeatedBooking()
+    {
+        await using var context = CreateContext();
+        await SeedBookingAsync(context, BookingStatus.Completed, clientUserId: 10);
+        context.SystemSettings.Add(new SystemSetting
+        {
+            Key = HouseManagement.Api.Common.PricingSettings.TaxRatePercentageKey,
+            Value = "18"
+        });
+        await context.SaveChangesAsync();
+        var scheduledStart = DateTimeOffset.UtcNow.AddDays(7);
+
+        var result = await CreateService(context).RepeatAsync(10, 1, new RepeatBookingRequest
+        {
+            ScheduledStart = scheduledStart,
+            ScheduledEnd = scheduledStart.AddHours(2)
+        });
+
+        var repeated = Assert.IsType<Booking>(result.Booking);
+        Assert.Null(result.Error);
+        // Source service BasePrice is 25 (fixed); 18% of 25 = 4.50 tax.
+        Assert.Equal(18m, repeated.TaxRatePercentage);
+        Assert.Equal(4.5m, repeated.TaxAmount);
+        Assert.Equal(29.5m, repeated.TotalPrice);
+    }
+
     private static HouseContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<HouseContext>()

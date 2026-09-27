@@ -172,6 +172,19 @@ public sealed class PricingCalculationServiceTests
         Assert.Equal("This service uses fixed pricing and does not accept pricing items.", result.Error);
     }
 
+    [Theory]
+    [InlineData(100, 18, 18)]
+    [InlineData(100, 0, 0)]
+    [InlineData(0, 18, 0)]
+    [InlineData(-50, 18, 0)]
+    [InlineData(33.33, 15, 5)]
+    public void CalculateTax_RoundsAndReturnsZeroForNonPositiveInputs(decimal taxableAmount, decimal taxRatePercentage, decimal expectedTax)
+    {
+        var tax = Calculator.CalculateTax(taxableAmount, taxRatePercentage);
+
+        Assert.Equal(expectedTax, tax);
+    }
+
     private static Service FixedService(decimal basePrice = 40m) =>
         new() { Id = 1, Code = "FIXED", Name = "Fixed", PricingMode = ServicePricingMode.Fixed, BasePrice = basePrice, IsActive = true };
 

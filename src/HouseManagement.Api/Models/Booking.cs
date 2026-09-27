@@ -21,7 +21,19 @@ public class Booking
     public string? AppliedPromotionCode { get; set; }
     public string? AppliedPromotionName { get; set; }
     public decimal DiscountAmount { get; set; }
+
+    // Receipt-ready tax snapshot. TaxRatePercentage is the rate actually applied at booking time
+    // (0 when the service is exempt or no rate is configured), so later rate changes never alter
+    // an already-accepted booking.
+    public decimal TaxRatePercentage { get; set; }
+    public decimal TaxAmount { get; set; }
     public decimal TotalPrice { get; set; }
+
+    // Currency snapshot for receipt totals, resolved from the configured Pricing.CurrencyCode
+    // setting at booking time (defaults to PricingSettings.DefaultCurrencyCode). This is a display
+    // concern only; it is independent of Payment.Currency, which a payment provider may negotiate
+    // separately at payment time.
+    public string Currency { get; set; } = HouseManagement.Api.Common.PricingSettings.DefaultCurrencyCode;
     public List<BookingPriceLine> PriceLines { get; set; } = new();
     public List<Payment> Payments { get; set; } = new();
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

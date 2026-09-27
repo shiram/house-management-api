@@ -97,6 +97,7 @@ public sealed class ServiceCatalogService : IServiceCatalogService
         existing.Description = string.IsNullOrWhiteSpace(service.Description) ? null : service.Description.Trim();
         existing.BasePrice = service.BasePrice;
         existing.PricingMode = service.PricingMode;
+        existing.IsTaxable = service.IsTaxable;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -197,5 +198,21 @@ public sealed class ServiceCatalogService : IServiceCatalogService
             .AsNoTracking()
             .Select(holiday => holiday.Date)
             .ToListAsync();
+    }
+
+    public async Task<decimal> GetTaxRatePercentageAsync()
+    {
+        var setting = await _db.SystemSettings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Key == PricingSettings.TaxRatePercentageKey);
+        return PricingSettings.ParseTaxRatePercentage(setting?.Value);
+    }
+
+    public async Task<string> GetCurrencyCodeAsync()
+    {
+        var setting = await _db.SystemSettings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Key == PricingSettings.CurrencyCodeKey);
+        return PricingSettings.ParseCurrencyCode(setting?.Value);
     }
 }

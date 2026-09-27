@@ -18,6 +18,11 @@ public interface IServiceCatalogService
 
     // Public holiday calendar used to evaluate the Holiday surcharge trigger. Not service-specific.
     Task<IReadOnlyCollection<DateOnly>> GetHolidayDatesAsync();
+
+    // The platform-wide tax/VAT rate percentage, resolved from the generic system settings store.
+    // Callers must still check Service.IsTaxable before applying it to a specific service.
+    Task<decimal> GetTaxRatePercentageAsync();
+    Task<string> GetCurrencyCodeAsync();
 }
 
 public sealed record ServicePriceRuleUpdateResult(bool Exists, bool HasDuplicateUnitName);

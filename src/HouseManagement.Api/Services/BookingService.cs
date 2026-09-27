@@ -86,6 +86,21 @@ public sealed class BookingService : IBookingService
             pricing.PriceLines.Add(discount.PriceLine);
         }
 
+        var taxableAmount = pricing.Subtotal - discount.DiscountAmount;
+        var taxRatePercentage = await GetTaxRatePercentageAsync(service);
+        var taxAmount = _pricingCalculation.CalculateTax(taxableAmount, taxRatePercentage);
+        var currency = await GetCurrencyCodeAsync();
+        if (taxAmount > 0)
+        {
+            pricing.PriceLines.Add(new BookingPriceLine
+            {
+                Description = $"Tax ({taxRatePercentage:0.##}%)",
+                Quantity = 1,
+                UnitPrice = taxAmount,
+                LineTotal = taxAmount
+            });
+        }
+
         Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
         if (_db.Database.IsRelational())
         {
@@ -120,7 +135,10 @@ public sealed class BookingService : IBookingService
             AppliedPromotionCode = discount.Promotion?.Code,
             AppliedPromotionName = discount.Promotion?.Name,
             DiscountAmount = discount.DiscountAmount,
-            TotalPrice = pricing.Subtotal - discount.DiscountAmount,
+            TaxRatePercentage = taxAmount > 0 ? taxRatePercentage : 0m,
+            TaxAmount = taxAmount,
+            TotalPrice = taxableAmount + taxAmount,
+            Currency = currency,
             PriceLines = pricing.PriceLines,
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -213,6 +231,21 @@ public sealed class BookingService : IBookingService
             pricing.PriceLines.Add(discount.PriceLine);
         }
 
+        var taxableAmount = pricing.Subtotal - discount.DiscountAmount;
+        var taxRatePercentage = await GetTaxRatePercentageAsync(sourceBooking.Service);
+        var taxAmount = _pricingCalculation.CalculateTax(taxableAmount, taxRatePercentage);
+        var currency = await GetCurrencyCodeAsync();
+        if (taxAmount > 0)
+        {
+            pricing.PriceLines.Add(new BookingPriceLine
+            {
+                Description = $"Tax ({taxRatePercentage:0.##}%)",
+                Quantity = 1,
+                UnitPrice = taxAmount,
+                LineTotal = taxAmount
+            });
+        }
+
         var sourceAddress = sourceBooking.ServiceAddress;
         var booking = new Booking
         {
@@ -235,7 +268,10 @@ public sealed class BookingService : IBookingService
             AppliedPromotionCode = discount.Promotion?.Code,
             AppliedPromotionName = discount.Promotion?.Name,
             DiscountAmount = discount.DiscountAmount,
-            TotalPrice = pricing.Subtotal - discount.DiscountAmount,
+            TaxRatePercentage = taxAmount > 0 ? taxRatePercentage : 0m,
+            TaxAmount = taxAmount,
+            TotalPrice = taxableAmount + taxAmount,
+            Currency = currency,
             PriceLines = pricing.PriceLines,
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -605,5 +641,32 @@ public sealed class BookingService : IBookingService
             .AsNoTracking()
             .Select(holiday => holiday.Date)
             .ToListAsync();
+    }
+
+    // Resolves the effective tax/VAT rate for a booking. Exempt services never look up the
+    // global rate; otherwise the platform-wide rate is read from the generic system settings
+    // store (see PricingSettings), keeping tax configuration independent of any payment provider.
+    private async Task<decimal> GetTaxRatePercentageAsync(Service service)
+    {
+        if (!service.IsTaxable)
+        {
+            return 0m;
+        }
+
+        var setting = await _db.SystemSettings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Key == PricingSettings.TaxRatePercentageKey);
+        return PricingSettings.ParseTaxRatePercentage(setting?.Value);
+    }
+
+    // Resolves the platform-wide receipt currency code from the generic system settings store,
+    // falling back to PricingSettings.DefaultCurrencyCode when unset. This is a display snapshot
+    // only and never consults a payment provider.
+    private async Task<string> GetCurrencyCodeAsync()
+    {
+        var setting = await _db.SystemSettings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Key == PricingSettings.CurrencyCodeKey);
+        return PricingSettings.ParseCurrencyCode(setting?.Value);
     }
 }

@@ -43,6 +43,18 @@ public sealed class PricingCalculationService : IPricingCalculationService
         return ApplyFeesAndSurcharges(service, baseResult, scheduledStart, address, holidayDates);
     }
 
+    // Rounded to cents like every other price line; returns 0 for a non-positive taxable amount
+    // or rate so callers can add a tax price line only when it is actually non-zero.
+    public decimal CalculateTax(decimal taxableAmount, decimal taxRatePercentage)
+    {
+        if (taxableAmount <= 0 || taxRatePercentage <= 0)
+        {
+            return 0m;
+        }
+
+        return Math.Round(taxableAmount * taxRatePercentage / 100m, 2, MidpointRounding.AwayFromZero);
+    }
+
     private static PricingCalculationResult CalculateFixed(Service service, List<BookingPriceItemRequest> items)
     {
         if (items.Count > 0)

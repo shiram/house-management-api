@@ -310,6 +310,67 @@ public class ServiceCatalogIntegrationTests : IClassFixture<WebApplicationFactor
         Assert.Equal(3, quoteBody.Data.PriceLines.Count());
     }
 
+    [Fact]
+    public async Task Quote_AppliesTheConfiguredTaxRateOnlyToTaxableServices()
+    {
+        var manager = CreateAuthenticatedClient("manager");
+        var admin = CreateAuthenticatedClient("admin");
+        var anonymous = _factory.CreateClient();
+
+        var taxableCode = $"QTAX_{Guid.NewGuid():N}"[..16].ToUpperInvariant();
+        var taxableCreate = await manager.PostAsJsonAsync("/api/services", new CreateServiceRequest
+        {
+            Code = taxableCode,
+            Name = "Taxable Quote Service",
+            BasePrice = 100m,
+            PricingMode = ServicePricingMode.Fixed,
+            IsTaxable = true
+        });
+        var taxableService = (await taxableCreate.Content.ReadFromJsonAsync<ApiResponse<ServiceDto>>())!.Data!;
+
+        var exemptCode = $"QEXM_{Guid.NewGuid():N}"[..16].ToUpperInvariant();
+        var exemptCreate = await manager.PostAsJsonAsync("/api/services", new CreateServiceRequest
+        {
+            Code = exemptCode,
+            Name = "Exempt Quote Service",
+            BasePrice = 100m,
+            PricingMode = ServicePricingMode.Fixed,
+            IsTaxable = false
+        });
+        var exemptService = (await exemptCreate.Content.ReadFromJsonAsync<ApiResponse<ServiceDto>>())!.Data!;
+
+        // Admin configures the platform-wide tax/VAT rate through the existing generic settings
+        // endpoint; no dedicated pricing-tax administration endpoint is needed for this.
+        var settingResponse = await admin.PutAsJsonAsync("/api/admin/settings/Pricing.TaxRatePercentage", new UpsertSystemSettingRequest
+        {
+            Value = "18"
+        });
+        Assert.Equal(HttpStatusCode.OK, settingResponse.StatusCode);
+
+        var taxableQuote = await anonymous.PostAsJsonAsync($"/api/services/{taxableService.Id}/quote", new ServiceQuoteRequest
+        {
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1)
+        });
+        Assert.Equal(HttpStatusCode.OK, taxableQuote.StatusCode);
+        var taxableBody = await taxableQuote.Content.ReadFromJsonAsync<ApiResponse<ServiceQuoteResponse>>();
+        Assert.Equal(100m, taxableBody!.Data!.Subtotal);
+        Assert.Equal(18m, taxableBody.Data.TaxRatePercentage);
+        Assert.Equal(18m, taxableBody.Data.TaxAmount);
+        Assert.Equal(118m, taxableBody.Data.Total);
+        Assert.Contains(taxableBody.Data.PriceLines, line => line.Description.StartsWith("Tax", StringComparison.Ordinal));
+
+        var exemptQuote = await anonymous.PostAsJsonAsync($"/api/services/{exemptService.Id}/quote", new ServiceQuoteRequest
+        {
+            ScheduledStart = DateTimeOffset.UtcNow.AddDays(1),
+            ScheduledEnd = DateTimeOffset.UtcNow.AddDays(1).AddHours(1)
+        });
+        Assert.Equal(HttpStatusCode.OK, exemptQuote.StatusCode);
+        var exemptBody = await exemptQuote.Content.ReadFromJsonAsync<ApiResponse<ServiceQuoteResponse>>();
+        Assert.Equal(0m, exemptBody!.Data!.TaxAmount);
+        Assert.Equal(100m, exemptBody.Data.Total);
+    }
+
     private HttpClient CreateAuthenticatedClient(string role)
     {
         var client = _factory.CreateClient();

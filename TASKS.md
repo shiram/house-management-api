@@ -273,7 +273,7 @@
 - [x] T384 — Add server-side quote calculation for fixed, per-unit, and time-based services before  booking submission
 - [x] T385 — Validate booking duration, pricing inputs, and unavailable pricing combinations server-side
 - [x] T386 — Add optional service fees and surcharges for location, urgency, weekend, holiday, or after-hours work
-- [ ] T387 — Define tax/VAT handling and receipt-ready price breakdown fields without introducing payment-provider coupling
+- [x] T387 — Define tax/VAT handling and receipt-ready price breakdown fields without introducing payment-provider coupling
 - [ ] T388 — Add manager/admin pricing administration endpoints for time-based rates, pricing versions, fees, and surcharges
 - [ ] T389 — Add public pricing projection fields so clients can understand how a service will be charged
 - [ ] T390 — Preserve immutable booking price snapshots across pricing-rule, rate, fee, and surcharge changes

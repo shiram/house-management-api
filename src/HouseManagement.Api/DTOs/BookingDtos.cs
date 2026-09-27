@@ -89,7 +89,10 @@ public sealed class BookingDto
     public string? AppliedPromotionCode { get; set; }
     public string? AppliedPromotionName { get; set; }
     public decimal DiscountAmount { get; set; }
+    public decimal TaxRatePercentage { get; set; }
+    public decimal TaxAmount { get; set; }
     public decimal TotalPrice { get; set; }
+    public string Currency { get; set; } = HouseManagement.Api.Common.PricingSettings.DefaultCurrencyCode;
     public IEnumerable<BookingPriceLineDto> PriceLines { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }

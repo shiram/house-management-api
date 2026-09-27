@@ -335,7 +335,10 @@ public sealed class BookingsController : ControllerBase
             AppliedPromotionCode = booking.AppliedPromotionCode,
             AppliedPromotionName = booking.AppliedPromotionName,
             DiscountAmount = booking.DiscountAmount,
+            TaxRatePercentage = booking.TaxRatePercentage,
+            TaxAmount = booking.TaxAmount,
             TotalPrice = booking.TotalPrice,
+            Currency = booking.Currency,
             PriceLines = booking.PriceLines.Select(line => new BookingPriceLineDto
             {
                 Description = line.Description,

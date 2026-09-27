@@ -10,6 +10,10 @@ public class Service
     public string? Description { get; set; }
     public decimal BasePrice { get; set; }
     public ServicePricingMode PricingMode { get; set; } = ServicePricingMode.Fixed;
+
+    // Whether this service is subject to the platform's configured tax/VAT rate. Exempt services
+    // (e.g. zero-rated categories) can be marked non-taxable without touching the global rate.
+    public bool IsTaxable { get; set; } = true;
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }

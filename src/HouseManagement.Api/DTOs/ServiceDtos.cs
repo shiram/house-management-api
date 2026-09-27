@@ -11,6 +11,7 @@ public sealed class ServiceDto
     public string? Description { get; set; }
     public decimal BasePrice { get; set; }
     public ServicePricingMode PricingMode { get; set; }
+    public bool IsTaxable { get; set; }
     public IEnumerable<ServicePriceRuleDto> PriceRules { get; set; } = [];
     public bool IsActive { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
@@ -36,6 +37,8 @@ public sealed class CreateServiceRequest
 
     [EnumDataType(typeof(ServicePricingMode))]
     public ServicePricingMode PricingMode { get; set; } = ServicePricingMode.Fixed;
+
+    public bool IsTaxable { get; set; } = true;
 }
 
 public sealed class UpdateServiceRequest
@@ -57,6 +60,8 @@ public sealed class UpdateServiceRequest
 
     [EnumDataType(typeof(ServicePricingMode))]
     public ServicePricingMode PricingMode { get; set; } = ServicePricingMode.Fixed;
+
+    public bool IsTaxable { get; set; } = true;
 }
 
 public sealed class ServicePriceRuleDto
@@ -103,5 +108,9 @@ public sealed class ServiceQuoteResponse
     public ServicePricingMode PricingMode { get; set; }
     public IEnumerable<BookingPriceLineDto> PriceLines { get; set; } = [];
     public decimal Subtotal { get; set; }
+    public decimal TaxRatePercentage { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal Total { get; set; }
+    public string Currency { get; set; } = HouseManagement.Api.Common.PricingSettings.DefaultCurrencyCode;
     public DateTimeOffset CalculatedAt { get; set; }
 }

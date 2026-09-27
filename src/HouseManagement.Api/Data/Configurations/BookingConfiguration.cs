@@ -15,7 +15,13 @@ public sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(booking => booking.AppliedPromotionCode).HasMaxLength(64);
         builder.Property(booking => booking.AppliedPromotionName).HasMaxLength(128);
         builder.Property(booking => booking.DiscountAmount).HasPrecision(18, 2);
+        builder.Property(booking => booking.TaxRatePercentage).HasPrecision(5, 2);
+        builder.Property(booking => booking.TaxAmount).HasPrecision(18, 2);
         builder.Property(booking => booking.TotalPrice).HasPrecision(18, 2);
+        builder.Property(booking => booking.Currency)
+            .HasMaxLength(3)
+            .IsRequired()
+            .HasDefaultValue(HouseManagement.Api.Common.PricingSettings.DefaultCurrencyCode);
 
         builder.HasOne(booking => booking.Service)
             .WithMany(service => service.Bookings)
