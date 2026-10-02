@@ -275,7 +275,7 @@
 - [x] T386 — Add optional service fees and surcharges for location, urgency, weekend, holiday, or after-hours work
 - [x] T387 — Define tax/VAT handling and receipt-ready price breakdown fields without introducing payment-provider coupling
 - [x] T388 — Add manager/admin pricing administration endpoints for time-based rates, pricing versions, fees, and surcharges
-- [ ] T389 — Add public pricing projection fields so clients can understand how a service will be charged
+- [x] T389 — Add public pricing projection fields so clients can understand how a service will be charged
 - [ ] T390 — Preserve immutable booking price snapshots across pricing-rule, rate, fee, and surcharge changes
 - [ ] T391 — Add pricing audit events for rate, rule, fee, surcharge, and pricing-version changes
 - [ ] T392 — Add pricing tests for fixed, per-unit, time-based, surcharge, effective-date, and immutable-snapshot behavior

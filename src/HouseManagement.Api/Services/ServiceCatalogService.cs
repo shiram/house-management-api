@@ -19,6 +19,9 @@ public sealed class ServiceCatalogService : IServiceCatalogService
         return await _db.Services
             .AsNoTracking()
             .Include(service => service.PriceRules.Where(rule => rule.IsActive))
+            .Include(service => service.TimePricingPolicy)
+            .Include(service => service.Fees.Where(fee => fee.IsActive))
+            .Include(service => service.Surcharges.Where(surcharge => surcharge.IsActive))
             .Where(service => service.IsActive)
             .OrderBy(service => service.Name)
             .ThenBy(service => service.Code)

@@ -31,7 +31,9 @@ public sealed class ServicesController : ControllerBase
     public async Task<IActionResult> GetActive([FromQuery] int? page, [FromQuery] int? pageSize)
     {
         var services = await _serviceCatalog.GetActiveAsync(page, pageSize);
-        var dtos = services.Select(ToDto);
+        var taxRatePercentage = await _serviceCatalog.GetTaxRatePercentageAsync();
+        var currency = await _serviceCatalog.GetCurrencyCodeAsync();
+        var dtos = services.Select(service => ToDto(service, taxRatePercentage, currency));
 
         var response = ApiResponseFactory.Create(this, dtos, "Active services retrieved", StatusCodes.Status200OK);
         return Ok(response);
@@ -43,7 +45,9 @@ public sealed class ServicesController : ControllerBase
         var service = await _serviceCatalog.GetActiveByIdAsync(id);
         if (service == null) return NotFound();
 
-        var dto = ToDto(service);
+        var taxRatePercentage = await _serviceCatalog.GetTaxRatePercentageAsync();
+        var currency = await _serviceCatalog.GetCurrencyCodeAsync();
+        var dto = ToDto(service, taxRatePercentage, currency);
 
         var response = ApiResponseFactory.Create(this, dto, "Service retrieved", StatusCodes.Status200OK);
         return Ok(response);
@@ -494,7 +498,7 @@ public sealed class ServicesController : ControllerBase
         return Ok(response);
     }
 
-    private static ServiceDto ToDto(Service service)
+    private static ServiceDto ToDto(Service service, decimal taxRatePercentage = 0m, string? currency = null)
     {
         return new ServiceDto
         {
@@ -506,9 +510,53 @@ public sealed class ServicesController : ControllerBase
             PricingMode = service.PricingMode,
             IsTaxable = service.IsTaxable,
             PriceRules = service.PriceRules.Select(ToPriceRuleDto),
+            TimePricing = service.TimePricingPolicy == null ? null : ToTimePricingSummaryDto(service.TimePricingPolicy),
+            Fees = service.Fees.Where(fee => fee.IsActive).Select(ToFeeSummaryDto),
+            Surcharges = service.Surcharges.Where(surcharge => surcharge.IsActive).Select(ToSurchargeSummaryDto),
+            TaxRatePercentage = service.IsTaxable ? taxRatePercentage : 0m,
+            Currency = currency ?? HouseManagement.Api.Common.PricingSettings.DefaultCurrencyCode,
             IsActive = service.IsActive,
             CreatedAt = service.CreatedAt,
             UpdatedAt = service.UpdatedAt
+        };
+    }
+
+    private static ServiceTimePricingSummaryDto ToTimePricingSummaryDto(ServiceTimePricingPolicy policy)
+    {
+        return new ServiceTimePricingSummaryDto
+        {
+            BillingUnit = policy.BillingUnit,
+            UnitPrice = policy.UnitPrice,
+            MinimumBillableDurationMinutes = policy.MinimumBillableDurationMinutes,
+            BillingIncrementMinutes = policy.BillingIncrementMinutes,
+            RoundingPolicy = policy.RoundingPolicy,
+            OvertimeThresholdMinutes = policy.OvertimeThresholdMinutes,
+            OvertimeUnitPrice = policy.OvertimeUnitPrice
+        };
+    }
+
+    private static ServiceFeeSummaryDto ToFeeSummaryDto(ServiceFee fee)
+    {
+        return new ServiceFeeSummaryDto
+        {
+            Name = fee.Name,
+            AdjustmentType = fee.AdjustmentType,
+            Amount = fee.Amount
+        };
+    }
+
+    private static ServiceSurchargeSummaryDto ToSurchargeSummaryDto(ServiceSurcharge surcharge)
+    {
+        return new ServiceSurchargeSummaryDto
+        {
+            Name = surcharge.Name,
+            TriggerType = surcharge.TriggerType,
+            AdjustmentType = surcharge.AdjustmentType,
+            Amount = surcharge.Amount,
+            AfterHoursStartMinutes = surcharge.AfterHoursStartMinutes,
+            AfterHoursEndMinutes = surcharge.AfterHoursEndMinutes,
+            UrgentLeadTimeMinutes = surcharge.UrgentLeadTimeMinutes,
+            LocationMatch = surcharge.LocationMatch
         };
     }
 
