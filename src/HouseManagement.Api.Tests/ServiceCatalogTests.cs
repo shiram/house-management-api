@@ -207,4 +207,159 @@ public class ServiceCatalogTests
         Assert.True(result.HasDuplicateUnitName);
         Assert.Equal("Room", (await context.ServicePriceRules.SingleAsync(item => item.Id == 1)).UnitName);
     }
+
+    [Fact]
+    public async Task UpsertTimePricingPolicyAsync_CreatesThenUpdatesAndRejectsInvalidOvertime()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service { Id = 1, Code = "CLEAN", Name = "Cleaning", PricingMode = ServicePricingMode.TimeBased });
+        await context.SaveChangesAsync();
+
+        var service = new ServiceCatalogService(context);
+
+        var missingService = await service.UpsertTimePricingPolicyAsync(999, new ServiceTimePricingPolicy
+        {
+            BillingUnit = TimePricingUnit.Hour,
+            UnitPrice = 20m,
+            MinimumBillableDurationMinutes = 60,
+            BillingIncrementMinutes = 15
+        });
+        Assert.False(missingService.ServiceExists);
+
+        var invalidOvertime = await service.UpsertTimePricingPolicyAsync(1, new ServiceTimePricingPolicy
+        {
+            BillingUnit = TimePricingUnit.Hour,
+            UnitPrice = 20m,
+            MinimumBillableDurationMinutes = 60,
+            BillingIncrementMinutes = 15,
+            OvertimeThresholdMinutes = 30 // below minimum duration, must be rejected
+        });
+        Assert.True(invalidOvertime.ServiceExists);
+        Assert.False(invalidOvertime.IsValid);
+
+        var created = await service.UpsertTimePricingPolicyAsync(1, new ServiceTimePricingPolicy
+        {
+            BillingUnit = TimePricingUnit.Hour,
+            UnitPrice = 20m,
+            MinimumBillableDurationMinutes = 60,
+            BillingIncrementMinutes = 15,
+            RoundingPolicy = TimeRoundingPolicy.Nearest
+        });
+        Assert.True(created.IsValid);
+        Assert.Equal(20m, created.Policy!.UnitPrice);
+
+        var updated = await service.UpsertTimePricingPolicyAsync(1, new ServiceTimePricingPolicy
+        {
+            BillingUnit = TimePricingUnit.Hour,
+            UnitPrice = 25m,
+            MinimumBillableDurationMinutes = 60,
+            BillingIncrementMinutes = 15,
+            RoundingPolicy = TimeRoundingPolicy.Nearest
+        });
+        Assert.True(updated.IsValid);
+        Assert.Equal(25m, updated.Policy!.UnitPrice);
+        Assert.Equal(1, await context.ServiceTimePricingPolicies.CountAsync());
+    }
+
+    [Fact]
+    public async Task CreateFeeAsync_RejectsPercentageAboveOneHundredAndNonPositiveFixedAmount()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service { Id = 1, Code = "CLEAN", Name = "Cleaning" });
+        await context.SaveChangesAsync();
+
+        var service = new ServiceCatalogService(context);
+
+        var missingService = await service.CreateFeeAsync(999, new ServiceFee { Name = "Platform Fee", AdjustmentType = PricingAdjustmentType.FixedAmount, Amount = 5m });
+        Assert.False(missingService.ServiceExists);
+
+        var invalidPercentage = await service.CreateFeeAsync(1, new ServiceFee { Name = "Service Fee", AdjustmentType = PricingAdjustmentType.Percentage, Amount = 150m });
+        Assert.True(invalidPercentage.ServiceExists);
+        Assert.False(invalidPercentage.IsValid);
+
+        var valid = await service.CreateFeeAsync(1, new ServiceFee { Name = "Service Fee", AdjustmentType = PricingAdjustmentType.Percentage, Amount = 5m });
+        Assert.True(valid.IsValid);
+        Assert.NotNull(valid.Fee);
+        Assert.True(valid.Fee!.IsActive);
+    }
+
+    [Fact]
+    public async Task UpdateSurchargeAsync_RejectsTriggerFieldsThatDoNotMatchTheTriggerType()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        context.Services.Add(new Service { Id = 1, Code = "CLEAN", Name = "Cleaning" });
+        context.ServiceSurcharges.Add(new ServiceSurcharge
+        {
+            Id = 1,
+            ServiceId = 1,
+            Name = "Weekend",
+            TriggerType = SurchargeTriggerType.Weekend,
+            AdjustmentType = PricingAdjustmentType.Percentage,
+            Amount = 10m,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var service = new ServiceCatalogService(context);
+
+        // Location field set on a Weekend trigger must be rejected (mirrors CK_ServiceSurcharges_TriggerFields).
+        var invalid = await service.UpdateSurchargeAsync(1, 1, new ServiceSurcharge
+        {
+            Name = "Weekend",
+            TriggerType = SurchargeTriggerType.Weekend,
+            AdjustmentType = PricingAdjustmentType.Percentage,
+            Amount = 10m,
+            LocationMatch = "Nairobi"
+        });
+        Assert.True(invalid.Exists);
+        Assert.False(invalid.IsValid);
+
+        var valid = await service.UpdateSurchargeAsync(1, 1, new ServiceSurcharge
+        {
+            Name = "Weekend Premium",
+            TriggerType = SurchargeTriggerType.Location,
+            AdjustmentType = PricingAdjustmentType.Percentage,
+            Amount = 15m,
+            LocationMatch = "Nairobi"
+        });
+        Assert.True(valid.IsValid);
+
+        var stored = await context.ServiceSurcharges.SingleAsync(item => item.Id == 1);
+        Assert.Equal(SurchargeTriggerType.Location, stored.TriggerType);
+        Assert.Equal("Nairobi", stored.LocationMatch);
+    }
+
+    [Fact]
+    public async Task CreatePublicHolidayAsync_RejectsDuplicateDate()
+    {
+        var options = new DbContextOptionsBuilder<HouseContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new HouseContext(options);
+        var service = new ServiceCatalogService(context);
+        var date = new DateOnly(2026, 12, 25);
+
+        var created = await service.CreatePublicHolidayAsync(new PublicHoliday { Date = date, Name = "Christmas Day" });
+        var duplicate = await service.CreatePublicHolidayAsync(new PublicHoliday { Date = date, Name = "Christmas (again)" });
+
+        Assert.NotNull(created);
+        Assert.Null(duplicate);
+        Assert.Equal(1, await context.PublicHolidays.CountAsync());
+
+        Assert.True(await service.DeletePublicHolidayAsync(created!.Id));
+        Assert.False(await service.DeletePublicHolidayAsync(created.Id));
+    }
 }

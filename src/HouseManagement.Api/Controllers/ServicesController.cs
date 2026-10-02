@@ -15,11 +15,16 @@ public sealed class ServicesController : ControllerBase
 {
     private readonly IServiceCatalogService _serviceCatalog;
     private readonly IPricingCalculationService _pricingCalculation;
+    private readonly IServicePricingVersionService _pricingVersions;
 
-    public ServicesController(IServiceCatalogService serviceCatalog, IPricingCalculationService pricingCalculation)
+    public ServicesController(
+        IServiceCatalogService serviceCatalog,
+        IPricingCalculationService pricingCalculation,
+        IServicePricingVersionService pricingVersions)
     {
         _serviceCatalog = serviceCatalog;
         _pricingCalculation = pricingCalculation;
+        _pricingVersions = pricingVersions;
     }
 
     [HttpGet]
@@ -233,6 +238,262 @@ public sealed class ServicesController : ControllerBase
         return Ok(response);
     }
 
+    // T388: manager/admin administration of the time-based rate policy, service fees,
+    // surcharges, and effective-dated pricing versions. These never affect an already-created
+    // booking's snapshot; see BookingService for how a booking's price is fixed at creation time.
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{serviceId:int}/time-pricing-policy")]
+    public async Task<IActionResult> UpsertTimePricingPolicy(int serviceId, [FromBody] UpsertServiceTimePricingPolicyRequest request)
+    {
+        var result = await _serviceCatalog.UpsertTimePricingPolicyAsync(serviceId, new ServiceTimePricingPolicy
+        {
+            BillingUnit = request.BillingUnit,
+            UnitPrice = request.UnitPrice,
+            MinimumBillableDurationMinutes = request.MinimumBillableDurationMinutes,
+            BillingIncrementMinutes = request.BillingIncrementMinutes,
+            RoundingPolicy = request.RoundingPolicy,
+            OvertimeThresholdMinutes = request.OvertimeThresholdMinutes,
+            OvertimeUnitPrice = request.OvertimeUnitPrice
+        });
+
+        if (!result.ServiceExists) return NotFound();
+        if (!result.IsValid)
+        {
+            return BadRequest(ApiResponseFactory.Create<object?>(
+                this,
+                null,
+                "The time pricing policy is invalid. Check unit price, durations, and overtime fields.",
+                StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create(this, ToTimePricingPolicyDto(result.Policy!), "Time pricing policy updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpGet("{serviceId:int}/fees")]
+    public async Task<IActionResult> GetFees(int serviceId)
+    {
+        var fees = await _serviceCatalog.GetFeesAsync(serviceId);
+        var response = ApiResponseFactory.Create(this, fees.Select(ToFeeDto), "Service fees retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("{serviceId:int}/fees")]
+    public async Task<IActionResult> CreateFee(int serviceId, [FromBody] CreateServiceFeeRequest request)
+    {
+        var result = await _serviceCatalog.CreateFeeAsync(serviceId, new ServiceFee
+        {
+            Name = request.Name,
+            AdjustmentType = request.AdjustmentType,
+            Amount = request.Amount,
+            IsActive = true
+        });
+
+        if (!result.ServiceExists) return NotFound();
+        if (!result.IsValid)
+        {
+            return BadRequest(ApiResponseFactory.Create<object?>(
+                this,
+                null,
+                "The fee is invalid. A percentage amount must be between 0 and 100; a fixed amount must be positive.",
+                StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create(this, ToFeeDto(result.Fee!), "Service fee created", StatusCodes.Status201Created);
+        return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{serviceId:int}/fees/{feeId:int}")]
+    public async Task<IActionResult> UpdateFee(int serviceId, int feeId, [FromBody] UpdateServiceFeeRequest request)
+    {
+        var result = await _serviceCatalog.UpdateFeeAsync(serviceId, feeId, new ServiceFee
+        {
+            Name = request.Name,
+            AdjustmentType = request.AdjustmentType,
+            Amount = request.Amount
+        });
+
+        if (!result.Exists) return NotFound();
+        if (!result.IsValid)
+        {
+            return BadRequest(ApiResponseFactory.Create<object?>(
+                this,
+                null,
+                "The fee is invalid. A percentage amount must be between 0 and 100; a fixed amount must be positive.",
+                StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "Service fee updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{serviceId:int}/fees/{feeId:int}/activate")]
+    public async Task<IActionResult> SetFeeActive(int serviceId, int feeId, [FromQuery] bool active = true)
+    {
+        if (!await _serviceCatalog.SetFeeActiveAsync(serviceId, feeId, active))
+        {
+            return NotFound();
+        }
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "Service fee status updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpGet("{serviceId:int}/surcharges")]
+    public async Task<IActionResult> GetSurcharges(int serviceId)
+    {
+        var surcharges = await _serviceCatalog.GetSurchargesAsync(serviceId);
+        var response = ApiResponseFactory.Create(this, surcharges.Select(ToSurchargeDto), "Service surcharges retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("{serviceId:int}/surcharges")]
+    public async Task<IActionResult> CreateSurcharge(int serviceId, [FromBody] CreateServiceSurchargeRequest request)
+    {
+        var result = await _serviceCatalog.CreateSurchargeAsync(serviceId, new ServiceSurcharge
+        {
+            Name = request.Name,
+            TriggerType = request.TriggerType,
+            AdjustmentType = request.AdjustmentType,
+            Amount = request.Amount,
+            AfterHoursStartMinutes = request.AfterHoursStartMinutes,
+            AfterHoursEndMinutes = request.AfterHoursEndMinutes,
+            UrgentLeadTimeMinutes = request.UrgentLeadTimeMinutes,
+            LocationMatch = request.LocationMatch,
+            IsActive = true
+        });
+
+        if (!result.ServiceExists) return NotFound();
+        if (!result.IsValid)
+        {
+            return BadRequest(ApiResponseFactory.Create<object?>(
+                this,
+                null,
+                "The surcharge is invalid. Check the amount and that only the fields matching the trigger type are set.",
+                StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create(this, ToSurchargeDto(result.Surcharge!), "Service surcharge created", StatusCodes.Status201Created);
+        return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{serviceId:int}/surcharges/{surchargeId:int}")]
+    public async Task<IActionResult> UpdateSurcharge(int serviceId, int surchargeId, [FromBody] UpdateServiceSurchargeRequest request)
+    {
+        var result = await _serviceCatalog.UpdateSurchargeAsync(serviceId, surchargeId, new ServiceSurcharge
+        {
+            Name = request.Name,
+            TriggerType = request.TriggerType,
+            AdjustmentType = request.AdjustmentType,
+            Amount = request.Amount,
+            AfterHoursStartMinutes = request.AfterHoursStartMinutes,
+            AfterHoursEndMinutes = request.AfterHoursEndMinutes,
+            UrgentLeadTimeMinutes = request.UrgentLeadTimeMinutes,
+            LocationMatch = request.LocationMatch
+        });
+
+        if (!result.Exists) return NotFound();
+        if (!result.IsValid)
+        {
+            return BadRequest(ApiResponseFactory.Create<object?>(
+                this,
+                null,
+                "The surcharge is invalid. Check the amount and that only the fields matching the trigger type are set.",
+                StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "Service surcharge updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPut("{serviceId:int}/surcharges/{surchargeId:int}/activate")]
+    public async Task<IActionResult> SetSurchargeActive(int serviceId, int surchargeId, [FromQuery] bool active = true)
+    {
+        if (!await _serviceCatalog.SetSurchargeActiveAsync(serviceId, surchargeId, active))
+        {
+            return NotFound();
+        }
+
+        var response = ApiResponseFactory.Create<object?>(this, null, "Service surcharge status updated", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpGet("{serviceId:int}/pricing-versions")]
+    public async Task<IActionResult> GetPricingVersions(int serviceId)
+    {
+        var service = await _serviceCatalog.GetByIdAsync(serviceId);
+        if (service == null) return NotFound();
+
+        var versions = await _pricingVersions.GetVersionsAsync(serviceId);
+        var response = ApiResponseFactory.Create(this, versions.Select(ToPricingVersionDto), "Pricing versions retrieved", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("{serviceId:int}/pricing-versions")]
+    public async Task<IActionResult> CreatePricingVersionDraft(int serviceId, [FromBody] CreateServicePricingVersionRequest request)
+    {
+        var service = await _serviceCatalog.GetByIdAsync(serviceId);
+        if (service == null) return NotFound();
+
+        var draft = new ServicePricingVersion
+        {
+            EffectiveFrom = request.EffectiveFrom,
+            BasePrice = request.BasePrice,
+            Units = request.Units.Select(unit => new ServicePricingVersionUnit
+            {
+                UnitName = unit.UnitName,
+                UnitPrice = unit.UnitPrice
+            }).ToList(),
+            TimeBillingUnit = request.TimeBillingUnit,
+            TimeUnitPrice = request.TimeUnitPrice,
+            MinimumBillableDurationMinutes = request.MinimumBillableDurationMinutes,
+            BillingIncrementMinutes = request.BillingIncrementMinutes,
+            TimeRoundingPolicy = request.TimeRoundingPolicy,
+            OvertimeThresholdMinutes = request.OvertimeThresholdMinutes,
+            OvertimeUnitPrice = request.OvertimeUnitPrice
+        };
+
+        var created = await _pricingVersions.CreateDraftAsync(serviceId, draft);
+        if (created == null)
+        {
+            return BadRequest(ApiResponseFactory.Create<object?>(
+                this,
+                null,
+                "The pricing version snapshot is invalid for this service's current pricing mode.",
+                StatusCodes.Status400BadRequest));
+        }
+
+        var response = ApiResponseFactory.Create(this, ToPricingVersionDto(created), "Pricing version draft created", StatusCodes.Status201Created);
+        return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
+    [HttpPost("pricing-versions/{versionId:int}/publish")]
+    public async Task<IActionResult> PublishPricingVersion(int versionId)
+    {
+        var result = await _pricingVersions.PublishAsync(versionId);
+        if (!result.Succeeded)
+        {
+            return result.Error == "The requested pricing version was not found."
+                ? NotFound(ApiResponseFactory.Create<object?>(this, null, result.Error, StatusCodes.Status404NotFound))
+                : Conflict(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status409Conflict));
+        }
+
+        var response = ApiResponseFactory.Create(this, ToPricingVersionDto(result.Version!), "Pricing version published", StatusCodes.Status200OK);
+        return Ok(response);
+    }
+
     private static ServiceDto ToDto(Service service)
     {
         return new ServiceDto
@@ -248,6 +509,87 @@ public sealed class ServicesController : ControllerBase
             IsActive = service.IsActive,
             CreatedAt = service.CreatedAt,
             UpdatedAt = service.UpdatedAt
+        };
+    }
+
+    private static ServiceTimePricingPolicyDto ToTimePricingPolicyDto(ServiceTimePricingPolicy policy)
+    {
+        return new ServiceTimePricingPolicyDto
+        {
+            Id = policy.Id,
+            ServiceId = policy.ServiceId,
+            BillingUnit = policy.BillingUnit,
+            UnitPrice = policy.UnitPrice,
+            MinimumBillableDurationMinutes = policy.MinimumBillableDurationMinutes,
+            BillingIncrementMinutes = policy.BillingIncrementMinutes,
+            RoundingPolicy = policy.RoundingPolicy,
+            OvertimeThresholdMinutes = policy.OvertimeThresholdMinutes,
+            OvertimeUnitPrice = policy.OvertimeUnitPrice,
+            CreatedAt = policy.CreatedAt,
+            UpdatedAt = policy.UpdatedAt
+        };
+    }
+
+    private static ServiceFeeDto ToFeeDto(ServiceFee fee)
+    {
+        return new ServiceFeeDto
+        {
+            Id = fee.Id,
+            ServiceId = fee.ServiceId,
+            Name = fee.Name,
+            AdjustmentType = fee.AdjustmentType,
+            Amount = fee.Amount,
+            IsActive = fee.IsActive,
+            CreatedAt = fee.CreatedAt,
+            UpdatedAt = fee.UpdatedAt
+        };
+    }
+
+    private static ServiceSurchargeDto ToSurchargeDto(ServiceSurcharge surcharge)
+    {
+        return new ServiceSurchargeDto
+        {
+            Id = surcharge.Id,
+            ServiceId = surcharge.ServiceId,
+            Name = surcharge.Name,
+            TriggerType = surcharge.TriggerType,
+            AdjustmentType = surcharge.AdjustmentType,
+            Amount = surcharge.Amount,
+            IsActive = surcharge.IsActive,
+            AfterHoursStartMinutes = surcharge.AfterHoursStartMinutes,
+            AfterHoursEndMinutes = surcharge.AfterHoursEndMinutes,
+            UrgentLeadTimeMinutes = surcharge.UrgentLeadTimeMinutes,
+            LocationMatch = surcharge.LocationMatch,
+            CreatedAt = surcharge.CreatedAt,
+            UpdatedAt = surcharge.UpdatedAt
+        };
+    }
+
+    private static ServicePricingVersionDto ToPricingVersionDto(ServicePricingVersion version)
+    {
+        return new ServicePricingVersionDto
+        {
+            Id = version.Id,
+            ServiceId = version.ServiceId,
+            Status = version.Status,
+            PricingMode = version.PricingMode,
+            EffectiveFrom = version.EffectiveFrom,
+            EffectiveTo = version.EffectiveTo,
+            BasePrice = version.BasePrice,
+            TimeBillingUnit = version.TimeBillingUnit,
+            TimeUnitPrice = version.TimeUnitPrice,
+            MinimumBillableDurationMinutes = version.MinimumBillableDurationMinutes,
+            BillingIncrementMinutes = version.BillingIncrementMinutes,
+            TimeRoundingPolicy = version.TimeRoundingPolicy,
+            OvertimeThresholdMinutes = version.OvertimeThresholdMinutes,
+            OvertimeUnitPrice = version.OvertimeUnitPrice,
+            Units = version.Units.Select(unit => new ServicePricingVersionUnitDto
+            {
+                UnitName = unit.UnitName,
+                UnitPrice = unit.UnitPrice
+            }),
+            CreatedAt = version.CreatedAt,
+            PublishedAt = version.PublishedAt
         };
     }
 
