@@ -15,6 +15,11 @@ Environment variables (recommended):
 - PaymentProviders__GenericHttp__Enabled: set to `true` only when using a sandbox payment gateway adapter
 - PaymentProviders__GenericHttp__EndpointUrl: sandbox payment-initiation endpoint for the generic HTTP adapter
 - PaymentProviders__GenericHttp__ApiKey: optional sandbox provider key; do not commit it to source control
+- PaymentProviders__Pesapal__Enabled: set to `true` to use the Pesapal adapter (selected production provider, see `docs/PAYMENT-PROVIDER-DECISION.md`)
+- PaymentProviders__Pesapal__BaseUrl: Pesapal API host, e.g. `https://cybqa.pesapal.com/pesapalv3` (sandbox) or `https://pay.pesapal.com/v3` (production)
+- PaymentProviders__Pesapal__ConsumerKey / PaymentProviders__Pesapal__ConsumerSecret: Pesapal merchant credentials; never commit these to source control
+- PaymentProviders__Pesapal__CallbackUrl: this API's public IPN/redirect callback endpoint
+- PaymentProviders__Pesapal__IpnId: the `notification_id` returned by a one-time Pesapal `RegisterIPN` call against CallbackUrl
 
 CI / Deployment notes:
 - The repository CI workflow requires a repository secret JWT_KEY to be configured (see .github/workflows/ci.yml). The workflow fails if JWT_KEY is not set.

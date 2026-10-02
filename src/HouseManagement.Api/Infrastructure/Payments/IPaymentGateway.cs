@@ -17,7 +17,13 @@ public sealed record PaymentGatewayCreateRequest(
     decimal Amount,
     string Currency,
     PaymentMethodType MethodType,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    // Optional customer contact details. The generic sandbox adapter ignores these, but
+    // provider-specific adapters (e.g. Pesapal) require at least one contact field on the
+    // billing/order payload. Sourced from the booking's Client record by PaymentService.
+    string? CustomerName = null,
+    string? CustomerEmail = null,
+    string? CustomerPhone = null);
 
 public sealed record PaymentGatewayCreateResult(
     PaymentStatus Status,

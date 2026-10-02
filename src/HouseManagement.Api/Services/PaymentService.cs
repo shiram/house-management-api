@@ -54,6 +54,7 @@ public sealed class PaymentService : IPaymentService
 
         var booking = await _db.Bookings
             .AsNoTracking()
+            .Include(item => item.Client)
             .SingleOrDefaultAsync(item => item.Id == request.BookingId, cancellationToken);
         if (booking == null)
         {
@@ -87,7 +88,10 @@ public sealed class PaymentService : IPaymentService
                 booking.TotalPrice,
                 currency,
                 request.MethodType,
-                idempotencyKey),
+                idempotencyKey,
+                booking.Client?.Name,
+                booking.Client?.Email,
+                booking.Client?.Phone),
             cancellationToken);
 
         if (string.IsNullOrWhiteSpace(providerResult.ProviderReference))

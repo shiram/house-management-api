@@ -113,6 +113,23 @@ builder.Services.AddHttpClient<GenericHttpPaymentGateway>((serviceProvider, clie
     var timeoutSeconds = options.TimeoutSeconds > 0 ? options.TimeoutSeconds : 30;
     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 });
+builder.Services.Configure<PesapalPaymentGatewayOptions>(
+    builder.Configuration.GetSection("PaymentProviders:Pesapal"));
+builder.Services.AddSingleton<PesapalTokenCache>();
+builder.Services.AddHttpClient<PesapalPaymentGateway>((serviceProvider, client) =>
+{
+    var options = serviceProvider
+        .GetRequiredService<Microsoft.Extensions.Options.IOptions<PesapalPaymentGatewayOptions>>()
+        .Value;
+    var timeoutSeconds = options.TimeoutSeconds > 0 ? options.TimeoutSeconds : 30;
+    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+});
+// Both adapters are registered; PaymentService picks the first one whose Supports(...) matches a
+// given payment method/currency. Only the selected production provider (Pesapal, per T401) should
+// be enabled in production configuration -- GenericHttp remains available for local/sandbox
+// testing against a throwaway HTTP stub when Pesapal credentials are not configured.
+builder.Services.AddScoped<IPaymentGateway>(serviceProvider =>
+    serviceProvider.GetRequiredService<PesapalPaymentGateway>());
 builder.Services.AddScoped<IPaymentGateway>(serviceProvider =>
     serviceProvider.GetRequiredService<GenericHttpPaymentGateway>());
 builder.Services.AddSingleton<IBookingTransitionValidator, BookingTransitionValidator>();
