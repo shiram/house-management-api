@@ -289,7 +289,7 @@
 - [x] T401 — Select the production payment provider based on Uganda coverage, settlement reliability, fees, chargeback support, reconciliation tooling, developer experience, and operational support
 - [x] T402 — Replace or extend the generic HTTP sandbox adapter with the selected provider-specific card and mobile-money implementation
 - [x] T403 — Add secure webhook signature verification and payment status reconciliation for the selected provider
-- [ ] T404 — Add provider-specific sandbox integration tests and operational runbook without committing credentials
+- [x] T404 — Add provider-specific sandbox integration tests and operational runbook without committing credentials
 
 ---
 

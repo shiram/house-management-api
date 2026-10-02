@@ -34,7 +34,7 @@ public class PaymentWebhooksControllerTests
 
         var result = await controller.PesapalCallback("order-tracking-abc", "merchant-ref", "IPNCHANGE");
 
-        var ok = Assert.IsType<OkObjectResult>(result);
+        var ok = Assert.IsType<JsonResult>(result);
         reconciliation.Verify(
             item => item.ReconcileAsync("pesapal", "order-tracking-abc", It.IsAny<CancellationToken>()),
             Times.Once);
@@ -52,7 +52,7 @@ public class PaymentWebhooksControllerTests
 
         var result = await controller.PesapalCallback("order-tracking-abc", "merchant-ref", "IPNCHANGE");
 
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<JsonResult>(result);
     }
 
     private static PaymentWebhooksController CreateController(Mock<IPaymentReconciliationService> reconciliation)

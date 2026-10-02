@@ -54,7 +54,11 @@ public sealed class PaymentWebhooksController : ControllerBase
             _logger.LogError(ex, "Payment reconciliation failed for Pesapal order {OrderTrackingId}.", orderTrackingId);
         }
 
-        return Ok(new
+        // Returned as a JsonResult, not Ok(...)/ObjectResult, so the application-wide
+        // ApiResultFilter (which wraps ObjectResult bodies in the standard {statusCode, message,
+        // data} envelope) does not alter this response. Pesapal requires this exact, unwrapped
+        // JSON shape as its IPN acknowledgement contract.
+        return new JsonResult(new
         {
             orderNotificationType,
             orderTrackingId,
