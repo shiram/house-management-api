@@ -172,6 +172,114 @@ public sealed class PricingCalculationServiceTests
         Assert.Equal("This service uses fixed pricing and does not accept pricing items.", result.Error);
     }
 
+    [Fact]
+    public void Calculate_Fixed_ReturnsTheBasePriceAsASingleLineWithNoPricingItems()
+    {
+        var service = new Service { Id = 1, Code = "FIXED", Name = "Deep Clean", PricingMode = ServicePricingMode.Fixed, BasePrice = 150m, IsActive = true };
+        var start = DateTimeOffset.UtcNow.AddDays(1);
+
+        var result = Calculator.Calculate(service, start, start.AddHours(2), null);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(150m, result.Subtotal);
+        var line = Assert.Single(result.PriceLines);
+        Assert.Equal("Deep Clean", line.Description);
+        Assert.Equal(1, line.Quantity);
+        Assert.Equal(150m, line.UnitPrice);
+        Assert.Equal(150m, line.LineTotal);
+    }
+
+    private static Service PerUnitService(params ServicePriceRule[] rules)
+    {
+        var service = new Service { Id = 1, Code = "LAUNDRY", Name = "Laundry", PricingMode = ServicePricingMode.PerUnit, IsActive = true };
+        foreach (var rule in rules)
+        {
+            service.PriceRules.Add(rule);
+        }
+
+        return service;
+    }
+
+    [Fact]
+    public void Calculate_PerUnit_SumsEachSelectedItemsQuantityTimesUnitPrice()
+    {
+        var service = PerUnitService(
+            new ServicePriceRule { Id = 1, UnitName = "Load", UnitPrice = 12.5m, IsActive = true },
+            new ServicePriceRule { Id = 2, UnitName = "Fold", UnitPrice = 7.5m, IsActive = true });
+        var start = DateTimeOffset.UtcNow.AddDays(1);
+
+        var result = Calculator.Calculate(service, start, start.AddHours(1), [
+            new BookingPriceItemRequest { PriceRuleId = 1, Quantity = 2 },
+            new BookingPriceItemRequest { PriceRuleId = 2, Quantity = 3 }
+        ]);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(47.5m, result.Subtotal);
+        Assert.Equal(2, result.PriceLines.Count);
+        Assert.Equal("Load", result.PriceLines[0].Description);
+        Assert.Equal(25m, result.PriceLines[0].LineTotal);
+        Assert.Equal("Fold", result.PriceLines[1].Description);
+        Assert.Equal(22.5m, result.PriceLines[1].LineTotal);
+    }
+
+    [Fact]
+    public void Calculate_PerUnit_RejectsNoPricingItems()
+    {
+        var service = PerUnitService(new ServicePriceRule { Id = 1, UnitName = "Load", UnitPrice = 12.5m, IsActive = true });
+        var start = DateTimeOffset.UtcNow.AddDays(1);
+
+        var result = Calculator.Calculate(service, start, start.AddHours(1), null);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("At least one pricing item is required for this service.", result.Error);
+    }
+
+    [Fact]
+    public void Calculate_PerUnit_RejectsADuplicatelySelectedPriceRule()
+    {
+        var service = PerUnitService(new ServicePriceRule { Id = 1, UnitName = "Load", UnitPrice = 12.5m, IsActive = true });
+        var start = DateTimeOffset.UtcNow.AddDays(1);
+
+        var result = Calculator.Calculate(service, start, start.AddHours(1), [
+            new BookingPriceItemRequest { PriceRuleId = 1, Quantity = 1 },
+            new BookingPriceItemRequest { PriceRuleId = 1, Quantity = 2 }
+        ]);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Each pricing item can only be selected once.", result.Error);
+    }
+
+    [Fact]
+    public void Calculate_PerUnit_RejectsAnUnknownOrInactivePriceRule()
+    {
+        var service = PerUnitService(
+            new ServicePriceRule { Id = 1, UnitName = "Load", UnitPrice = 12.5m, IsActive = true },
+            new ServicePriceRule { Id = 2, UnitName = "Retired", UnitPrice = 9m, IsActive = false });
+        var start = DateTimeOffset.UtcNow.AddDays(1);
+
+        var unknownRule = Calculator.Calculate(service, start, start.AddHours(1), [new BookingPriceItemRequest { PriceRuleId = 999, Quantity = 1 }]);
+        var inactiveRule = Calculator.Calculate(service, start, start.AddHours(1), [new BookingPriceItemRequest { PriceRuleId = 2, Quantity = 1 }]);
+
+        Assert.False(unknownRule.Succeeded);
+        Assert.Equal("One or more selected pricing items are not available for this service.", unknownRule.Error);
+        Assert.False(inactiveRule.Succeeded);
+        Assert.Equal("One or more selected pricing items are not available for this service.", inactiveRule.Error);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(100001)]
+    public void Calculate_PerUnit_RejectsQuantityOutsideTheAllowedRange(int quantity)
+    {
+        var service = PerUnitService(new ServicePriceRule { Id = 1, UnitName = "Load", UnitPrice = 12.5m, IsActive = true });
+        var start = DateTimeOffset.UtcNow.AddDays(1);
+
+        var result = Calculator.Calculate(service, start, start.AddHours(1), [new BookingPriceItemRequest { PriceRuleId = 1, Quantity = quantity }]);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Each pricing item quantity must be between 1 and 100000.", result.Error);
+    }
+
     [Theory]
     [InlineData(100, 18, 18)]
     [InlineData(100, 0, 0)]

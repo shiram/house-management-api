@@ -278,7 +278,7 @@
 - [x] T389 — Add public pricing projection fields so clients can understand how a service will be charged
 - [x] T390 — Preserve immutable booking price snapshots across pricing-rule, rate, fee, and surcharge changes
 - [x] T391 — Add pricing audit events for rate, rule, fee, surcharge, and pricing-version changes
-- [ ] T392 — Add pricing tests for fixed, per-unit, time-based, surcharge, effective-date, and immutable-snapshot behavior
+- [x] T392 — Add pricing tests for fixed, per-unit, time-based, surcharge, effective-date, and immutable-snapshot behavior
 - [ ] T393 — Document pricing operations, examples, edge cases, and manager/admin workflows
 
 ---
