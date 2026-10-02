@@ -1,3 +1,4 @@
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.DTOs;
@@ -5,6 +6,8 @@ using HouseManagement.Api.Models;
 using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace HouseManagement.Api.Controllers;
 
@@ -17,10 +20,18 @@ namespace HouseManagement.Api.Controllers;
 public sealed class AdminPublicHolidaysController : ControllerBase
 {
     private readonly IServiceCatalogService _serviceCatalog;
+    private readonly IAuditLogService _auditLogs;
 
-    public AdminPublicHolidaysController(IServiceCatalogService serviceCatalog)
+    public AdminPublicHolidaysController(IServiceCatalogService serviceCatalog, IAuditLogService auditLogs)
     {
         _serviceCatalog = serviceCatalog;
+        _auditLogs = auditLogs;
+    }
+
+    private int? CurrentUserId()
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return int.TryParse(subject, out var userId) ? userId : null;
     }
 
     [HttpGet]
@@ -49,6 +60,13 @@ public sealed class AdminPublicHolidaysController : ControllerBase
                 StatusCodes.Status409Conflict));
         }
 
+        await _auditLogs.LogAsync(
+            AuditEventTypes.PublicHolidayCreated,
+            nameof(PublicHoliday),
+            entityId: created.Id,
+            userId: CurrentUserId(),
+            details: $"Date: {created.Date:yyyy-MM-dd}, Name: {created.Name}");
+
         var response = ApiResponseFactory.Create(this, ToDto(created), "Public holiday created", StatusCodes.Status201Created);
         return StatusCode(StatusCodes.Status201Created, response);
     }
@@ -60,6 +78,12 @@ public sealed class AdminPublicHolidaysController : ControllerBase
         {
             return NotFound();
         }
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.PublicHolidayDeleted,
+            nameof(PublicHoliday),
+            entityId: id,
+            userId: CurrentUserId());
 
         var response = ApiResponseFactory.Create<object?>(this, null, "Public holiday removed", StatusCodes.Status200OK);
         return Ok(response);

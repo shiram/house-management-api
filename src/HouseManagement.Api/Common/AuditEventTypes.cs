@@ -16,6 +16,25 @@ public static class AuditEventTypes
     public const string HouseHelpActivationChanged = "househelp.activation_changed";
     public const string HouseHelpProfileImageUpdated = "househelp.profile_image_updated";
 
+    // T391: pricing administration events (T388 endpoints). Each is scoped to the pricing
+    // building block it affects; EntityId/Details identify the affected service or record.
+    // These never retroactively change an already-accepted booking's immutable price snapshot
+    // (see T390); they only audit changes to the live catalog used for future quotes/bookings.
+    public const string ServicePriceRuleCreated = "service_price_rule.created";
+    public const string ServicePriceRuleUpdated = "service_price_rule.updated";
+    public const string ServicePriceRuleActivationChanged = "service_price_rule.activation_changed";
+    public const string ServiceTimePricingPolicyUpdated = "service_time_pricing_policy.updated";
+    public const string ServiceFeeCreated = "service_fee.created";
+    public const string ServiceFeeUpdated = "service_fee.updated";
+    public const string ServiceFeeActivationChanged = "service_fee.activation_changed";
+    public const string ServiceSurchargeCreated = "service_surcharge.created";
+    public const string ServiceSurchargeUpdated = "service_surcharge.updated";
+    public const string ServiceSurchargeActivationChanged = "service_surcharge.activation_changed";
+    public const string ServicePricingVersionCreated = "service_pricing_version.created";
+    public const string ServicePricingVersionPublished = "service_pricing_version.published";
+    public const string PublicHolidayCreated = "public_holiday.created";
+    public const string PublicHolidayDeleted = "public_holiday.deleted";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         AuthenticationLoginSucceeded,
@@ -28,6 +47,20 @@ public static class AuditEventTypes
         HouseHelpRatingSubmitted,
         HouseHelpProfileUpdated,
         HouseHelpActivationChanged,
-        HouseHelpProfileImageUpdated
+        HouseHelpProfileImageUpdated,
+        ServicePriceRuleCreated,
+        ServicePriceRuleUpdated,
+        ServicePriceRuleActivationChanged,
+        ServiceTimePricingPolicyUpdated,
+        ServiceFeeCreated,
+        ServiceFeeUpdated,
+        ServiceFeeActivationChanged,
+        ServiceSurchargeCreated,
+        ServiceSurchargeUpdated,
+        ServiceSurchargeActivationChanged,
+        ServicePricingVersionCreated,
+        ServicePricingVersionPublished,
+        PublicHolidayCreated,
+        PublicHolidayDeleted
     };
 }

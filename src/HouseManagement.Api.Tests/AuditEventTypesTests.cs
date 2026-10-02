@@ -20,7 +20,21 @@ public class AuditEventTypesTests
             AuditEventTypes.HouseHelpRatingSubmitted,
             AuditEventTypes.HouseHelpProfileUpdated,
             AuditEventTypes.HouseHelpActivationChanged,
-            AuditEventTypes.HouseHelpProfileImageUpdated
+            AuditEventTypes.HouseHelpProfileImageUpdated,
+            AuditEventTypes.ServicePriceRuleCreated,
+            AuditEventTypes.ServicePriceRuleUpdated,
+            AuditEventTypes.ServicePriceRuleActivationChanged,
+            AuditEventTypes.ServiceTimePricingPolicyUpdated,
+            AuditEventTypes.ServiceFeeCreated,
+            AuditEventTypes.ServiceFeeUpdated,
+            AuditEventTypes.ServiceFeeActivationChanged,
+            AuditEventTypes.ServiceSurchargeCreated,
+            AuditEventTypes.ServiceSurchargeUpdated,
+            AuditEventTypes.ServiceSurchargeActivationChanged,
+            AuditEventTypes.ServicePricingVersionCreated,
+            AuditEventTypes.ServicePricingVersionPublished,
+            AuditEventTypes.PublicHolidayCreated,
+            AuditEventTypes.PublicHolidayDeleted
         };
 
         Assert.Equal(eventTypes.Length, eventTypes.Distinct(StringComparer.Ordinal).Count());

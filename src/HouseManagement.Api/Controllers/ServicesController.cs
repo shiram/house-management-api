@@ -1,3 +1,4 @@
+using HouseManagement.Api.Common;
 using HouseManagement.Api.Common.Api;
 using HouseManagement.Api.Common.Security;
 using HouseManagement.Api.DTOs;
@@ -6,6 +7,8 @@ using HouseManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace HouseManagement.Api.Controllers;
 
@@ -16,15 +19,26 @@ public sealed class ServicesController : ControllerBase
     private readonly IServiceCatalogService _serviceCatalog;
     private readonly IPricingCalculationService _pricingCalculation;
     private readonly IServicePricingVersionService _pricingVersions;
+    private readonly IAuditLogService _auditLogs;
 
     public ServicesController(
         IServiceCatalogService serviceCatalog,
         IPricingCalculationService pricingCalculation,
-        IServicePricingVersionService pricingVersions)
+        IServicePricingVersionService pricingVersions,
+        IAuditLogService auditLogs)
     {
         _serviceCatalog = serviceCatalog;
         _pricingCalculation = pricingCalculation;
         _pricingVersions = pricingVersions;
+        _auditLogs = auditLogs;
+    }
+
+    // T391: pricing administration mutations are audited with the acting user's id, derived
+    // from claims rather than any client-supplied value.
+    private int? CurrentUserId()
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return int.TryParse(subject, out var userId) ? userId : null;
     }
 
     [HttpGet]
@@ -196,6 +210,13 @@ public sealed class ServicesController : ControllerBase
                 StatusCodes.Status409Conflict));
         }
 
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServicePriceRuleCreated,
+            nameof(ServicePriceRule),
+            entityId: created.Id,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, UnitName: {created.UnitName}, UnitPrice: {created.UnitPrice}");
+
         var response = ApiResponseFactory.Create(this, ToPriceRuleDto(created), "Pricing rule created", StatusCodes.Status201Created);
         return StatusCode(StatusCodes.Status201Created, response);
     }
@@ -225,6 +246,13 @@ public sealed class ServicesController : ControllerBase
                 StatusCodes.Status409Conflict));
         }
 
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServicePriceRuleUpdated,
+            nameof(ServicePriceRule),
+            entityId: ruleId,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, UnitName: {request.UnitName}, UnitPrice: {request.UnitPrice}");
+
         var response = ApiResponseFactory.Create<object?>(this, null, "Pricing rule updated", StatusCodes.Status200OK);
         return Ok(response);
     }
@@ -237,6 +265,13 @@ public sealed class ServicesController : ControllerBase
         {
             return NotFound();
         }
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServicePriceRuleActivationChanged,
+            nameof(ServicePriceRule),
+            entityId: ruleId,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, IsActive: {active}");
 
         var response = ApiResponseFactory.Create<object?>(this, null, "Pricing rule status updated", StatusCodes.Status200OK);
         return Ok(response);
@@ -270,6 +305,13 @@ public sealed class ServicesController : ControllerBase
                 "The time pricing policy is invalid. Check unit price, durations, and overtime fields.",
                 StatusCodes.Status400BadRequest));
         }
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServiceTimePricingPolicyUpdated,
+            nameof(ServiceTimePricingPolicy),
+            entityId: serviceId,
+            userId: CurrentUserId(),
+            details: $"BillingUnit: {result.Policy!.BillingUnit}, UnitPrice: {result.Policy.UnitPrice}");
 
         var response = ApiResponseFactory.Create(this, ToTimePricingPolicyDto(result.Policy!), "Time pricing policy updated", StatusCodes.Status200OK);
         return Ok(response);
@@ -306,6 +348,13 @@ public sealed class ServicesController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServiceFeeCreated,
+            nameof(ServiceFee),
+            entityId: result.Fee!.Id,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, Name: {result.Fee.Name}, AdjustmentType: {result.Fee.AdjustmentType}, Amount: {result.Fee.Amount}");
+
         var response = ApiResponseFactory.Create(this, ToFeeDto(result.Fee!), "Service fee created", StatusCodes.Status201Created);
         return StatusCode(StatusCodes.Status201Created, response);
     }
@@ -331,6 +380,13 @@ public sealed class ServicesController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServiceFeeUpdated,
+            nameof(ServiceFee),
+            entityId: feeId,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, Name: {request.Name}, AdjustmentType: {request.AdjustmentType}, Amount: {request.Amount}");
+
         var response = ApiResponseFactory.Create<object?>(this, null, "Service fee updated", StatusCodes.Status200OK);
         return Ok(response);
     }
@@ -343,6 +399,13 @@ public sealed class ServicesController : ControllerBase
         {
             return NotFound();
         }
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServiceFeeActivationChanged,
+            nameof(ServiceFee),
+            entityId: feeId,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, IsActive: {active}");
 
         var response = ApiResponseFactory.Create<object?>(this, null, "Service fee status updated", StatusCodes.Status200OK);
         return Ok(response);
@@ -384,6 +447,13 @@ public sealed class ServicesController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServiceSurchargeCreated,
+            nameof(ServiceSurcharge),
+            entityId: result.Surcharge!.Id,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, Name: {result.Surcharge.Name}, TriggerType: {result.Surcharge.TriggerType}, Amount: {result.Surcharge.Amount}");
+
         var response = ApiResponseFactory.Create(this, ToSurchargeDto(result.Surcharge!), "Service surcharge created", StatusCodes.Status201Created);
         return StatusCode(StatusCodes.Status201Created, response);
     }
@@ -414,6 +484,13 @@ public sealed class ServicesController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServiceSurchargeUpdated,
+            nameof(ServiceSurcharge),
+            entityId: surchargeId,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, Name: {request.Name}, TriggerType: {request.TriggerType}, Amount: {request.Amount}");
+
         var response = ApiResponseFactory.Create<object?>(this, null, "Service surcharge updated", StatusCodes.Status200OK);
         return Ok(response);
     }
@@ -426,6 +503,13 @@ public sealed class ServicesController : ControllerBase
         {
             return NotFound();
         }
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServiceSurchargeActivationChanged,
+            nameof(ServiceSurcharge),
+            entityId: surchargeId,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, IsActive: {active}");
 
         var response = ApiResponseFactory.Create<object?>(this, null, "Service surcharge status updated", StatusCodes.Status200OK);
         return Ok(response);
@@ -478,6 +562,13 @@ public sealed class ServicesController : ControllerBase
                 StatusCodes.Status400BadRequest));
         }
 
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServicePricingVersionCreated,
+            nameof(ServicePricingVersion),
+            entityId: created.Id,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {serviceId}, EffectiveFrom: {created.EffectiveFrom:O}");
+
         var response = ApiResponseFactory.Create(this, ToPricingVersionDto(created), "Pricing version draft created", StatusCodes.Status201Created);
         return StatusCode(StatusCodes.Status201Created, response);
     }
@@ -493,6 +584,13 @@ public sealed class ServicesController : ControllerBase
                 ? NotFound(ApiResponseFactory.Create<object?>(this, null, result.Error, StatusCodes.Status404NotFound))
                 : Conflict(ApiResponseFactory.Create<object?>(this, null, result.Error!, StatusCodes.Status409Conflict));
         }
+
+        await _auditLogs.LogAsync(
+            AuditEventTypes.ServicePricingVersionPublished,
+            nameof(ServicePricingVersion),
+            entityId: result.Version!.Id,
+            userId: CurrentUserId(),
+            details: $"ServiceId: {result.Version.ServiceId}, EffectiveFrom: {result.Version.EffectiveFrom:O}");
 
         var response = ApiResponseFactory.Create(this, ToPricingVersionDto(result.Version!), "Pricing version published", StatusCodes.Status200OK);
         return Ok(response);
