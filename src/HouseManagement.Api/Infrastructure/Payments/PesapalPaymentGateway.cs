@@ -13,7 +13,7 @@ namespace HouseManagement.Api.Infrastructure.Payments;
 // GetTransactionStatus reconciliation call are implemented separately (T403), since Pesapal's own
 // integration guidance treats the callback as a prompt to check status rather than proof of
 // payment on its own.
-public sealed class PesapalPaymentGateway : IPaymentGateway
+public sealed class PesapalPaymentGateway : IPaymentGateway, IPaymentStatusQuery
 {
     private readonly HttpClient _httpClient;
     private readonly PesapalPaymentGatewayOptions _options;
@@ -105,6 +105,61 @@ public sealed class PesapalPaymentGateway : IPaymentGateway
             orderResponse.OrderTrackingId.Trim(),
             orderResponse.RedirectUrl.Trim(),
             null);
+    }
+
+    // T403: authoritative status re-check. Called by the reconciliation service after Pesapal's
+    // IPN callback fires (and may also be polled); this is the only source of truth the
+    // reconciliation service trusts, since the callback itself carries no verifiable signature.
+    public async Task<PaymentGatewayStatusResult> GetStatusAsync(
+        string providerReference,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(providerReference))
+        {
+            throw new ArgumentException("A provider reference is required.", nameof(providerReference));
+        }
+
+        var token = await _tokenCache.GetTokenAsync(RequestTokenAsync, cancellationToken);
+
+        var baseUrl = _options.BaseUrl!.TrimEnd('/');
+        var requestUri = $"{baseUrl}/api/Transactions/GetTransactionStatus?orderTrackingId={Uri.EscapeDataString(providerReference)}";
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"The Pesapal payment gateway returned HTTP {(int)response.StatusCode} while checking transaction status.");
+        }
+
+        var statusResponse = await response.Content.ReadFromJsonAsync<PesapalTransactionStatusResponse>(
+            cancellationToken: cancellationToken);
+        if (statusResponse?.Error != null)
+        {
+            return new PaymentGatewayStatusResult(PaymentStatus.Failed, statusResponse.Error.Message);
+        }
+
+        return new PaymentGatewayStatusResult(
+            MapStatus(statusResponse?.PaymentStatusDescription),
+            statusResponse?.PaymentStatusDescription is "FAILED" or "INVALID"
+                ? statusResponse.Message
+                : null);
+    }
+
+    // Maps Pesapal's payment_status_description values (its documented, human-readable status
+    // field) onto this platform's PaymentStatus. An unrecognized or still-pending description is
+    // treated as Processing rather than left Pending, since a status check implies the customer
+    // has at least reached Pesapal's checkout.
+    private static PaymentStatus MapStatus(string? paymentStatusDescription)
+    {
+        return paymentStatusDescription?.Trim().ToUpperInvariant() switch
+        {
+            "COMPLETED" => PaymentStatus.Succeeded,
+            "FAILED" or "INVALID" => PaymentStatus.Failed,
+            "REVERSED" => PaymentStatus.Refunded,
+            _ => PaymentStatus.Processing
+        };
     }
 
     // Invoked by the shared PesapalTokenCache only when its cached token is missing or near
@@ -206,4 +261,10 @@ public sealed class PesapalPaymentGateway : IPaymentGateway
 
     private sealed record PesapalOrderError(
         [property: JsonPropertyName("message")] string? Message);
+
+    private sealed record PesapalTransactionStatusResponse(
+        [property: JsonPropertyName("payment_status_description")] string? PaymentStatusDescription,
+        [property: JsonPropertyName("message")] string? Message,
+        [property: JsonPropertyName("merchant_reference")] string? MerchantReference,
+        [property: JsonPropertyName("error")] PesapalOrderError? Error);
 }

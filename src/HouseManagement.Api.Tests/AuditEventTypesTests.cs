@@ -34,7 +34,8 @@ public class AuditEventTypesTests
             AuditEventTypes.ServicePricingVersionCreated,
             AuditEventTypes.ServicePricingVersionPublished,
             AuditEventTypes.PublicHolidayCreated,
-            AuditEventTypes.PublicHolidayDeleted
+            AuditEventTypes.PublicHolidayDeleted,
+            AuditEventTypes.PaymentStatusReconciled
         };
 
         Assert.Equal(eventTypes.Length, eventTypes.Distinct(StringComparer.Ordinal).Count());

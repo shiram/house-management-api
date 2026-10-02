@@ -35,6 +35,10 @@ public static class AuditEventTypes
     public const string PublicHolidayCreated = "public_holiday.created";
     public const string PublicHolidayDeleted = "public_holiday.deleted";
 
+    // T403: emitted when a payment's status is changed as a result of provider reconciliation
+    // (webhook/IPN-triggered status re-check). EntityId is the Payment id.
+    public const string PaymentStatusReconciled = "payment.status_reconciled";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         AuthenticationLoginSucceeded,
@@ -61,6 +65,7 @@ public static class AuditEventTypes
         ServicePricingVersionCreated,
         ServicePricingVersionPublished,
         PublicHolidayCreated,
-        PublicHolidayDeleted
+        PublicHolidayDeleted,
+        PaymentStatusReconciled
     };
 }

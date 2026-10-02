@@ -190,6 +190,84 @@ public class PesapalPaymentGatewayTests
             new PaymentGatewayCreateRequest(10, "BK-SANDBOX", 25000m, "UGX", PaymentMethodType.Card, "payment-key-123")));
     }
 
+    [Fact]
+    public async Task GetStatusAsync_RequestsTokenThenMapsCompletedStatus()
+    {
+        var handler = CreateTokenThenHandler(request =>
+        {
+            Assert.EndsWith("GetTransactionStatus", request.RequestUri!.AbsolutePath, StringComparison.Ordinal);
+            Assert.Contains("orderTrackingId=order-tracking-abc", request.RequestUri!.Query, StringComparison.Ordinal);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(new
+                {
+                    payment_status_description = "COMPLETED",
+                    message = "Request processed successfully",
+                    merchant_reference = "payment-key-123",
+                    error = (object?)null
+                })
+            });
+        });
+
+        var gateway = CreateGateway(ValidOptions, handler);
+        var result = await gateway.GetStatusAsync("order-tracking-abc");
+
+        Assert.Equal(PaymentStatus.Succeeded, result.Status);
+        Assert.Null(result.FailureReason);
+    }
+
+    [Theory]
+    [InlineData("FAILED", PaymentStatus.Failed)]
+    [InlineData("INVALID", PaymentStatus.Failed)]
+    [InlineData("REVERSED", PaymentStatus.Refunded)]
+    [InlineData("PENDING", PaymentStatus.Processing)]
+    [InlineData(null, PaymentStatus.Processing)]
+    public async Task GetStatusAsync_MapsAllDocumentedStatusDescriptions(string? description, PaymentStatus expected)
+    {
+        var handler = CreateTokenThenHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(new
+            {
+                payment_status_description = description,
+                message = "Some message",
+                error = (object?)null
+            })
+        }));
+
+        var gateway = CreateGateway(ValidOptions, handler);
+        var result = await gateway.GetStatusAsync("order-tracking-abc");
+
+        Assert.Equal(expected, result.Status);
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_ReturnsFailedWhenProviderReportsAnError()
+    {
+        var handler = CreateTokenThenHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(new
+            {
+                error = new { message = "Transaction not found" }
+            })
+        }));
+
+        var gateway = CreateGateway(ValidOptions, handler);
+        var result = await gateway.GetStatusAsync("unknown-tracking-id");
+
+        Assert.Equal(PaymentStatus.Failed, result.Status);
+        Assert.Equal("Transaction not found", result.FailureReason);
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_RejectsWhenHttpCallFails()
+    {
+        var handler = CreateTokenThenHandler(_ => Task.FromResult(
+            new HttpResponseMessage(HttpStatusCode.InternalServerError)));
+
+        var gateway = CreateGateway(ValidOptions, handler);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => gateway.GetStatusAsync("order-tracking-abc"));
+    }
+
     private static RoutingStubHandler CreateTokenThenHandler(
         Func<HttpRequestMessage, Task<HttpResponseMessage>> orderResponder)
     {

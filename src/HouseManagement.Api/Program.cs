@@ -97,6 +97,7 @@ builder.Services.AddScoped<IHouseHelpRatingService, HouseHelpRatingService>();
 builder.Services.AddScoped<IClientHouseHelpPreferenceService, ClientHouseHelpPreferenceService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
 builder.Services.AddScoped<IHouseHelpEarningsService, HouseHelpEarningsService>();
 builder.Services.AddScoped<IAdvancedReportingService, AdvancedReportingService>();
 builder.Services.Configure<ProfileImageOptions>(
@@ -204,13 +205,25 @@ if (submissionPermitLimit <= 0 || trackingPermitLimit <= 0 || windowSeconds <= 0
     throw new InvalidOperationException("Public booking rate limit configuration values must be greater than zero.");
 }
 
+var paymentWebhookRateLimitSection = builder.Configuration.GetSection("RateLimiting:PaymentWebhook");
+var paymentWebhookPermitLimit = paymentWebhookRateLimitSection.GetValue<int?>("PermitLimit") ?? 60;
+var paymentWebhookWindowSeconds = paymentWebhookRateLimitSection.GetValue<int?>("WindowSeconds") ?? 60;
+
+if (paymentWebhookPermitLimit <= 0 || paymentWebhookWindowSeconds <= 0)
+{
+    throw new InvalidOperationException("Payment webhook rate limit configuration values must be greater than zero.");
+}
+
 var publicBookingWindow = TimeSpan.FromSeconds(windowSeconds);
+var paymentWebhookWindow = TimeSpan.FromSeconds(paymentWebhookWindowSeconds);
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy(RateLimitPolicyNames.PublicBookingSubmission, httpContext =>
         CreateFixedWindowPartition(httpContext, submissionPermitLimit, publicBookingWindow));
     options.AddPolicy(RateLimitPolicyNames.PublicBookingTracking, httpContext =>
         CreateFixedWindowPartition(httpContext, trackingPermitLimit, publicBookingWindow));
+    options.AddPolicy(RateLimitPolicyNames.PaymentWebhook, httpContext =>
+        CreateFixedWindowPartition(httpContext, paymentWebhookPermitLimit, paymentWebhookWindow));
     options.OnRejected = async (context, cancellationToken) =>
     {
         var httpContext = context.HttpContext;

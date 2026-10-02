@@ -30,3 +30,18 @@ public sealed record PaymentGatewayCreateResult(
     string ProviderReference,
     string? CheckoutUrl,
     string? FailureReason);
+
+// Optional capability (T403): gateways that can only report payment status after the fact (e.g.
+// Pesapal, whose IPN callback is just a prompt to re-check rather than proof of payment)
+// implement this in addition to IPaymentGateway. The generic sandbox adapter has no external
+// status source to re-query, so it intentionally does not implement this interface.
+public interface IPaymentStatusQuery
+{
+    Task<PaymentGatewayStatusResult> GetStatusAsync(
+        string providerReference,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed record PaymentGatewayStatusResult(
+    PaymentStatus Status,
+    string? FailureReason);

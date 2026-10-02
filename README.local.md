@@ -20,6 +20,7 @@ Environment variables (recommended):
 - PaymentProviders__Pesapal__ConsumerKey / PaymentProviders__Pesapal__ConsumerSecret: Pesapal merchant credentials; never commit these to source control
 - PaymentProviders__Pesapal__CallbackUrl: this API's public IPN/redirect callback endpoint
 - PaymentProviders__Pesapal__IpnId: the `notification_id` returned by a one-time Pesapal `RegisterIPN` call against CallbackUrl
+- RateLimiting__PaymentWebhook__PermitLimit / RateLimiting__PaymentWebhook__WindowSeconds: throttles the `GET /api/payments/webhooks/pesapal` callback endpoint per client IP (defaults: 60 requests / 60s)
 
 CI / Deployment notes:
 - The repository CI workflow requires a repository secret JWT_KEY to be configured (see .github/workflows/ci.yml). The workflow fails if JWT_KEY is not set.
